@@ -6,8 +6,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0d0d18">
-<title>CRM · Sei Tu</title>
+<meta name="apple-mobile-web-app-title" content="CRM-JORGE">
+<meta name="application-name" content="CRM-JORGE">
+<meta name="theme-color" content="#22d3ee">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>CRM-JORGE</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{--bg:#0d0d18;--s1:#13131f;--s2:#1a1a2e;--s3:#22223a;--border:#2d2d4a;--cyan:#22d3ee;--orange:#fb923c;--green:#4ade80;--red:#f87171;--yellow:#fbbf24;--purple:#a78bfa;--text:#f0f4ff;--muted:#6b7280;--r:12px;--rsm:8px;--rc:14px}
@@ -114,16 +118,22 @@ input:checked+.sl3{background:var(--cyan)}
 input:checked+.sl3:before{transform:translateX(18px)}
 .sr{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
 /* GERENTE SIDE */
-#gSide{display:none;width:200px;background:var(--s1);border-right:1px solid var(--border);flex-direction:column;flex-shrink:0;padding:16px 0}
+#gMobBar{display:flex;align-items:center;padding:12px 14px;background:var(--s1);border-bottom:1px solid var(--border);flex-shrink:0}
+#gOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:90}
+#sGerente{flex-direction:column}
+#gSide{position:fixed;top:0;left:-220px;height:100vh;width:200px;background:var(--s1);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:16px 0;z-index:100;transition:left .25s;overflow-y:auto}
+#gSide.open{left:0}
+#gCont{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0}
 .glo{padding:8px 18px 20px;font-size:17px;font-weight:900;color:var(--cyan)}
 .gb{display:flex;align-items:center;gap:10px;padding:11px 18px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;border:none;background:none;width:100%;text-align:left}
 .gb svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .gb.on{color:var(--cyan);background:rgba(34,211,238,.08)}
 @media(min-width:768px){
-  #gSide{display:flex}
-  #sGerente{flex-direction:row}
+  #gMobBar{display:none!important}
+  #gOverlay{display:none!important}
+  #sGerente{flex-direction:row!important}
+  #gSide{position:relative;left:0!important;height:auto;transition:none;width:200px;flex-shrink:0}
   .sg{grid-template-columns:1fr 1fr 1fr 1fr}
-  #gCont{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0}
 }
 </style>
 </head>
@@ -197,6 +207,16 @@ input:checked+.sl3:before{transform:translateX(18px)}
 
 <!-- GERENTE -->
 <div class="sc" id="sGerente">
+  <!-- Topbar móvil (solo celular) -->
+  <div id="gMobBar">
+    <button onclick="toggleGSide()" style="background:none;border:none;color:var(--cyan);cursor:pointer;padding:4px;margin-right:12px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div style="font-size:16px;font-weight:700;color:var(--cyan)">Sei Tu CRM</div>
+  </div>
+  <!-- Overlay para cerrar menú -->
+  <div id="gOverlay" onclick="toggleGSide()"></div>
+  <!-- Side nav -->
   <div id="gSide">
     <div class="glo">Sei Tu CRM</div>
     <button class="gb on" id="gbD" onclick="gGo('D')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</button>
@@ -207,6 +227,7 @@ input:checked+.sl3:before{transform:translateX(18px)}
     <button class="gb" id="gbCfg" onclick="gGo('Cfg')" style="margin-top:auto"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Config</button>
     <button class="gb" onclick="doLogout()" style="color:var(--red)"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Salir</button>
   </div>
+  <!-- Contenido -->
   <div id="gCont">
     <div class="sc on" id="sGD"><div class="scr" id="gDB"></div></div>
     <div class="sc" id="sGC">
@@ -245,12 +266,12 @@ input:checked+.sl3:before{transform:translateX(18px)}
 </div>
 
 <script>
-var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Freezer Instalado','Cliente Activo'];
+var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
-var EC={'Nuevo Prospecto':'#fb923c','Contactado':'#fbbf24','Propuesta Enviada':'#a78bfa','Negociacion':'#22d3ee','Freezer Instalado':'#4ade80','Cliente Activo':'#4ade80','No Le Interesa':'#f87171','Perdido':'#f87171'};
-var MD={'Nuevo Prospecto':'Hola! Soy de Sei Tu Helados, pase por tu local y me gustaria contarte nuestra propuesta. Tenes un minuto?','Contactado':'Hola! Te escribo para coordinar una visita y mostrarte la propuesta de Sei Tu. Que dia te viene bien?','Propuesta Enviada':'Hola! Pudiste ver la propuesta? Queda alguna duda que pueda responder?','Negociacion':'Hola! Como venimos con la propuesta? Si necesitas ajustar algo avisame.','Freezer Instalado':'Hola! Ya tenes el freezer instalado. Cualquier cosa para arrancar, contame!','Cliente Activo':'Hola! Como va la venta? Aviso si hay novedades o promos.','No Le Interesa':'Gracias por tu tiempo! Si cambia la situacion quedo disponible.','Perdido':'Hola! Hace tiempo no hablamos. Segui interesado en Sei Tu?'};
+var EC={'Nuevo Prospecto':'#fb923c','Contactado':'#fbbf24','Propuesta Enviada':'#a78bfa','Negociacion':'#22d3ee','Cliente Activo':'#4ade80','No Le Interesa':'#f87171','Perdido':'#f87171'};
+var MD={'Nuevo Prospecto':'Hola! Soy de Sei Tu Helados, pase por tu local y me gustaria contarte nuestra propuesta. Tenes un minuto?','Contactado':'Hola! Te escribo para coordinar una visita y mostrarte la propuesta de Sei Tu. Que dia te viene bien?','Propuesta Enviada':'Hola! Pudiste ver la propuesta? Queda alguna duda que pueda responder?','Negociacion':'Hola! Como venimos con la propuesta? Si necesitas ajustar algo avisame.','Cliente Activo':'Hola! Como va la venta? Aviso si hay novedades o promos.','No Le Interesa':'Gracias por tu tiempo! Si cambia la situacion quedo disponible.','Perdido':'Hola! Hace tiempo no hablamos. Segui interesado en Sei Tu?'};
 var CFG={syncUrl:'',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Drugstore/Kiosco','Mini Super','Club','Restaurante','Cafeteria','Heladeria','Farmacia','Otros'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Otro'],msgs:Object.assign({},MD)};
-var D={user:null,usrs:[{id:1,n:'Jorge',u:'jorge',p:'seitu2026',r:'gerente'},{id:2,n:'Chamu',u:'chamu',p:'seitu2026',r:'vendedor'},{id:3,n:'Pablo',u:'pablo',p:'seitu2026',r:'vendedor'}],cli:[],vis:[],com:[],gira:[],cfg:JSON.parse(JSON.stringify(CFG))};
+var D={user:null,usrs:[{id:1,n:'JL',u:'jl',p:'seitu2026',r:'admin'},{id:2,n:'Jorge',u:'jorge',p:'seitu2026',r:'vendedor'},{id:3,n:'Chamu',u:'chamu',p:'seitu2026',r:'vendedor'},{id:4,n:'Pablo',u:'pablo',p:'seitu2026',r:'vendedor'}],cli:[],vis:[],com:[],gira:[],cfg:JSON.parse(JSON.stringify(CFG))};
 // UTILS
 function uid(){return Date.now()+Math.random().toString(36).slice(2,5);}
 function ls(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
@@ -315,7 +336,14 @@ function doLogin(){
   var usr=null;for(var i=0;i<D.usrs.length;i++){if(D.usrs[i].u===u&&D.usrs[i].p===p){usr=D.usrs[i];break;}}
   if(!usr){e.textContent='Usuario o contrasena incorrectos.';e.style.display='block';return;}
   D.user=usr;ls('jses',usr);
-  sincBajar(function(){startApp();});
+  // Abrir la app INMEDIATAMENTE, sincronizar en segundo plano
+  startApp();
+  sincBajar(function(ok){
+    if(ok&&D.user){
+      if(D.user.r==='gerente'||D.user.r==='admin') renderGD();
+      else renderVH();
+    }
+  });
 }
 function startApp(){
   document.getElementById('sLogin').classList.remove('on');
@@ -349,11 +377,20 @@ function vGo(t){
 }
 function showWiz(){document.getElementById('sVen').classList.remove('on');document.getElementById('sWiz').classList.add('on');document.getElementById('vNav').style.display='none';}
 function hideWiz(){document.getElementById('sWiz').classList.remove('on');document.getElementById('sVen').classList.add('on');document.getElementById('vNav').style.display='flex';}
+function toggleGSide(){
+  var s=document.getElementById('gSide');var o=document.getElementById('gOverlay');
+  var isOpen=s.classList.contains('open');
+  s.classList.toggle('open');
+  if(o)o.style.display=isOpen?'none':'block';
+}
 function gGo(s){
   document.querySelectorAll('#gCont .sc').forEach(function(x){x.classList.remove('on');});
   document.querySelectorAll('.gb').forEach(function(b){b.classList.remove('on');});
   var m={D:['sGD','gbD',renderGD],C:['sGC','gbC',renderGC],E:['sGE','gbE',renderGE],V:['sGV','gbV',renderGV],Co:['sGCo','gbCo',renderGCo],Cfg:['sGCfg','gbCfg',renderGCfg]};
   if(m[s]){document.getElementById(m[s][0]).classList.add('on');document.getElementById(m[s][1]).classList.add('on');m[s][2]();}
+  // Cerrar el menú lateral en mobile después de navegar
+  var side=document.getElementById('gSide');var ov=document.getElementById('gOverlay');
+  if(side&&side.classList.contains('open')){side.classList.remove('open');if(ov)ov.style.display='none';}
 }
 // MODAL
 function oMod(t,h){document.getElementById('mT').textContent=t;document.getElementById('mB').innerHTML=h;document.getElementById('modal').classList.add('on');}
@@ -361,7 +398,7 @@ function cMod(){document.getElementById('modal').classList.remove('on');}
 // VENDEDOR HOY
 function renderVH(){
   var g=D.gira.map(function(id){return D.cli.find(function(c){return c.id===id;});}).filter(Boolean);
-  if(!g.length){document.getElementById('vHB').innerHTML='<div class="empty"><div style="font-size:40px;margin-bottom:12px">&#128197;</div><div style="font-size:16px;font-weight:700;margin-bottom:6px">Sin paradas hoy</div><div style="font-size:13px">Agregalas desde la pestana GIRA</div></div>';return;}
+  if(!g.length){document.getElementById('vHB').innerHTML='<div style="padding:14px 0"><div class="card" style="text-align:center;padding:24px"><div style="font-size:36px;margin-bottom:10px">&#128197;</div><div style="font-size:16px;font-weight:700;margin-bottom:6px">No hay visitas agendadas</div><div style="font-size:13px;color:var(--muted);margin-bottom:16px">Agrega clientes desde la pestana GIRA</div><button class="btn" onclick="vGo(\'G\')" style="margin:0">Ir a la Gira</button></div><div class="card" style="text-align:center;padding:24px;margin-top:10px"><div style="font-size:36px;margin-bottom:10px">&#43;</div><div style="font-size:16px;font-weight:700;margin-bottom:6px">Agregar nuevo prospecto</div><div style="font-size:13px;color:var(--muted);margin-bottom:16px">Estas frente a un local nuevo?</div><button class="btn or" onclick="nuevoPros()" style="margin:0">Nuevo prospecto</button></div></div>';return;}
   var h='';
   g.forEach(function(c,i){
     var d7=dias(c.ul);var col=d7===null?'var(--red)':d7>14?'var(--red)':d7>7?'var(--orange)':'var(--green)';
@@ -402,7 +439,9 @@ function wFin(){
   D.vis.push(v);
   var c=D.cli.find(function(x){return x.id===W.cid;});
   if(c){c.ul=v.fecha;if(v.vendio===true)c.uv=v.fecha;if(v.prox)c.prox=v.prox;if(v.eta)c.etapaEmbudo=v.eta;if(v.deu!==undefined)c.deu=v.deu;}
-  save();hideWiz();sincSubir(null);toast('Visita guardada!','ok');renderVH();
+  save();hideWiz();sincSubir(null);toast('Guardado!','ok');
+  // Si fue prospecto nuevo, ir al pipeline para verlo
+  if(W.nu&&W.tipo==='prospecto'){vGo('P');}else{renderVH();}
 }
 // VISITA CLIENTE
 function aVisita(id){
@@ -790,6 +829,10 @@ function impDatos(inp){var f=inp.files&&inp.files[0];if(!f)return;var r=new File
 // INIT
 window.addEventListener('load',function(){
   load();
+  // PWA: registrar service worker
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  }
   var ses=lg('jses',null);
   if(ses){var u=D.usrs.find(function(x){return x.id===ses.id;});if(u){D.user=u;startApp();return;}}
   // Enter en login
