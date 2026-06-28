@@ -1,20 +1,22 @@
-const CACHE = 'crm-jorge-v1';
+// Service Worker CRM-JORGE
+// Estrategia: Network First con fallback a cache
+// Cada vez que hay internet, carga la version mas reciente automaticamente
+
+const CACHE = 'crm-jorge-v2';
 const ARCHIVOS = [
   '/CRM-Jorge/',
   '/CRM-Jorge/index.html'
 ];
 
-// Instalar: guardar archivos en cache
 self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE).then(function(c) {
       return c.addAll(ARCHIVOS);
     })
   );
-  self.skipWaiting();
+  self.skipWaiting(); // activar inmediatamente sin esperar
 });
 
-// Activar: limpiar caches viejos
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
@@ -24,16 +26,14 @@ self.addEventListener('activate', function(e) {
       );
     })
   );
-  self.clients.claim();
+  self.clients.claim(); // tomar control de todas las pestanas abiertas
 });
 
-// Fetch: servir desde cache si no hay internet
 self.addEventListener('fetch', function(e) {
-  // Las llamadas al Apps Script siempre van a la red (son la sincronizacion)
-  if (e.request.url.includes('script.google.com')) {
+  // Llamadas al Apps Script: siempre van a la red
+  if(e.request.url.includes('script.google.com')) {
     e.respondWith(
       fetch(e.request).catch(function() {
-        // Si no hay internet, devuelve error controlado
         return new Response(JSON.stringify({ok:false,error:'sin_conexion'}), {
           headers: {'Content-Type': 'application/json'}
         });
@@ -42,20 +42,21 @@ self.addEventListener('fetch', function(e) {
     return;
   }
 
-  // Todo lo demas: cache primero, red como fallback
+  // Todo lo demas: Network First
+  // Intenta la red primero, si falla usa cache
+  // Asi siempre se carga la version mas reciente cuando hay internet
   e.respondWith(
-    caches.match(e.request).then(function(cached) {
-      if (cached) return cached;
-      return fetch(e.request).then(function(response) {
-        // Guardar en cache para proxima vez
-        if (response && response.ok) {
-          var copia = response.clone();
-          caches.open(CACHE).then(function(c) { c.put(e.request, copia); });
-        }
-        return response;
-      }).catch(function() {
-        // Sin internet y sin cache: devolver el HTML principal
-        return caches.match('/CRM-Jorge/index.html');
+    fetch(e.request).then(function(response) {
+      // Si la respuesta es valida, guardarla en cache y devolverla
+      if(response && response.ok) {
+        var copia = response.clone();
+        caches.open(CACHE).then(function(c) { c.put(e.request, copia); });
+      }
+      return response;
+    }).catch(function() {
+      // Sin internet: servir desde cache
+      return caches.match(e.request).then(function(cached) {
+        return cached || caches.match('/CRM-Jorge/index.html');
       });
     })
   );
