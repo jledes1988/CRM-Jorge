@@ -158,35 +158,37 @@ input:checked+.sl3:before{transform:translateX(18px)}
   <div class="sc on" id="sVH">
     <div class="tb">
       <div style="flex:1"><div class="tb-t" id="vNm">Hola!</div><div class="tb-s" id="vDt"></div></div>
-      <button class="sm" onclick="sincBajar(function(ok){if(ok){renderVH();toast('Actualizado','ok');}})">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Sync
-      </button>
+      <button class="sm" onclick="sincBajar(function(ok){if(ok)renderVH();})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Sync</button>
     </div>
     <div class="scr" id="vHB"></div>
-    <button class="fab" onclick="nuevoPros()" title="Nuevo prospecto">+</button>
+    <button class="fab" onclick="nuevoPros()">+</button>
   </div>
-  <!-- PIPELINE -->
-  <div class="sc" id="sVP">
-    <div class="tb"><div class="tb-t">Pipeline</div></div>
-    <div class="filts" id="vPF"></div>
-    <div class="scr" id="vPB"></div>
+  <!-- CONTACTOS -->
+  <div class="sc" id="sVC">
+    <div class="tb">
+      <div class="tb-t">Contactos</div>
+      <button class="sm" onclick="abrirFiltros()" style="margin-left:auto">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>Filtros
+      </button>
+      <button class="sm g" onclick="nuevoPros()">+ Nuevo</button>
+    </div>
+    <div id="vCActivos" style="padding:6px 14px;border-bottom:1px solid var(--border);display:none;overflow-x:auto;white-space:nowrap"></div>
+    <div class="srch"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="vCQ" placeholder="Buscar nombre o direccion..." oninput="renderVC()"></div>
+    <div class="scr" id="vCB"></div>
+  </div>
+  <!-- EMBUDO -->
+  <div class="sc" id="sVE">
+    <div class="tb"><div class="tb-t">Embudo de venta</div></div>
+    <div class="filts" id="vEF"></div>
+    <div class="scr" id="vEB"></div>
   </div>
   <!-- GIRA -->
   <div class="sc" id="sVG">
-    <div class="tb">
-      <div class="tb-t">Gira del dia</div>
-      <button class="sm wa" onclick="expGiraWA()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>WA
-      </button>
+    <div style="display:flex;background:var(--s1);border-bottom:1px solid var(--border);flex-shrink:0">
+      <button id="gTPl" onclick="setGTab('plan')" style="flex:1;padding:12px;border:none;background:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent">PLANIFICAR</button>
+      <button id="gTEj" onclick="setGTab('ejec')" style="flex:1;padding:12px;border:none;background:none;color:var(--cyan);font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--cyan)">EJECUTAR HOY</button>
     </div>
-    <div class="scr">
-      <div id="vGL"></div>
-      <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">AGREGAR</div>
-        <div class="srch"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="gSrch" placeholder="Buscar..." oninput="renderGA()"></div>
-        <div id="vGA"></div>
-      </div>
-    </div>
+    <div class="scr" id="vGB"></div>
   </div>
 </div>
 
@@ -261,7 +263,8 @@ input:checked+.sl3:before{transform:translateX(18px)}
 <!-- BOTTOM NAV -->
 <div id="vNav" style="display:none">
   <button class="vb on" id="vbH" onclick="vGo('H')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>HOY</button>
-  <button class="vb" id="vbP" onclick="vGo('P')"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>PIPELINE</button>
+  <button class="vb" id="vbC" onclick="vGo('C')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>CONTACTOS</button>
+  <button class="vb" id="vbE" onclick="vGo('E')"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>EMBUDO</button>
   <button class="vb" id="vbG" onclick="vGo('G')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>GIRA</button>
 </div>
 
@@ -270,7 +273,7 @@ var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Client
 var SA=['No Le Interesa','Perdido'];
 var EC={'Nuevo Prospecto':'#fb923c','Contactado':'#fbbf24','Propuesta Enviada':'#a78bfa','Negociacion':'#22d3ee','Cliente Activo':'#4ade80','No Le Interesa':'#f87171','Perdido':'#f87171'};
 var MD={'Nuevo Prospecto':'Hola! Soy de Sei Tu Helados, pase por tu local y me gustaria contarte nuestra propuesta. Tenes un minuto?','Contactado':'Hola! Te escribo para coordinar una visita y mostrarte la propuesta de Sei Tu. Que dia te viene bien?','Propuesta Enviada':'Hola! Pudiste ver la propuesta? Queda alguna duda que pueda responder?','Negociacion':'Hola! Como venimos con la propuesta? Si necesitas ajustar algo avisame.','Cliente Activo':'Hola! Como va la venta? Aviso si hay novedades o promos.','No Le Interesa':'Gracias por tu tiempo! Si cambia la situacion quedo disponible.','Perdido':'Hola! Hace tiempo no hablamos. Segui interesado en Sei Tu?'};
-var CFG={syncUrl:'',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Drugstore/Kiosco','Mini Super','Club','Restaurante','Cafeteria','Heladeria','Farmacia','Otros'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Otro'],msgs:Object.assign({},MD)};
+var CFG={syncUrl:'https://script.google.com/macros/s/AKfycbyGnQIIrBDvOSik7YBp-Rpr3O70VGOwvwEDwBgtqfTuBukD-8u5uCncRFCbujvtKX6OAg/exec',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Drugstore/Kiosco','Mini Super','Club','Restaurante','Cafeteria','Heladeria','Farmacia','Otros'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Otro'],msgs:Object.assign({},MD)};
 var D={user:null,usrs:[{id:1,n:'JL',u:'jl',p:'seitu2026',r:'admin'},{id:2,n:'Jorge',u:'jorge',p:'seitu2026',r:'vendedor'},{id:3,n:'Chamu',u:'chamu',p:'seitu2026',r:'vendedor'},{id:4,n:'Pablo',u:'pablo',p:'seitu2026',r:'vendedor'}],cli:[],vis:[],com:[],gira:[],cfg:JSON.parse(JSON.stringify(CFG))};
 // UTILS
 function uid(){return Date.now()+Math.random().toString(36).slice(2,5);}
@@ -289,7 +292,9 @@ function load(){
   var g=lg('jg',null);if(g)D.gira=g;
   var f=lg('jf',null);if(f){Object.keys(CFG).forEach(function(k){if(f[k]===undefined)f[k]=CFG[k];});D.cfg=f;}
   var u=lg('ju',null);if(u)D.usrs=u;
-  D.cli.forEach(function(c){if(!c.etapaEmbudo||c.etapaEmbudo==='')c.etapaEmbudo=c.esP?'Nuevo Prospecto':'Cliente Activo';if(!c.uv)c.uv='';if(!c.ex)c.ex={};if(c.deu===undefined)c.deu=false;});
+  D.cli.forEach(function(c){if(!c.etapaEmbudo||c.etapaEmbudo==='')c.etapaEmbudo=c.esP?'Nuevo Prospecto':'Cliente Activo';if(!c.uv)c.uv='';if(!c.ex)c.ex={};if(c.deu===undefined)c.deu=false;if(!c.ing)c.ing='';});
+  // Migrar gira vieja (array de strings) al nuevo formato {cid, fecha}
+  if(D.gira.length&&typeof D.gira[0]==='string'){var hoyM=today();D.gira=D.gira.map(function(id){return{cid:id,fecha:hoyM};});}
 }
 function cFoto(file,cb){var r=new FileReader();r.onload=function(){var i=new Image();i.onload=function(){var cv=document.createElement('canvas');var mx=900;var rt=Math.min(mx/i.width,mx/i.height,1);cv.width=Math.round(i.width*rt);cv.height=Math.round(i.height*rt);cv.getContext('2d').drawImage(i,0,0,cv.width,cv.height);cb(cv.toDataURL('image/jpeg',.72));};i.src=r.result;};r.readAsDataURL(file);}
 // CHIPS
@@ -357,6 +362,8 @@ function startApp(){
     document.getElementById('vNm').textContent='Hola, '+D.user.n+'!';
     document.getElementById('vDt').textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
     renderVH();
+    // Iniciar en tab ejecutar
+    setGTab('ejec');
   }
 }
 function doLogout(){
@@ -369,231 +376,387 @@ function doLogout(){
   });
 }
 // NAV
+function today(){return new Date().toISOString().split('T')[0];}
 function vGo(t){
   document.querySelectorAll('#sVen .sc').forEach(function(s){s.classList.remove('on');});
   document.querySelectorAll('.vb').forEach(function(b){b.classList.remove('on');});
-  var m={H:['sVH','vbH',renderVH],P:['sVP','vbP',renderVP],G:['sVG','vbG',renderVG]};
+  var m={H:['sVH','vbH',renderVH],C:['sVC','vbC',renderVC],E:['sVE','vbE',renderVE],G:['sVG','vbG',renderVG]};
   if(m[t]){document.getElementById(m[t][0]).classList.add('on');document.getElementById(m[t][1]).classList.add('on');m[t][2]();}
 }
 function showWiz(){document.getElementById('sVen').classList.remove('on');document.getElementById('sWiz').classList.add('on');document.getElementById('vNav').style.display='none';}
 function hideWiz(){document.getElementById('sWiz').classList.remove('on');document.getElementById('sVen').classList.add('on');document.getElementById('vNav').style.display='flex';}
-function toggleGSide(){
-  var s=document.getElementById('gSide');var o=document.getElementById('gOverlay');
-  var isOpen=s.classList.contains('open');
-  s.classList.toggle('open');
-  if(o)o.style.display=isOpen?'none':'block';
-}
-function gGo(s){
-  document.querySelectorAll('#gCont .sc').forEach(function(x){x.classList.remove('on');});
-  document.querySelectorAll('.gb').forEach(function(b){b.classList.remove('on');});
-  var m={D:['sGD','gbD',renderGD],C:['sGC','gbC',renderGC],E:['sGE','gbE',renderGE],V:['sGV','gbV',renderGV],Co:['sGCo','gbCo',renderGCo],Cfg:['sGCfg','gbCfg',renderGCfg]};
-  if(m[s]){document.getElementById(m[s][0]).classList.add('on');document.getElementById(m[s][1]).classList.add('on');m[s][2]();}
-  // Cerrar el menú lateral en mobile después de navegar
-  var side=document.getElementById('gSide');var ov=document.getElementById('gOverlay');
-  if(side&&side.classList.contains('open')){side.classList.remove('open');if(ov)ov.style.display='none';}
-}
-// MODAL
-function oMod(t,h){document.getElementById('mT').textContent=t;document.getElementById('mB').innerHTML=h;document.getElementById('modal').classList.add('on');}
-function cMod(){document.getElementById('modal').classList.remove('on');}
-// VENDEDOR HOY
+
+// ── HOY ───────────────────────────────────────────────────────────────
 function renderVH(){
-  var g=D.gira.map(function(id){return D.cli.find(function(c){return c.id===id;});}).filter(Boolean);
-  if(!g.length){document.getElementById('vHB').innerHTML='<div style="padding:14px 0"><div class="card" style="text-align:center;padding:24px"><div style="font-size:36px;margin-bottom:10px">&#128197;</div><div style="font-size:16px;font-weight:700;margin-bottom:6px">No hay visitas agendadas</div><div style="font-size:13px;color:var(--muted);margin-bottom:16px">Agrega clientes desde la pestana GIRA</div><button class="btn" onclick="vGo(\'G\')" style="margin:0">Ir a la Gira</button></div><div class="card" style="text-align:center;padding:24px;margin-top:10px"><div style="font-size:36px;margin-bottom:10px">&#43;</div><div style="font-size:16px;font-weight:700;margin-bottom:6px">Agregar nuevo prospecto</div><div style="font-size:13px;color:var(--muted);margin-bottom:16px">Estas frente a un local nuevo?</div><button class="btn or" onclick="nuevoPros()" style="margin:0">Nuevo prospecto</button></div></div>';return;}
-  var h='';
-  g.forEach(function(c,i){
-    var d7=dias(c.ul);var col=d7===null?'var(--red)':d7>14?'var(--red)':d7>7?'var(--orange)':'var(--green)';
-    h+='<div class="cc"><div style="display:flex;align-items:center;gap:10px"><div style="width:36px;height:36px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:var(--muted);flex-shrink:0">'+(i+1)+'</div>';
-    h+='<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.nm)+'</div>';
-    h+='<div style="font-size:12px;color:var(--muted)">'+es(c.dir||'')+(c.bar?' · '+es(c.bar):'')+'</div></div>';
-    h+='<div style="text-align:right;flex-shrink:0"><span class="tg '+(c.esP?'o':'g')+'">'+(c.esP?'PROS':'CLI')+'</span>';
-    h+='<div style="font-size:10px;margin-top:4px;color:'+col+'">'+(c.ul?fmt(c.ul):'Sin visitar')+'</div></div></div>';
-    h+='<div style="display:flex;gap:6px;margin-top:10px"><button class="sm g" onclick="aVisita(\''+c.id+'\')" style="flex:1">Registrar visita</button>';
-    if(c.tel){h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')" title="WhatsApp"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>';}
-    h+='<button class="sm rd" onclick="qGira(\''+c.id+'\')">&#215;</button></div></div>';
-  });
+  var hoy=today();
+  var visHoy=D.vis.filter(function(v){return v.fecha===hoy&&(!D.user||v.vend===D.user.n);});
+  var prosHoy=D.cli.filter(function(c){return c.ing===hoy;});
+  var ventasHoy=visHoy.filter(function(v){return v.vendio===true;}).length;
+  var h='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">';
+  h+='<div class="sb"><div class="sn">'+visHoy.length+'</div><div class="sl2">Visitas</div></div>';
+  h+='<div class="sb"><div class="sn" style="color:var(--green)">'+ventasHoy+'</div><div class="sl2">Ventas</div></div>';
+  h+='<div class="sb"><div class="sn" style="color:var(--orange)">'+prosHoy.length+'</div><div class="sl2">Prospectos</div></div>';
+  h+='</div>';
+  if(!visHoy.length&&!prosHoy.length){
+    h+='<div class="card" style="text-align:center;padding:24px"><div style="font-size:36px;margin-bottom:10px">&#128197;</div>';
+    h+='<div style="font-size:16px;font-weight:700;margin-bottom:6px">Sin actividad registrada hoy</div>';
+    h+='<div style="font-size:13px;color:var(--muted);margin-bottom:16px">Ejecuta la gira o agrega un prospecto nuevo</div>';
+    h+='<button class="btn" onclick="vGo(\'G\')" style="margin:0 0 8px">Ir a la Gira</button>';
+    h+='<button class="btn or" onclick="nuevoPros()" style="margin:0">Nuevo prospecto</button></div>';
+  } else {
+    if(prosHoy.length){
+      h+='<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">PROSPECTOS CARGADOS HOY</div>';
+      prosHoy.forEach(function(c){
+        h+='<div class="cc" style="cursor:default"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
+        h+='<div style="font-size:12px;color:var(--muted)">'+es(c.bar||'')+(c.tipo?' · '+es(c.tipo):'')+'</div>';
+        h+='<span class="tg o" style="margin-top:6px;display:inline-flex">'+es(c.etapaEmbudo||'Nuevo Prospecto')+'</span></div>';
+      });
+    }
+    if(visHoy.length){
+      h+='<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">VISITAS REGISTRADAS HOY</div>';
+      visHoy.forEach(function(v){
+        var c=D.cli.find(function(x){return x.id===v.cid;});
+        h+='<div class="vh"><div class="vhd">'+fmt(v.fecha)+'</div>';
+        h+='<div class="vhr">'+es(c?c.nm:'?')+'</div>';
+        h+='<div class="vhx">'+(v.tipo==='prospecto'?'Visita prospecto':v.vendio===true?'Venta realizada':'Sin venta')+'</div>';
+        if(v.vendio===false&&v.razones){h+='<div class="vhx">Motivo: '+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>';}
+        if(v.obs){h+='<div class="vhx" style="font-style:italic">'+es(v.obs)+'</div>';}
+        h+='</div>';
+      });
+    }
+  }
   document.getElementById('vHB').innerHTML=h;
 }
-function qGira(id){D.gira=D.gira.filter(function(x){return x!==id;});save();renderVH();renderVG();}
-function envWA(id){var c=D.cli.find(function(x){return x.id===id;});if(!c||!c.tel)return;var m=c.esP?((D.cfg.msgs&&D.cfg.msgs[c.etapaEmbudo])||MD[c.etapaEmbudo]||''):'Hola! Te escribo de Sei Tu Helados.';window.open('https://wa.me/54'+c.tel.replace(/\D/g,'')+'?text='+encodeURIComponent(m),'_blank');}
-// WIZARD ENGINE
-var W={steps:[],cur:0,data:{},cid:null,tipo:null,nu:false};
-function wInit(t,steps,cid,tipo,nu){W.steps=steps;W.cur=0;W.data={};W.cid=cid;W.tipo=tipo;W.nu=!!nu;document.getElementById('wT').textContent=t;showWiz();wRender();}
-function wRender(){
-  var s=W.steps[W.cur];var n=W.steps.length;
-  document.getElementById('wS').textContent=s.sub||'';
-  document.getElementById('wL').textContent=(W.cur+1)+'/'+n;
-  document.getElementById('wP').style.width=(((W.cur+1)/n)*100)+'%';
-  document.getElementById('wB').innerHTML=s.render(W.data,W.cid);
-  document.getElementById('wBk').style.display=W.cur>0?'block':'none';
-  var ul=W.cur===n-1;
-  document.getElementById('wNx').textContent=ul?'Guardar':'Siguiente';
-  document.getElementById('wNx').className=ul?'btn or':'btn';
-  if(s.init)setTimeout(function(){s.init();},50);
-}
-function wBack(){if(W.cur===0){if(W.nu){var c=D.cli.find(function(x){return x.id===W.cid;});if(c&&!c.nm){D.cli=D.cli.filter(function(x){return x.id!==W.cid;});save();}}hideWiz();return;}W.cur--;wRender();}
-function wPrev(){W.cur--;wRender();}
-function wNext(){var s=W.steps[W.cur];if(s.val){var e=s.val();if(e){toast(e,'err');return;}}if(s.sv)s.sv(W.data);if(W.cur===W.steps.length-1){wFin();}else{W.cur++;wRender();}}
-function wFin(){
-  var v={id:uid(),cid:W.cid,fecha:new Date().toISOString().split('T')[0],vend:D.user?D.user.n:'',tipo:W.tipo};
-  Object.assign(v,W.data);
-  D.vis.push(v);
-  var c=D.cli.find(function(x){return x.id===W.cid;});
-  if(c){c.ul=v.fecha;if(v.vendio===true)c.uv=v.fecha;if(v.prox)c.prox=v.prox;if(v.eta)c.etapaEmbudo=v.eta;if(v.deu!==undefined)c.deu=v.deu;}
-  save();hideWiz();sincSubir(null);toast('Guardado!','ok');
-  // Si fue prospecto nuevo, ir al pipeline para verlo
-  if(W.nu&&W.tipo==='prospecto'){vGo('P');}else{renderVH();}
-}
-// VISITA CLIENTE
-function aVisita(id){
-  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
-  if(c.esP){aVisPros(id,false);return;}
-  var rz=D.cfg.razones||['Sin plata','Freezer lleno','Otro'];
-  var steps=[
-    {sub:'1/5 · Imagen exterior',
-     render:function(){return '<div style="font-size:22px;font-weight:800;margin-bottom:12px">Imagen exterior</div><div style="color:var(--muted);font-size:14px;margin-bottom:14px">Carteleria, limpieza y acceso al local</div><div class="chips">'+ch('OK','OK','ext',false,'gon')+ch('Mejorar','Necesita mejora','ext',false,'oon')+ch('Critico','Critico','ext',false,'ron')+'</div><div class="fg" style="margin-top:14px"><label class="fl">Observaciones</label><textarea class="fi fta" id="oE" placeholder="Detalles..."></textarea></div><label class="pb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span id="lE">Foto exterior</span><input type="file" accept="image/*" capture="environment" style="display:none" onchange="wf(this,\'fE\',\'lE\',\'pE\')"></label><img id="pE" class="pp">';},
-     init:function(){if(W.data.iE)sc('ext',W.data.iE);if(W.data.fE){var i=document.getElementById('pE');if(i){i.src=W.data.fE;i.style.display='block';}}},
-     sv:function(d){d.iE=gc('ext');d.oE=document.getElementById('oE').value;}},
-    {sub:'2/5 · Imagen interior',
-     render:function(){return '<div style="font-size:22px;font-weight:800;margin-bottom:12px">Imagen interior</div><div style="color:var(--muted);font-size:14px;margin-bottom:14px">Orden, limpieza y presentacion interna</div><div class="chips">'+ch('OK','OK','int',false,'gon')+ch('Mejorar','Necesita mejora','int',false,'oon')+ch('Critico','Critico','int',false,'ron')+'</div><div class="fg" style="margin-top:14px"><label class="fl">Observaciones</label><textarea class="fi fta" id="oI" placeholder="Detalles..."></textarea></div><label class="pb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span id="lI">Foto interior</span><input type="file" accept="image/*" capture="environment" style="display:none" onchange="wf(this,\'fI\',\'lI\',\'pI\')"></label><img id="pI" class="pp">';},
-     init:function(){if(W.data.iI)sc('int',W.data.iI);},
-     sv:function(d){d.iI=gc('int');d.oI=document.getElementById('oI').value;}},
-    {sub:'3/5 · Control del freezer',
-     render:function(){return '<div style="font-size:22px;font-weight:800;margin-bottom:12px">Freezer</div><div class="card"><div class="ct">Ubicacion</div><div class="chips">'+ch('OK','OK','fU',false,'gon')+ch('Mej','Mejorable','fU',false,'oon')+ch('Reu','Reubicar','fU',false,'ron')+'</div></div><div class="card"><div class="ct">Planimetria</div><div class="chips">'+ch('OK','OK','fP',false,'gon')+ch('Mej','Mejorable','fP',false,'oon')+ch('Cri','Critica','fP',false,'ron')+'</div></div><div class="card"><div class="ct">Estado exterior</div><div class="chips">'+ch('OK','OK','fX',false,'gon')+ch('Ate','Necesita atencion','fX',false,'oon')+ch('Rot','Roto/Falla','fX',false,'ron')+'</div></div><div class="card"><div class="ct">Estado interior</div><div class="chips">'+ch('OK','OK','fN',false,'gon')+ch('Esc','Escarchado','fN',false,'oon')+ch('Des','Desorganizado','fN',false,'ron')+'</div></div><label class="pb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span id="lF">Foto del freezer</span><input type="file" accept="image/*" capture="environment" style="display:none" onchange="wf(this,\'fF\',\'lF\',\'pF\')"></label><img id="pF" class="pp">';},
-     init:function(){['fU','fP','fX','fN'].forEach(function(g){if(W.data['fr'+g])sc(g,W.data['fr'+g]);});},
-     sv:function(d){['fU','fP','fX','fN'].forEach(function(g){d['fr'+g]=gc(g);});}},
-    {sub:'4/5 · Venta',
-     render:function(){
-       var rzH=rz.map(function(r){return ch(r,r,'nv',true,'');}).join('');
-       return '<div style="font-size:22px;font-weight:800;margin-bottom:14px">Venta</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px"><div id="bS" onclick="tgV(true)" style="padding:20px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">SI</div><div id="bN" onclick="tgV(false)" style="padding:20px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">NO</div></div><div id="nvS" style="display:none"><div class="ct">Motivo (podes elegir varios)</div><div class="chips">'+rzH+'</div><div id="nvO" style="display:none;margin-top:8px"><input class="fi" id="otroT" placeholder="Especifica el motivo..."></div></div><div class="fg" style="margin-top:14px"><label class="fl">Notas de la visita</label><textarea class="fi fta" id="ntV" placeholder="Observaciones, acuerdos, proximos pasos..."></textarea></div><div class="fg"><label class="fl">Proxima visita</label><input class="fi" type="date" id="prV"></div><div class="sr" style="margin-top:4px"><span style="font-weight:700;color:var(--red)">Marcar como deudor</span><label class="sw"><input type="checkbox" id="chD"><span class="sl3"></span></label></div>';
-     },
-     init:function(){if(W.data.vendio===true)tgV(true);else if(W.data.vendio===false)tgV(false);},
-     sv:function(d){d.nt=document.getElementById('ntV').value;d.prox=document.getElementById('prV').value;d.deu=document.getElementById('chD').checked;if(d.vendio===false){d.razones=gcs('nv');var ot=document.getElementById('otroT');if(ot&&ot.value)d.otroM=ot.value;}}},
-    {sub:'5/5 · Material POP',
-     render:function(){return '<div style="font-size:22px;font-weight:800;margin-bottom:12px">Material POP</div><div style="color:var(--muted);font-size:14px;margin-bottom:14px">Carteleria, folletos y exhibidores de la marca</div><div class="chips">'+ch('OK','OK y actualizado','pop',false,'gon')+ch('Fal','Falta material','pop',false,'oon')+ch('Mal','En mal estado','pop',false,'ron')+ch('Sin','Sin POP','pop',false,'')+'</div><div class="fg" style="margin-top:14px"><label class="fl">Notas finales</label><textarea class="fi fta" id="ntP" placeholder="Cualquier observacion..."></textarea></div>';},
-     init:function(){if(W.data.pop)sc('pop',W.data.pop);},
-     sv:function(d){d.pop=gc('pop');d.ntP=document.getElementById('ntP').value;}}
-  ];
-  wInit(c.nm,steps,id,'cliente',false);
-}
-function tgV(si){
-  W.data.vendio=si;
-  var bS=document.getElementById('bS');var bN=document.getElementById('bN');var sec=document.getElementById('nvS');
-  if(bS){bS.style.background=si?'rgba(74,222,128,.2)':'var(--s2)';bS.style.borderColor=si?'var(--green)':'var(--border)';bS.style.color=si?'var(--green)':'var(--muted)';}
-  if(bN){bN.style.background=(!si&&si!==null)?'rgba(248,113,113,.2)':'var(--s2)';bN.style.borderColor=(!si&&si!==null)?'var(--red)':'var(--border)';bN.style.color=(!si&&si!==null)?'var(--red)':'var(--muted)';}
-  if(sec)sec.style.display=si?'none':'block';
-  setTimeout(function(){var op=document.querySelector('[data-id="Otro"][data-g="nv"]');if(op&&!op._ok){op._ok=true;op.addEventListener('click',function(){var r=document.getElementById('nvO');if(r)r.style.display=op.classList.contains('on')?'block':'none';});}},50);
-}
-function wf(inp,fk,lk,pk){if(!inp.files||!inp.files[0])return;cFoto(inp.files[0],function(b){W.data[fk]=b;var l=document.getElementById(lk);if(l)l.textContent='Foto OK';var p=document.getElementById(pk);if(p){p.src=b;p.style.display='block';}});}
-// VISITA PROSPECTO
-function nuevoPros(){var tid=uid();D.cli.push({id:tid,nm:'',fan:'',tel:'',dir:'',bar:'',tipo:'',esP:true,etapaEmbudo:'Nuevo Prospecto',calU:'',trans:'',comp:'',cFr:'',cEx:'',obs:'',uv:'',ul:'',prox:'',ing:'',ex:{},deu:false});aVisPros(tid,true);}
-function aVisPros(id,nu){
-  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
-  var steps=[
-    {sub:'1/4 · Datos del local',
-     render:function(){
-       var bH=D.cfg.barrios.map(function(b){return ch(b,b,'bar',false,'');}).join('');
-       var tH=D.cfg.tipos.map(function(t){return ch(t,t,'tip',false,'');}).join('');
-       return '<div style="font-size:22px;font-weight:800;margin-bottom:14px">Datos del local</div>'+
-         '<div class="fg"><label class="fl">Nombre del local *</label><input class="fi" id="pNm" placeholder="Ej: Kiosco El Sol" value="'+es(c.nm||'')+'"></div>'+
-         '<div class="fg"><label class="fl">Dueno o encargado</label><input class="fi" id="pFan" placeholder="Ej: Juan Perez" value="'+es(c.fan||'')+'"></div>'+
-         '<div class="fg"><label class="fl">Telefono *</label><input class="fi" id="pTel" type="tel" inputmode="numeric" placeholder="Ej: 3511234567" value="'+es(c.tel||'')+'"></div>'+
-         '<div class="fg"><label class="fl">Direccion</label><input class="fi" id="pDir" placeholder="Calle y numero" value="'+es(c.dir||'')+'"></div>'+
-         '<div class="fg"><label class="fl">Barrio</label><div class="chips" style="margin-top:6px">'+bH+'</div></div>'+
-         '<div class="fg"><label class="fl">Tipo de negocio</label><div class="chips" style="margin-top:6px">'+tH+'</div></div>';
-     },
-     init:function(){if(c.bar)sc('bar',c.bar);if(c.tipo)sc('tip',c.tipo);},
-     val:function(){
-       var nm=document.getElementById('pNm').value.trim();var tel=document.getElementById('pTel').value.trim();
-       if(!nm)return 'Ingresa el nombre del local';if(!tel)return 'Ingresa el telefono';
-       var tn=tel.replace(/\D/g,'');var dp=D.cli.find(function(x){return x.tel&&x.tel.replace(/\D/g,'')===tn&&x.id!==id;});
-       if(dp)return 'Ya existe un contacto con ese telefono: '+dp.nm;return null;
-     },
-     sv:function(d){c.nm=d.nm=document.getElementById('pNm').value.trim();c.fan=d.fan=document.getElementById('pFan').value.trim();c.tel=d.tel=document.getElementById('pTel').value.trim();c.dir=d.dir=document.getElementById('pDir').value.trim();c.bar=d.bar=gc('bar');c.tipo=d.tipo=gc('tip');save();}},
-    {sub:'2/4 · Competencia',
-     render:function(){
-       return '<div style="font-size:22px;font-weight:800;margin-bottom:14px">Competencia</div>'+
-         '<div class="fg"><label class="fl">Marcas presentes</label><div class="chips" style="margin-top:6px">'+ch('Frigor','Frigor','comp',true,'')+ch('Arcor','Arcor','comp',true,'')+ch('Grido','Grido','comp',true,'')+ch('Glups','Glups','comp',true,'')+ch('Sin competencia','Sin competencia','comp',true,'gon')+ch('Otra','Otra','comp',true,'')+'</div></div>'+
-         '<div class="fg"><label class="fl">Freezer</label><div class="chips" style="margin-top:6px">'+ch('Propio','Freezer propio','cFr',false,'gon')+ch('Competencia','De la competencia','cFr',false,'oon')+ch('Sin freezer','Sin freezer','cFr',false,'')+'</div></div>'+
-         '<div class="fg"><label class="fl">Observaciones de la competencia</label><textarea class="fi fta" id="cEx" placeholder="Precios, condiciones, notas...">'+es(c.cEx||'')+'</textarea></div>';
-     },
-     init:function(){if(c.comp){c.comp.split(',').forEach(function(cv){var el=document.querySelector('[data-id="'+cv.trim()+'"][data-g="comp"]');if(el)el.classList.add('on');});}if(c.cFr)sc('cFr',c.cFr);},
-     sv:function(d){c.comp=d.comp=gcs('comp').join(', ');c.cFr=d.cFr=gc('cFr');c.cEx=d.cEx=document.getElementById('cEx').value;save();}},
-    {sub:'3/4 · Evaluacion del comercio',
-     render:function(){
-       return '<div style="font-size:22px;font-weight:800;margin-bottom:14px">Evaluacion del comercio</div>'+
-         '<div class="card"><div class="ct">Calificacion de ubicacion</div><div class="chips">'+ch('A','A — Excelente','cU',false,'gon')+ch('B','B — Buena','cU',false,'gon')+ch('C','C — Regular','cU',false,'oon')+ch('D','D — Baja','cU',false,'ron')+'</div></div>'+
-         '<div class="card"><div class="ct">Transito</div><div class="chips">'+ch('Alto','Alto','tr',false,'gon')+ch('Medio','Medio','tr',false,'oon')+ch('Bajo','Bajo','tr',false,'ron')+'</div></div>'+
-         '<div class="fg"><label class="fl">Proxima visita</label><input class="fi" type="date" id="pPV" value="'+es(c.prox||'')+'"></div>';
-     },
-     init:function(){if(c.calU)sc('cU',c.calU);if(c.trans)sc('tr',c.trans);},
-     sv:function(d){c.calU=d.calU=gc('cU');c.trans=d.trans=gc('tr');d.prox=document.getElementById('pPV').value;if(d.prox)c.prox=d.prox;save();}},
-    {sub:'4/4 · Observaciones',
-     render:function(){
-       var etH=ET.map(function(e){var col=EC[e];return '<div onclick="sEt(\''+es(e)+'\')" id="et_'+e.replace(/\s/g,'_')+'" style="padding:12px 14px;border-radius:var(--rsm);border:1px solid var(--border);background:var(--s2);cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:10px"><div style="width:10px;height:10px;border-radius:50%;background:'+col+'"></div><div style="font-size:13px;font-weight:700">'+es(e)+'</div></div>';}).join('');
-       return '<div style="font-size:22px;font-weight:800;margin-bottom:14px">Observaciones</div>'+
-         '<div class="fg"><label class="fl">Notas de la visita</label><textarea class="fi fta" id="pObs" placeholder="Cualquier dato relevante...">'+es(c.obs||'')+'</textarea></div>'+
-         '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">ETAPA DEL EMBUDO</div>'+etH;
-     },
-     init:function(){sEt(c.etapaEmbudo||'Nuevo Prospecto');},
-     sv:function(d){c.obs=d.obs=document.getElementById('pObs').value;c.etapaEmbudo=d.eta=W.data.eta||'Nuevo Prospecto';if(!c.ing)c.ing=new Date().toISOString().split('T')[0];save();}}
-  ];
-  wInit(nu?'Nuevo prospecto':c.nm,steps,id,'prospecto',nu);
-}
-function sEt(et){
-  W.data.eta=et;
-  ET.forEach(function(e){var el=document.getElementById('et_'+e.replace(/\s/g,'_'));if(el){var col=EC[e];el.style.borderColor=e===et?col:'var(--border)';el.style.background=e===et?'rgba('+h2r(col)+',.1)':'var(--s2)';}});
-}
-// VENDEDOR PIPELINE
-var vPF2='Todos';
-function renderVP(){
-  var all=['Todos'].concat(ET,SA);
-  document.getElementById('vPF').innerHTML=all.map(function(e){return '<span class="fb'+(vPF2===e?' on':'')+'" onclick="sVPF(\''+es(e)+'\')">'+es(e)+'</span>';}).join('');
-  var cs=vPF2==='Todos'?D.cli.slice():D.cli.filter(function(c){return c.etapaEmbudo===vPF2;});
+
+// ── CONTACTOS ─────────────────────────────────────────────────────────
+var vcF={tipo:'',bar:'',tipOneg:'',vis:'',frez:'',comp:[],calU:'',trans:''};
+function renderVC(){
+  var q=(document.getElementById('vCQ')&&document.getElementById('vCQ').value||'').toLowerCase();
+  var cs=D.cli.slice();
+  if(vcF.tipo==='prospecto')cs=cs.filter(function(c){return c.esP;});
+  else if(vcF.tipo==='cliente')cs=cs.filter(function(c){return !c.esP;});
+  if(vcF.bar)cs=cs.filter(function(c){return c.bar===vcF.bar;});
+  if(vcF.tipOneg)cs=cs.filter(function(c){return c.tipo===vcF.tipOneg;});
+  if(vcF.vis==='v')cs=cs.filter(function(c){return !!c.ul;});
+  if(vcF.vis==='sv')cs=cs.filter(function(c){return !c.ul;});
+  if(vcF.frez==='sin')cs=cs.filter(function(c){return c.cFr==='Sin freezer'||!c.cFr;});
+  if(vcF.frez==='pro')cs=cs.filter(function(c){return c.cFr==='Propio';});
+  if(vcF.frez==='comp')cs=cs.filter(function(c){return c.cFr==='Competencia';});
+  if(vcF.comp.length)cs=cs.filter(function(c){return vcF.comp.some(function(cp){return c.comp&&c.comp.includes(cp);});});
+  if(vcF.calU)cs=cs.filter(function(c){return c.calU===vcF.calU;});
+  if(vcF.trans)cs=cs.filter(function(c){return c.trans===vcF.trans;});
+  if(q)cs=cs.filter(function(c){return (c.nm||'').toLowerCase().includes(q)||(c.dir||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q);});
   cs.sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
-  if(!cs.length){document.getElementById('vPB').innerHTML='<div class="empty">Sin contactos en esta etapa</div>';return;}
+  // Chips de filtros activos
+  var chips='';
+  if(vcF.tipo){chips+='<span class="ch on" onclick="qFiltro(\'tipo\')" style="font-size:11px;padding:5px 10px">'+vcF.tipo+' &#215;</span>';}
+  if(vcF.bar){chips+='<span class="ch on" onclick="qFiltro(\'bar\')" style="font-size:11px;padding:5px 10px">'+es(vcF.bar)+' &#215;</span>';}
+  if(vcF.tipOneg){chips+='<span class="ch on" onclick="qFiltro(\'tipOneg\')" style="font-size:11px;padding:5px 10px">'+es(vcF.tipOneg)+' &#215;</span>';}
+  if(vcF.vis){chips+='<span class="ch on" onclick="qFiltro(\'vis\')" style="font-size:11px;padding:5px 10px">'+(vcF.vis==='v'?'Visitados':'Sin visitar')+' &#215;</span>';}
+  if(vcF.frez){chips+='<span class="ch on" onclick="qFiltro(\'frez\')" style="font-size:11px;padding:5px 10px">Freezer: '+(vcF.frez==='sin'?'Sin':vcF.frez==='pro'?'Propio':'Competencia')+' &#215;</span>';}
+  if(vcF.comp.length){chips+='<span class="ch on" onclick="qFiltro(\'comp\')" style="font-size:11px;padding:5px 10px">Comp: '+es(vcF.comp.join(', '))+' &#215;</span>';}
+  if(vcF.calU){chips+='<span class="ch on" onclick="qFiltro(\'calU\')" style="font-size:11px;padding:5px 10px">Ubic: '+vcF.calU+' &#215;</span>';}
+  if(vcF.trans){chips+='<span class="ch on" onclick="qFiltro(\'trans\')" style="font-size:11px;padding:5px 10px">Transito: '+vcF.trans+' &#215;</span>';}
+  var actDiv=document.getElementById('vCActivos');
+  if(actDiv){actDiv.innerHTML=chips;actDiv.style.display=chips?'block':'none';}
+  var h='<div style="padding:6px 14px;font-size:11px;color:var(--muted);font-weight:700">'+cs.length+' CONTACTOS</div>';
+  if(!cs.length){h+='<div class="empty">Sin resultados. Proba otros filtros.</div>';document.getElementById('vCB').innerHTML=h;return;}
+  cs.forEach(function(c){
+    var d7=dias(c.ul);var col=d7===null?'var(--red)':d7>14?'var(--red)':d7>7?'var(--orange)':'var(--green)';
+    h+='<div class="cc" onclick="abrirFichaV(\''+c.id+'\')">';
+    h+='<div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0">';
+    h+='<div style="font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.nm)+'</div>';
+    h+='<div style="font-size:12px;color:var(--muted)">'+es(c.dir||'')+(c.bar?' · '+es(c.bar):'')+'</div>';
+    h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px">';
+    h+=(c.esP?'<span class="tg o">'+es(c.etapaEmbudo||'PROSPECTO')+'</span>':'<span class="tg g">CLIENTE ACTIVO</span>');
+    h+=(c.deu?'<span class="tg r">DEUDOR</span>':'');
+    if(c.cFr)h+='<span class="tg m">'+es(c.cFr)+'</span>';
+    h+='</div></div>';
+    h+='<div style="text-align:right;flex-shrink:0;font-size:11px;color:'+col+'">'+(c.ul?fmt(c.ul):'Sin visitar')+'</div></div>';
+    h+='<div style="display:flex;gap:6px;margin-top:9px">';
+    h+='<button class="sm g" onclick="event.stopPropagation();abrirVisita(\''+c.id+'\')" style="flex:1">Registrar visita</button>';
+    if(c.tel){h+='<button class="sm wa" onclick="event.stopPropagation();envWA(\''+c.id+'\')" title="WA"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>';}
+    h+='</div></div>';
+  });
+  document.getElementById('vCB').innerHTML=h;
+}
+function qFiltro(k){if(k==='comp')vcF.comp=[];else vcF[k]='';renderVC();}
+function abrirFiltros(){
+  var barriosH=(D.cfg.barrios||[]).map(function(b){return '<span class="ch'+(vcF.bar===b?' on':'')+'" onclick="vcF.bar=vcF.bar===\''+es(b)+'\'?\'\':\\\''+es(b)+'\\\';renderVC();this.classList.toggle(\'on\')" style="font-size:12px;padding:6px 11px">'+es(b)+'</span>';}).join('');
+  var tiposH=(D.cfg.tipos||[]).map(function(t){return '<span class="ch'+(vcF.tipOneg===t?' on':'')+'" onclick="vcF.tipOneg=vcF.tipOneg===\''+es(t)+'\'?\'\':\\\''+es(t)+'\\\';renderVC();this.classList.toggle(\'on\')" style="font-size:12px;padding:6px 11px">'+es(t)+'</span>';}).join('');
+  var compOpts=['Frigor','Arcor','Grido','Glups','Otra'];
+  var compH=compOpts.map(function(cp){var on=vcF.comp.indexOf(cp)>=0;return '<span class="ch'+(on?' on':'')+'" onclick="var i=vcF.comp.indexOf(\''+cp+'\');if(i>=0)vcF.comp.splice(i,1);else vcF.comp.push(\''+cp+'\');renderVC();this.classList.toggle(\'on\')" style="font-size:12px;padding:6px 11px">'+cp+'</span>';}).join('');
+  var h='';
+  h+='<div class="fg"><div class="fl">Tipo de contacto</div><div class="chips">';
+  h+='<span class="ch'+(vcF.tipo==='prospecto'?' on':'')+'" onclick="vcF.tipo=vcF.tipo===\'prospecto\'?\'\':\\\'prospecto\\\';renderVC();document.querySelectorAll(\'#filtTipo .ch\').forEach(function(e){e.classList.remove(\'on\');});this.classList.toggle(\'on\')" id="ftPros" style="font-size:12px;padding:6px 11px">Prospecto</span>';
+  h+='<span class="ch'+(vcF.tipo==='cliente'?' on':'')+'" onclick="vcF.tipo=vcF.tipo===\'cliente\'?\'\':\\\'cliente\\\';renderVC();document.querySelectorAll(\'#filtTipo .ch\').forEach(function(e){e.classList.remove(\'on\');});this.classList.toggle(\'on\')" id="ftCli" style="font-size:12px;padding:6px 11px">Cliente activo</span>';
+  h+='</div></div>';
+  h+='<div class="fg"><div class="fl">Visita</div><div class="chips">';
+  h+='<span class="ch'+(vcF.vis==='v'?' on':'')+'" onclick="vcF.vis=vcF.vis===\'v\'?\'\':\\\'v\\\';renderVC();this.classList.toggle(\'on\')" style="font-size:12px;padding:6px 11px">Visitados</span>';
+  h+='<span class="ch'+(vcF.vis==='sv'?' on':'')+'" onclick="vcF.vis=vcF.vis===\'sv\'?\'\':\\\'sv\\\';renderVC();this.classList.toggle(\'on\')" style="font-size:12px;padding:6px 11px">Sin visitar</span>';
+  h+='</div></div>';
+  h+='<div class="fg"><div class="fl">Freezer</div><div class="chips">';
+  h+='<span class="ch'+(vcF.frez==='sin'?' on':'')+'" onclick="vcF.frez=vcF.frez===\'sin\'?\'\':\\\'sin\\\';renderVC();this.classList.toggle(\'on\')" style="font-size:12px;padding:6px 11px">Sin freezer</span>';
+  h+='<span class="ch'+(vcF.frez==='pro'?' on':'')+'" onclick="vcF.frez=vcF.frez===\'pro\'?\'\':\\\'pro\\\';renderVC();this.classList.toggle(\'on\')" style="font-size:12px;padding:6px 11px">Freezer propio</span>';
+  h+='<span class="ch'+(vcF.frez==='comp'?' on':'')+'" onclick="vcF.frez=vcF.frez===\'comp\'?\'\':\\\'comp\\\';renderVC();this.classList.toggle(\'on\')" style="font-size:12px;padding:6px 11px">De competencia</span>';
+  h+='</div></div>';
+  h+='<div class="fg"><div class="fl">Competencia presente</div><div class="chips">'+compH+'</div></div>';
+  h+='<div class="fg"><div class="fl">Barrio</div><div class="chips">'+barriosH+'</div></div>';
+  h+='<div class="fg"><div class="fl">Tipo de negocio</div><div class="chips">'+tiposH+'</div></div>';
+  h+='<div class="fg"><div class="fl">Calificacion de ubicacion</div><div class="chips">';
+  ['A','B','C','D'].forEach(function(v){h+='<span class="ch'+(vcF.calU===v?' on':'')+'" onclick="vcF.calU=vcF.calU===\''+v+'\'?\'\':\\\''+v+'\\\';renderVC();this.classList.toggle(\'on\')" style="font-size:12px;padding:6px 11px">'+v+'</span>';});
+  h+='</div></div>';
+  h+='<div class="fg"><div class="fl">Transito</div><div class="chips">';
+  ['Alto','Medio','Bajo'].forEach(function(v){h+='<span class="ch'+(vcF.trans===v?' on':'')+'" onclick="vcF.trans=vcF.trans===\''+v+'\'?\'\':\\\''+v+'\\\';renderVC();this.classList.toggle(\'on\')" style="font-size:12px;padding:6px 11px">'+v+'</span>';});
+  h+='</div></div>';
+  h+='<button class="btn sec" onclick="vcF={tipo:\'\',bar:\'\',tipOneg:\'\',vis:\'\',frez:\'\',comp:[],calU:\'\',trans:\'\'};renderVC();cMod()">Limpiar filtros</button>';
+  oMod('Filtrar contactos',h);
+}
+
+// Ficha rapida del vendedor
+function abrirFichaV(id){
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  var vs=D.vis.filter(function(v){return v.cid===id;}).slice().reverse().slice(0,5);
+  var h='<div style="margin-bottom:12px">';
+  if(c.tel)h+='<a href="tel:'+es(c.tel)+'" style="display:block;font-size:20px;font-weight:900;color:var(--cyan);text-decoration:none">'+es(c.tel)+'</a>';
+  h+='<div style="font-size:13px;color:var(--muted);margin-top:4px">'+es(c.dir||'')+(c.bar?' · '+es(c.bar):'')+(c.tipo?' · '+es(c.tipo):'')+'</div>';
+  h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">';
+  h+=(c.esP?'<span class="tg o">'+es(c.etapaEmbudo||'PROSPECTO')+'</span>':'<span class="tg g">CLIENTE ACTIVO</span>');
+  if(c.cFr)h+='<span class="tg m">Freezer: '+es(c.cFr)+'</span>';
+  if(c.calU)h+='<span class="tg m">Ubic: '+c.calU+'</span>';
+  if(c.trans)h+='<span class="tg m">Transito: '+es(c.trans)+'</span>';
+  h+='</div></div>';
+  h+='<div class="div"></div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
+  h+='<div class="sb"><div class="fl">Ultima visita</div><div style="font-size:14px;font-weight:700;color:var(--cyan)">'+fmt(c.ul)+'</div></div>';
+  h+='<div class="sb"><div class="fl">Ultima venta</div><div style="font-size:14px;font-weight:700;color:var(--green)">'+fmt(c.uv)+'</div></div>';
+  h+='</div>';
+  if(c.comp)h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Comp: '+es(c.comp)+'</div>';
+  if(c.obs)h+='<div style="font-size:13px;color:var(--muted);margin-bottom:10px;font-style:italic">'+es(c.obs)+'</div>';
+  if(vs.length){
+    h+='<div class="div"></div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">ULTIMAS VISITAS</div>';
+    vs.forEach(function(v){
+      h+='<div class="vh"><div class="vhd">'+fmt(v.fecha)+'</div>';
+      h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita prospecto':v.vendio===true?'Venta realizada':'Sin venta')+'</div>';
+      if(v.obs)h+='<div class="vhx">'+es(v.obs)+'</div>';
+      h+='</div>';
+    });
+  }
+  h+='<div class="div"></div>';
+  h+='<button class="btn" onclick="cMod();abrirVisita(\''+id+'\')" style="margin-bottom:8px">Registrar visita</button>';
+  if(c.tel)h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin-bottom:8px">Enviar WhatsApp</button>';
+  oMod(es(c.nm),h);
+}
+
+// ── EMBUDO ────────────────────────────────────────────────────────────
+var vEFil='Todos';
+function renderVE(){
+  var all=['Todos','Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo','No Le Interesa','Perdido'];
+  document.getElementById('vEF').innerHTML=all.map(function(e){return '<span class="fb'+(vEFil===e?' on':'')+'" onclick="setVEF(\''+es(e)+'\')">'+es(e)+'</span>';}).join('');
+  var cs=vEFil==='Todos'?D.cli.slice():D.cli.filter(function(c){
+    if(vEFil==='Nuevo Prospecto')return c.esP&&(!c.etapaEmbudo||c.etapaEmbudo==='Nuevo Prospecto');
+    return c.etapaEmbudo===vEFil;
+  });
+  cs.sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  if(!cs.length){document.getElementById('vEB').innerHTML='<div class="empty">Sin contactos en esta etapa</div>';return;}
   var h='';
   cs.forEach(function(c){
     var col=EC[c.etapaEmbudo]||'var(--muted)';
-    h+='<div class="cc"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">'+es(c.nm)+'</div><div style="font-size:12px;color:var(--muted)">'+es(c.bar||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div><span style="background:rgba('+h2r(col)+',.15);color:'+col+';padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap">'+es(c.etapaEmbudo||'')+'</span></div>';
-    h+='<div style="display:flex;gap:6px"><button class="sm g" onclick="aVisPros(\''+c.id+'\',false)" style="flex:1">Registrar visita</button>';
+    h+='<div class="cc"><div style="display:flex;align-items:center;gap:10px;margin-bottom:9px"><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">'+es(c.nm)+'</div><div style="font-size:12px;color:var(--muted)">'+es(c.bar||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div>';
+    h+='<span style="background:rgba('+h2r(col)+',.15);color:'+col+';padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap">'+es(c.etapaEmbudo||'Prospecto')+'</span></div>';
+    h+='<div style="display:flex;gap:6px"><button class="sm g" onclick="abrirVisita(\''+c.id+'\')" style="flex:1">Visita</button>';
     if(c.tel){h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')" title="WA"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>';}
-    h+='</div></div>';
+    h+='<select class="sm" onchange="cambiarEtapa(\''+c.id+'\',this.value);this.value=\'\';" style="border-color:'+col+';color:'+col+'">';
+    h+='<option value="">Mover etapa</option>';
+    ET.concat(SA).forEach(function(et){if(et!==c.etapaEmbudo)h+='<option value="'+es(et)+'">'+es(et)+'</option>';});
+    h+='</select></div></div>';
   });
-  document.getElementById('vPB').innerHTML=h;
+  document.getElementById('vEB').innerHTML=h;
 }
-function sVPF(f){vPF2=f;renderVP();}
-// VENDEDOR GIRA
-function renderVG(){
-  var g=D.gira.map(function(id){return D.cli.find(function(c){return c.id===id;});}).filter(Boolean);
+function setVEF(f){vEFil=f;renderVE();}
+function cambiarEtapa(id,eta){
+  if(!eta)return;
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  var convirtiendo=!c.esP===false&&eta==='Cliente Activo';
+  c.etapaEmbudo=eta;
+  if(eta==='Cliente Activo'){c.esP=false;}
+  save();renderVE();sincSubir(null);
+  toast(es(c.nm)+' movido a '+es(eta),'ok');
+}
+
+// ── GIRA ─────────────────────────────────────────────────────────────
+var gTab='ejec';
+function setGTab(t){
+  gTab=t;
+  var pl=document.getElementById('gTPl');var ej=document.getElementById('gTEj');
+  if(pl&&ej){
+    pl.style.color=t==='plan'?'var(--cyan)':'var(--muted)';
+    pl.style.borderBottomColor=t==='plan'?'var(--cyan)':'transparent';
+    ej.style.color=t==='ejec'?'var(--cyan)':'var(--muted)';
+    ej.style.borderBottomColor=t==='ejec'?'var(--cyan)':'transparent';
+  }
+  renderVG();
+}
+function renderVG(){if(gTab==='plan')renderGiraPlan();else renderGiraEjec();}
+
+// EJECUTAR HOY
+function renderGiraEjec(){
+  var hoy=today();
+  var gHoy=D.gira.filter(function(g){return g.fecha===hoy;});
+  if(!gHoy.length){
+    document.getElementById('vGB').innerHTML='<div class="card" style="text-align:center;padding:24px"><div style="font-size:32px;margin-bottom:10px">&#128197;</div><div style="font-size:15px;font-weight:700;margin-bottom:6px">Sin visitas planificadas para hoy</div><div style="font-size:13px;color:var(--muted);margin-bottom:14px">Planifica la gira en la pestana PLANIFICAR</div><button class="btn sec" onclick="setGTab(\'plan\')" style="margin:0">Ir a Planificar</button></div>';
+    return;
+  }
+  // Separar pendientes y visitados
+  var pendientes=[];var visitados=[];
+  gHoy.forEach(function(g){
+    var c=D.cli.find(function(x){return x.id===g.cid;});if(!c)return;
+    var yaVisitado=D.vis.some(function(v){return v.cid===g.cid&&v.fecha===hoy;});
+    if(yaVisitado)visitados.push({c:c,g:g});else pendientes.push({c:c,g:g});
+  });
+  var h='<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">'+pendientes.length+' PENDIENTES · '+visitados.length+' VISITADOS</div>';
+  pendientes.forEach(function(item,i){
+    var c=item.c;
+    h+='<div class="cc" style="border-left:3px solid var(--cyan)"><div style="display:flex;align-items:center;gap:10px">';
+    h+='<div style="width:28px;height:28px;border-radius:50%;background:var(--cyan);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#000;flex-shrink:0">'+(i+1)+'</div>';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.nm)+'</div>';
+    h+='<div style="font-size:12px;color:var(--muted)">'+es(c.dir||'')+(c.bar?' · '+es(c.bar):'')+'</div></div>';
+    h+='<span class="tg '+(c.esP?'o':'g')+'">'+(c.esP?'PROS':'CLI')+'</span></div>';
+    h+='<button class="btn g" onclick="abrirVisita(\''+c.id+'\')" style="margin-top:10px;padding:12px">Registrar visita</button></div>';
+  });
+  visitados.forEach(function(item){
+    var c=item.c;
+    var vis=D.vis.find(function(v){return v.cid===c.id&&v.fecha===hoy;});
+    h+='<div class="cc" style="opacity:.6;border-left:3px solid var(--green)"><div style="display:flex;align-items:center;gap:10px">';
+    h+='<div style="width:28px;height:28px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:16px;color:#000;flex-shrink:0">&#10003;</div>';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
+    h+='<div style="font-size:12px;color:var(--muted)">'+(vis?vis.vendio===true?'Venta realizada':vis.vendio===false?'Sin venta':'Visitado':'Visitado')+'</div></div></div></div>';
+  });
+  document.getElementById('vGB').innerHTML=h;
+}
+
+// PLANIFICAR
+function renderGiraPlan(){
+  var h='<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Planificar los proximos 14 dias</div>';
+  var dias14=[];for(var i=0;i<14;i++){var d=new Date();d.setDate(d.getDate()+i);dias14.push(d.toISOString().split('T')[0]);}
+  dias14.forEach(function(f){
+    var planDia=D.gira.filter(function(g){return g.fecha===f;});
+    var esHoy=f===today();
+    var nomDia=new Date(f+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'short'});
+    h+='<div class="card" style="margin-bottom:8px">';
+    h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+    h+='<div style="flex:1"><div style="font-size:13px;font-weight:700;text-transform:capitalize">'+es(nomDia)+(esHoy?' <span style="color:var(--cyan);font-size:10px;font-weight:700;background:rgba(34,211,238,.15);padding:2px 6px;border-radius:10px">HOY</span>':'')+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted)">'+planDia.length+' parada'+(planDia.length!==1?'s':'')+'</div></div>';
+    h+='<button class="sm g" onclick="abrirAgregarAGira(\''+f+'\')">+ Agregar</button></div>';
+    planDia.forEach(function(g){
+      var c=D.cli.find(function(x){return x.id===g.cid;});if(!c)return;
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--border)">';
+      h+='<div style="flex:1;font-size:13px;font-weight:600">'+es(c.nm)+'<span style="font-size:11px;color:var(--muted);margin-left:6px">'+es(c.bar||'')+'</span></div>';
+      h+='<button class="sm rd" onclick="quitarDeGira(\''+g.cid+'\',\''+f+'\')">&#215;</button></div>';
+    });
+    h+='</div>';
+  });
+  document.getElementById('vGB').innerHTML=h;
+}
+function abrirAgregarAGira(fecha){
+  var yaEnDia=D.gira.filter(function(g){return g.fecha===fecha;}).map(function(g){return g.cid;});
+  var disp=D.cli.filter(function(c){return yaEnDia.indexOf(c.id)<0;}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  var nomDia=new Date(fecha+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'short'});
+  var h='<div style="margin-bottom:12px"><div style="font-size:12px;color:var(--muted)">Fecha: '+es(nomDia)+'</div></div>';
+  h+='<div class="srch" style="margin:0 0 10px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="gBusq" placeholder="Buscar..." oninput="filtrarAgregarGira(\''+fecha+'\')" style="background:none;border:none;outline:none;color:var(--text);font-size:14px;flex:1;font-family:inherit;width:100%"></div>';
+  h+='<div id="gBusqR">';
+  disp.slice(0,20).forEach(function(c){
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)"><div style="flex:1"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div><div style="font-size:11px;color:var(--muted)">'+es(c.bar||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div>';
+    h+='<span class="tg '+(c.esP?'o':'g')+'">'+(c.esP?'PROS':'CLI')+'</span>';
+    h+='<button class="sm g" onclick="agregarAGira(\''+c.id+'\',\''+fecha+'\');this.textContent=\'OK\';this.disabled=true">+ Agregar</button></div>';
+  });
+  h+='</div>';
+  oMod('Agregar a la gira',h);
+}
+function filtrarAgregarGira(fecha){
+  var q=(document.getElementById('gBusq').value||'').toLowerCase();
+  var yaEnDia=D.gira.filter(function(g){return g.fecha===fecha;}).map(function(g){return g.cid;});
+  var disp=D.cli.filter(function(c){return yaEnDia.indexOf(c.id)<0&&(c.nm.toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q));}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   var h='';
-  if(!g.length){h='<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">Sin paradas. Agregalas abajo.</div>';}
-  g.forEach(function(c,i){
-    h+='<div class="cc" style="cursor:default;display:flex;align-items:center;gap:10px;margin-bottom:7px"><div style="width:28px;height:28px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:var(--muted);flex-shrink:0">'+(i+1)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div><div style="font-size:12px;color:var(--muted)">'+es(c.dir||'')+'</div></div><div style="display:flex;gap:4px"><button class="sm" onclick="mvG(\''+c.id+'\',-1)" style="padding:5px 8px">&#9650;</button><button class="sm" onclick="mvG(\''+c.id+'\',1)" style="padding:5px 8px">&#9660;</button><button class="sm rd" onclick="qGira(\''+c.id+'\')" style="padding:5px 8px">&#215;</button></div></div>';
+  disp.slice(0,20).forEach(function(c){
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)"><div style="flex:1"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div><div style="font-size:11px;color:var(--muted)">'+es(c.bar||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div>';
+    h+='<span class="tg '+(c.esP?'o':'g')+'">'+(c.esP?'PROS':'CLI')+'</span>';
+    h+='<button class="sm g" onclick="agregarAGira(\''+c.id+'\',\''+fecha+'\');this.textContent=\'OK\';this.disabled=true">+ Agregar</button></div>';
   });
-  document.getElementById('vGL').innerHTML=h;
-  renderGA();
+  if(!h)h='<div style="color:var(--muted);font-size:13px;padding:10px 0">Sin resultados</div>';
+  document.getElementById('gBusqR').innerHTML=h;
 }
-function mvG(id,dir){var i=D.gira.indexOf(id);if(i<0)return;var n=i+dir;if(n<0||n>=D.gira.length)return;var tmp=D.gira[i];D.gira[i]=D.gira[n];D.gira[n]=tmp;save();renderVG();}
-function renderGA(){
-  var q=(document.getElementById('gSrch')&&document.getElementById('gSrch').value||'').toLowerCase();
-  var ng=D.cli.filter(function(c){return D.gira.indexOf(c.id)<0&&(!q||c.nm.toLowerCase().includes(q)||(c.dir||'').toLowerCase().includes(q));});
-  ng.sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
-  var h='';
-  ng.slice(0,20).forEach(function(c){
-    h+='<div class="cc" style="cursor:default;display:flex;align-items:center;gap:10px;margin-bottom:7px"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div><div style="font-size:11px;color:var(--muted)">'+es(c.dir||'')+(c.bar?' · '+es(c.bar):'')+'</div></div><span class="tg '+(c.esP?'o':'g')+'">'+(c.esP?'PROS':'CLI')+'</span><button class="sm g" onclick="addG(\''+c.id+'\')">+</button></div>';
-  });
-  if(!h)h='<div style="color:var(--muted);font-size:13px;text-align:center;padding:10px">'+(q?'Sin resultados':'Todos en la gira')+'</div>';
-  document.getElementById('vGA').innerHTML=h;
+function agregarAGira(cid,fecha){
+  var yaExiste=D.gira.some(function(g){return g.cid===cid&&g.fecha===fecha;});
+  if(!yaExiste){D.gira.push({cid:cid,fecha:fecha});save();toast('Agregado a la gira','ok');}
 }
-function addG(id){if(D.gira.indexOf(id)<0){D.gira.push(id);save();renderVG();toast('Agregado','ok');}}
-function expGiraWA(){
-  var g=D.gira.map(function(id){return D.cli.find(function(c){return c.id===id;});}).filter(Boolean);
-  if(!g.length){toast('La gira esta vacia','err');return;}
-  var txt='GIRA DEL DIA '+new Date().toLocaleDateString('es-AR')+'\n\n';
-  g.forEach(function(c,i){txt+=(i+1)+'. '+c.nm+(c.dir?'\n   '+c.dir:'')+(c.tel?'\n   '+c.tel:'')+'\n\n';});
-  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+function quitarDeGira(cid,fecha){
+  D.gira=D.gira.filter(function(g){return !(g.cid===cid&&g.fecha===fecha);});
+  save();renderVG();toast('Quitado de la gira','ok');
 }
-// GERENTE DASHBOARD
+
+// ── NUEVA VISITA: adaptada segun tipo de contacto ─────────────────────
+function abrirVisita(id){
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  if(c.esP){abrirVisitaProspecto(id);}else{aVisita(id);}
+}
+// Visita simple para PROSPECTOS
+function abrirVisitaProspecto(id){
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  var h='<div style="font-size:22px;font-weight:800;margin-bottom:6px">'+es(c.nm)+'</div>';
+  h+='<div style="font-size:13px;color:var(--muted);margin-bottom:16px">'+es(c.etapaEmbudo||'Prospecto')+(c.bar?' · '+es(c.bar):'')+'</div>';
+  h+='<div class="fg"><label class="fl">Observaciones de la visita</label><textarea class="fi fta" id="vpObs" rows="4" placeholder="Que paso en la visita? Mostro interes? Datos importantes..."></textarea></div>';
+  h+='<div class="fg"><label class="fl">Se realizo una venta?</label>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">';
+  h+='<div id="vpSi" onclick="togVP(true)" style="padding:16px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:16px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">SI</div>';
+  h+='<div id="vpNo" onclick="togVP(false)" style="padding:16px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:16px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">NO</div></div></div>';
+  h+='<div id="vpVentaBox" style="display:none">';
+  h+='<div class="fg"><label class="fl">Fecha de la venta</label><input class="fi" type="date" id="vpFechaPed" value="'+today()+'"></div>';
+  h+='<div class="fg"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px;font-weight:700">Convertir a Cliente Activo</span><label class="sw"><input type="checkbox" id="vpConv" checked><span class="sl3"></span></label></div><div style="font-size:12px;color:var(--muted);margin-top:4px">Si se convierte, pasa a la lista de clientes activos</div></div></div>';
+  h+='<div class="fg"><label class="fl">Mover en el embudo</label>';
+  h+='<select class="fi" id="vpEta"><option value="">Mantener etapa actual ('+es(c.etapaEmbudo||'Nuevo Prospecto')+')</option>';
+  ET.concat(SA).forEach(function(et){if(et!==c.etapaEmbudo)h+='<option value="'+es(et)+'">'+es(et)+'</option>';});
+  h+='</select></div>';
+  h+='<button class="btn or" onclick="guardarVisitaProspecto(\''+id+'\')">Guardar visita</button>';
+  oMod('Visita a prospecto',h);
+}
+var vpVendio=null;
+function togVP(si){
+  vpVendio=si;
+  var bS=document.getElementById('vpSi');var bN=document.getElementById('vpNo');var box=document.getElementById('vpVentaBox');
+  if(bS){bS.style.background=si?'rgba(74,222,128,.2)':'var(--s2)';bS.style.borderColor=si?'var(--green)':'var(--border)';bS.style.color=si?'var(--green)':'var(--muted)';}
+  if(bN){bN.style.background=!si?'rgba(248,113,113,.2)':'var(--s2)';bN.style.borderColor=!si?'var(--red)':'var(--border)';bN.style.color=!si?'var(--red)':'var(--muted)';}
+  if(box)box.style.display=si?'block':'none';
+}
+function guardarVisitaProspecto(id){
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  var obs=document.getElementById('vpObs').value;
+  var eta=document.getElementById('vpEta').value;
+  var hoy=today();
+  var v={id:uid(),cid:id,fecha:hoy,vend:D.user?D.user.n:'',tipo:'prospecto',vendio:vpVendio,obs:obs};
+  if(eta){v.eta=eta;c.etapaEmbudo=eta;}
+  if(vpVendio===true){
+    var fp=document.getElementById('vpFechaPed').value||hoy;
+    v.fechaPedido=fp;c.uv=fp;
+    var conv=document.getElementById('vpConv')&&document.getElementById('vpConv').checked;
+    if(conv){c.esP=false;c.etapaEmbudo='Cliente Activo';v.eta='Cliente Activo';v.conversion=true;}
+  }
+  c.ul=hoy;
+  D.vis.push(v);
+  save();cMod();sincSubir(null);
+  toast(vpVendio===true?'Venta registrada!':'Visita guardada','ok');
+  vpVendio=null;
+  renderVH();
+  // Actualizar gira ejecucion si se estaba en ella
+  if(gTab==='ejec')renderVG();
+}
+function nuevoPros(){
+  var tid=uid();
+  D.cli.push({id:tid,nm:'',fan:'',tel:'',dir:'',bar:'',tipo:'',esP:true,etapaEmbudo:'Nuevo Prospecto',calU:'',trans:'',comp:'',cFr:'',cEx:'',obs:'',uv:'',ul:'',prox:'',ing:today(),ex:{},deu:false});
+  aVisPros(tid,true);
+}
+
+
 function renderGD(){
   var hoy=new Date().toISOString().split('T')[0];
   var vH=D.vis.filter(function(v){return v.fecha===hoy;});
