@@ -159,6 +159,7 @@ input:checked+.sl3:before{transform:translateX(18px)}
     <div class="tb">
       <div style="flex:1"><div class="tb-t" id="vNm">Hola!</div><div class="tb-s" id="vDt"></div></div>
       <button class="sm" onclick="sincBajar(function(ok){if(ok)renderVH();})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Sync</button>
+      <button class="sm" onclick="if(confirm('Cerrar sesion?'))doLogout()" style="color:var(--red)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Salir</button>
     </div>
     <div class="scr" id="vHB"></div>
     <button class="fab" onclick="nuevoPros()">+</button>
