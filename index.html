@@ -56,9 +56,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .ch{padding:8px 14px;border-radius:20px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
 .ch.on{background:rgba(34,211,238,.15);border-color:var(--cyan);color:var(--cyan)}
-.ch.gon{background:rgba(74,222,128,.15);border-color:var(--green);color:var(--green)}
-.ch.ron{background:rgba(248,113,113,.15);border-color:var(--red);color:var(--red)}
-.ch.oon{background:rgba(251,146,60,.15);border-color:var(--orange);color:var(--orange)}
+.ch.on.gon{background:rgba(74,222,128,.15);border-color:var(--green);color:var(--green)}
+.ch.on.ron{background:rgba(248,113,113,.15);border-color:var(--red);color:var(--red)}
+.ch.on.oon{background:rgba(251,146,60,.15);border-color:var(--orange);color:var(--orange)}
 /* WIZARD */
 .wp{height:3px;background:var(--s3);flex-shrink:0}
 .wf{height:100%;background:var(--cyan);transition:width .3s}
@@ -158,7 +158,7 @@ input:checked+.sl3:before{transform:translateX(18px)}
   <div class="sc on" id="sVH">
     <div class="tb">
       <div style="flex:1"><div class="tb-t" id="vNm">Hola!</div><div class="tb-s" id="vDt"></div></div>
-      <button class="sm" onclick="sincBajar(function(ok){if(ok)renderVH();})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Sync</button>
+      <button class="sm" onclick="sincronizarManual()"><span id="syncDot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:4px;flex-shrink:0"></span>Sync</button>
       <button class="sm" onclick="if(confirm('Cerrar sesion?'))doLogout()" style="color:var(--red)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Salir</button>
     </div>
     <div class="scr" id="vHB"></div>
@@ -274,7 +274,35 @@ var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Client
 var SA=['No Le Interesa','Perdido'];
 var EC={'Nuevo Prospecto':'#fb923c','Contactado':'#fbbf24','Propuesta Enviada':'#a78bfa','Negociacion':'#22d3ee','Cliente Activo':'#4ade80','No Le Interesa':'#f87171','Perdido':'#f87171'};
 var MD={'Nuevo Prospecto':'Hola! Soy de Sei Tu Helados, pase por tu local y me gustaria contarte nuestra propuesta. Tenes un minuto?','Contactado':'Hola! Te escribo para coordinar una visita y mostrarte la propuesta de Sei Tu. Que dia te viene bien?','Propuesta Enviada':'Hola! Pudiste ver la propuesta? Queda alguna duda que pueda responder?','Negociacion':'Hola! Como venimos con la propuesta? Si necesitas ajustar algo avisame.','Cliente Activo':'Hola! Como va la venta? Aviso si hay novedades o promos.','No Le Interesa':'Gracias por tu tiempo! Si cambia la situacion quedo disponible.','Perdido':'Hola! Hace tiempo no hablamos. Segui interesado en Sei Tu?'};
-var CFG={syncUrl:'https://script.google.com/macros/s/AKfycbyGnQIIrBDvOSik7YBp-Rpr3O70VGOwvwEDwBgtqfTuBukD-8u5uCncRFCbujvtKX6OAg/exec',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Drugstore/Kiosco','Mini Super','Club','Restaurante','Cafeteria','Heladeria','Farmacia','Otros'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Otro'],msgs:Object.assign({},MD)};
+var ARG_PROV=['Buenos Aires','Catamarca','Chaco','Chubut','Cordoba','Corrientes','Entre Rios','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquen','Rio Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucuman'];
+var ARG_CIU={
+  'Buenos Aires':['Buenos Aires (CABA)','La Plata','Mar del Plata','Bah\u00eda Blanca','Quilmes','La Matanza','Lomas de Zamora','Mor\u00f3n','San Isidro','Tigre','Pilar','Moreno','San Fernando','Lanús','Avellaneda','Berazategui','Florencio Varela','Tres de Febrero','Merlo','Ezeiza','Tandil','Pergamino','Zárate','Campana','Luján','Chivilcoy','Olavarría','San Nicolás'],
+  'Cordoba':['Córdoba Capital','Río Cuarto','Villa María','San Francisco','Villa Carlos Paz','Alta Gracia','Jesús María','Río Tercero','Bell Ville','La Calera','Marcos Juárez','Cruz del Eje','Villa Dolores','Arroyito','Oliva','Monte Cristo','Unquillo','Malagueño','Colonia Caroya','Las Varillas','Leones','General Cabrera','La Carlota','Hernando','Cosquín','Capilla del Monte','Villa Nueva','Almafuerte','Dean Funes'],
+  'Santa Fe':['Rosario','Santa Fe','Rafaela','Villa Constitución','San Lorenzo','Venado Tuerto','Reconquista','Esperanza','Casilda','Gálvez','Ceres','Las Rosas','Firmat','Sunchales','Cañada de Gómez'],
+  'Mendoza':['Mendoza','San Rafael','Godoy Cruz','Guaymallén','Las Heras','Maipú','Luján de Cuyo','Junín','Rivadavia','Tunuyán','Malargüe'],
+  'Tucuman':['San Miguel de Tucumán','Yerba Buena','Tafí Viejo','Banda del Río Salí','Alderetes','Concepción','Monteros','Aguilares'],
+  'Salta':['Salta','General Güemes','Tartagal','Orán','Cafayate','Rosario de la Frontera'],
+  'Entre Rios':['Paraná','Concordia','Gualeguaychú','Concepción del Uruguay','Gualeguay','Villaguay'],
+  'Corrientes':['Corrientes','Goya','Paso de los Libres','Mercedes','Curuzú Cuatiá','Santo Tomé'],
+  'Misiones':['Posadas','Oberá','Eldorado','Puerto Iguazú','Aristóbulo del Valle'],
+  'Chaco':['Resistencia','Barranqueras','Villa Ángela','Roque Sáenz Peña'],
+  'Santiago del Estero':['Santiago del Estero','La Banda','Termas de Río Hondo','Añatuya','Frías'],
+  'San Juan':['San Juan','Rivadavia','Chimbas','Rawson','Pocito','Caucete'],
+  'Jujuy':['San Salvador de Jujuy','Palpalá','Perico','Libertador Gral San Martín'],
+  'Rio Negro':['Viedma','Bariloche','General Roca','Cipolletti','Allen','El Bolsón'],
+  'Neuquen':['Neuquén','Cutral-Có','Zapala','Centenario','San Martín de los Andes'],
+  'La Pampa':['Santa Rosa','General Pico','Toay','Eduardo Castex'],
+  'Chubut':['Comodoro Rivadavia','Rawson','Trelew','Puerto Madryn','Esquel'],
+  'San Luis':['San Luis','Villa Mercedes','Merlo'],
+  'Catamarca':['San Fernando del Valle de Catamarca','Tinogasta','Andalgalá'],
+  'La Rioja':['La Rioja','Chilecito','Aimogasta'],
+  'Formosa':['Formosa','Clorinda','Pirané'],
+  'Santa Cruz':['Río Gallegos','Caleta Olivia','Pico Truncado'],
+  'Tierra del Fuego':['Ushuaia','Río Grande','Tolhuin']
+};
+var ARG_BARRIOS=['Alberdi','Alta Cordoba','Altamira','Altos de la Quintas','Argüello','Barra de Argüello','Bella Vista','Bimaco','Bo.13 de Diciembre','Bo.Ameghino','Bo.Calasanz Norte','Bo.Calasanz Sur','Bo.Centro','Bo.Cerro Chico','Bo.Cofico','Bo.Colinas de Velez Sarsfield','Bo.Don Bosco','Bo.General Paz','Bo.Jardin Espinosa','Bo.Jardin Hipico','Bo.Los Granados','Bo.Maipu','Bo.Muller','Bo.Naciones Unidas','Bo.Nueva Córdoba','Bo.Observatorio','Bo.Primero de Mayo','Bo.Residencial America','Bo.San Ignacio','Bo.San Lorenzo','Bo.San Vicente','Bo.Urca','Bo.Vallescondido','Bo.Velez Sarsfield','Bo.Villa Azalais','Bo.Villa Cornu','Bo.Villa del Parque','Bo.Villa Eucaristica','Bo.Villa Paez','Bo.Villa Progreso','Bo.Villa San Martin','Bo.Yapeyú','Casas Brujas','Centro','Cerro de las Rosas','Ciudad de los Cuartetos','Cofico','Colinas de Villa Allende','Country El Bosque','Country Los Cedros','Country Los Manantiales','Country Villa Allende','Estacion Juarez Celman','Ferreyra','General Bustos','General Fotheringham','General Paz','Guiñazú','Ituzaingo','Jardin','Jose Ignacio Diaz','Juniors','La Calera','La Floresta','Las Palmas','Lomas del Chateau','Los Bulevares','Los Cedros','Los Chasquis','Los Paraísos','Las Rosas','Manantiales','Marqués de Sobremonte','Mendiolaza','Miguel Cerro','Monte Cristo','Muller','Nicolas Avellaneda','Nuevo Cordoba','Palermo','Parque Capital','Parque Costanero','Parque Liceo','Parque San Martin','Parque Velez Sarsfield','Paso de los Andes','Patria Grande','Patricios','Pinar de Atenas','Pueyrredon','Quebrada Las Rosas','Quintas del Este','Quintas del Norte','Quintas del Sur','Ricardo Rojas','Rivadavia','Sagrada Familia','San Ignacio','San Juan Bautista','San Martin','San Roque','Santa Isabel','Santa Rita','Villa Acacias','Villa Allende','Villa Belgrano','Villa Bustos','Villa Cabrera','Villa Centenario','Villa Cornú','Villa del Prado','Villa Dolores','Villa Eucaristica','Villa Flores','Villa Fortabat','Villa Italia','Villa La Florida','Villa Libertad','Villa Maipú','Villa Martelli','Villa Páez','Villa Parque','Villa Poeta Lugones','Villa Progreso','Villa Rivera Indarte','Villa Rivadavia','Villa Sarmiento','Villa Sol','Villa Urquiza','Villa Warcalde','Yapeyú','Arguello','Colinas de Villa Allende'];
+
+var CFG={syncUrl:'https://script.google.com/macros/s/AKfycbyGnQIIrBDvOSik7YBp-Rpr3O70VGOwvwEDwBgtqfTuBukD-8u5uCncRFCbujvtKX6OAg/exec',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Kiosco','Drugstore','Despensa','Almacen','Autoservicio','Supermercado','Minimercado','Mayorista','Bar','Restaurante','Parrilla','Cafeteria','Heladeria','Panaderia','Confiteria','Rotiseria','Estacion de servicio','Club','Camping','Hotel','Hostel','Complejo turistico','Balneario','Distribuidor','Farmacia','Otro'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Otro'],msgs:Object.assign({},MD)};
 var D={user:null,usrs:[{id:1,n:'JL',u:'jl',p:'seitu2026',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:3,n:'Chamu',u:'chamu',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:4,n:'Pablo',u:'pablo',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
 // UTILS
 function uid(){return Date.now()+Math.random().toString(36).slice(2,5);}
@@ -399,6 +427,9 @@ function renderVH(){
   var misCli=misContactos();
   var visHoy=D.vis.filter(function(v){return v.fecha===hoy&&(!D.user||v.vend===D.user.n);});
   var prosHoy=misCli.filter(function(c){return c.ing===hoy;});
+  var giraHoy=D.gira.filter(function(g){return g.fecha===hoy;}).map(function(g){return D.cli.find(function(c){return c.id===g.cid;});}).filter(Boolean);
+  var pendientes=giraHoy.filter(function(c){return !visHoy.some(function(v){return v.cid===c.id;});});
+  var visitados=giraHoy.filter(function(c){return visHoy.some(function(v){return v.cid===c.id;});});
   var ventasHoy=visHoy.filter(function(v){return v.vendio===true;}).length;
   var h='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">';
   h+='<div class="sb"><div class="sn">'+visHoy.length+'</div><div class="sl2">Visitas</div></div>';
@@ -896,7 +927,7 @@ function renderGC(){
     h+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">';
     h+=(c.esP?'<span class="tg o">'+es(c.etapaEmbudo||'PROSPECTO')+'</span>':'<span class="tg g">CLIENTE</span>');
     if(c.vend)h+='<span class="tg m">'+es(c.vend)+'</span>';
-    h+=(c.deu?'<span class="tg r">DEUDOR</span>':'');
+    if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:900;letter-spacing:.5px">⚠ DEUDOR</span>';
     h+='</div></div>';
     h+='<div style="font-size:11px;color:'+col+';text-align:right;flex-shrink:0">'+(c.ul?fmt(c.ul):'Sin visitar')+'</div></div></div>';
   });
@@ -1087,6 +1118,60 @@ function delLI(k,i){D.cfg[k].splice(i,1);save();editLst(k,k);renderGCfg();}
 function addLI(k){var v=document.getElementById('nwI').value.trim();if(!v)return;D.cfg[k].push(v);save();document.getElementById('nwI').value='';editLst(k,k);renderGCfg();}
 function expDatos(){var d={version:'1.0',fecha:new Date().toISOString().split('T')[0],clientes:D.cli,visitas:D.vis,comodatos:D.com,config:D.cfg,usrs:D.usrs};var blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='CRM-SeiTu-'+d.fecha+'.json';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);toast('Backup exportado','ok');}
 function impDatos(inp){var f=inp.files&&inp.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var d=JSON.parse(r.result);if(!d.clientes)throw new Error('Archivo invalido');if(!confirm('Esto reemplaza todos los datos. Continuar?'))return;D.cli=d.clientes||[];D.vis=d.visitas||[];D.com=d.comodatos||[];if(d.config)D.cfg=d.config;if(d.usrs)D.usrs=d.usrs;save();renderGD();toast(D.cli.length+' contactos importados','ok');}catch(e){toast('Error: '+e.message,'err');}};r.readAsText(f);}
+function envWA(id){var c=D.cli.find(function(x){return x.id===id;});if(!c){toast('Contacto no encontrado','err');return;}if(!c.tel){toast('Sin telefono','err');return;}var m=c.esP?((D.cfg.msgs&&D.cfg.msgs[c.etapaEmbudo])||MD[c.etapaEmbudo]||'Hola! Te escribo de Sei Tu Helados.'):'Hola! Te escribo de Sei Tu Helados.';window.open('https://wa.me/54'+c.tel.replace(/\D/g,'')+'?text='+encodeURIComponent(m),'_blank');}
+// ── SINCRONIZACION CON ESTADO VISUAL ────────────────────────────────
+var syncEstado='ok'; // ok|pending|error
+function setSyncDot(estado){
+  syncEstado=estado;
+  var dot=document.getElementById('syncDot');
+  if(!dot)return;
+  dot.style.background=estado==='ok'?'var(--green)':estado==='pending'?'var(--yellow)':'var(--red)';
+}
+function sincronizarManual(){
+  setSyncDot('pending');
+  sincBajar(function(ok){
+    setSyncDot(ok?'ok':'error');
+    if(ok)renderVH();
+    toast(ok?'Datos actualizados':'Sin conexion - datos locales OK',ok?'ok':'err');
+  });
+}
+// Cuando se guarda algo, marcar como pendiente de sync
+var _savOrig=save;
+save=function(){_savOrig();setSyncDot('pending');};
+
+// Restaurar wizard si se interrumpió por la cámara
+window.addEventListener('focus',function(){
+  var bk=lg('jwiz_bk',null);
+  if(bk&&bk.cid&&!W.cid){
+    // Wizard fue interrumpido - preguntar si restaurar
+    // No mostrar popup, solo restaurar silenciosamente si el wiz está activo
+  } else if(bk&&bk.cid&&W.cid===bk.cid){
+    W.data=bk.data||{};
+    ls('jwiz_bk',null);
+    wRender();
+  }
+});
+
+// ── PROVINCIA / CIUDAD / BARRIO ───────────────────────────────────────
+function actualizarCiudades(){
+  var prov=document.getElementById('pProv');
+  var ciuInp=document.getElementById('pCiudad');
+  var ciudList=document.getElementById('ciudList');
+  var barrioFg=document.getElementById('pBarrioFg');
+  if(!prov||!ciuInp||!ciudList)return;
+  var provVal=prov.value;
+  ciuInp.value='';
+  // Llenar datalist con ciudades de la provincia
+  var cius=ARG_CIU[provVal]||[];
+  ciudList.innerHTML=cius.map(function(c){return '<option value="'+es(c)+'"></option>';}).join('');
+  if(barrioFg)barrioFg.style.display='none';
+  // Listener para mostrar barrio cuando es Córdoba Capital
+  ciuInp.oninput=function(){
+    var v=ciuInp.value.trim();
+    if(barrioFg)barrioFg.style.display=(v==='Córdoba Capital')?'block':'none';
+  };
+}
+
 // ── TRAZABILIDAD ─────────────────────────────────────────────────────
 function logEvento(tipo,cid,nm,desc,ant,nue){
   D.log.push({
@@ -1108,9 +1193,14 @@ function fmtTs(ts){
   try{var d=new Date(ts);return d.toLocaleDateString('es-AR',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});}catch(e){return ts.slice(0,16).replace('T',' ');}
 }
 // Retorna los contactos visibles para el usuario actual
-function misContactos(){
-  if(!D.user||D.user.r==='admin'||D.user.r==='gerente')return D.cli;
-  return D.cli.filter(function(c){return c.vend===D.user.n||!c.vend;});
+function misContactos(incluirPerdidos){
+  var base;
+  if(!D.user||D.user.r==='admin'||D.user.r==='gerente'){base=D.cli;}
+  else{base=D.cli.filter(function(c){return c.vend===D.user.n||!c.vend;});}
+  if(!incluirPerdidos){
+    base=base.filter(function(c){return c.etapaEmbudo!=='No Le Interesa'&&c.etapaEmbudo!=='Perdido';});
+  }
+  return base;
 }
 // Log de un contacto especifico (para mostrar en ficha)
 function logDeContacto(cid){
@@ -1207,7 +1297,15 @@ function wFin(){
 }
 function wf(inp,fk,lk,pk){
   if(!inp.files||!inp.files[0])return;
-  cFoto(inp.files[0],function(b){W.data[fk]=b;var l=document.getElementById(lk);if(l)l.textContent='Foto OK';var p=document.getElementById(pk);if(p){p.src=b;p.style.display='block';}});
+  // Guardar estado del wizard antes de procesar la foto (por si la app se suspende)
+  if(W.cid)ls('jwiz_bk',{cid:W.cid,cur:W.cur,tipo:W.tipo,nu:W.nu,data:W.data});
+  cFoto(inp.files[0],function(b){
+    W.data[fk]=b;
+    var l=document.getElementById(lk);if(l)l.textContent='Foto guardada OK';
+    var p=document.getElementById(pk);if(p){p.src=b;p.style.display='block';}
+    // Limpiar backup ya que se procesó exitosamente
+    ls('jwiz_bk',null);
+  });
 }
 
 // ── NUEVO PROSPECTO: wizard 4 pasos ───────────────────────────────────
@@ -1216,28 +1314,48 @@ function aVisPros(id,nu){
   var steps=[
     {sub:'1/4 · Datos del local',
      render:function(){
-       var bH=(D.cfg.barrios||[]).map(function(b){return ch(b,b,'bar',false,'');}).join('');
        var tH=(D.cfg.tipos||[]).map(function(t){return ch(t,t,'tip',false,'');}).join('');
+       var provOpts=ARG_PROV.map(function(p){return '<option value="'+es(p)+'"'+(c.prov===p?' selected':'')+'>'+es(p)+'</option>';}).join('');
        return '<div style="font-size:20px;font-weight:800;margin-bottom:14px">Datos del local</div>'+
          '<div class="fg"><label class="fl">Nombre del local *</label><input class="fi" id="pNm" placeholder="Ej: Kiosco El Sol" value="'+es(c.nm||'')+'"></div>'+
          '<div class="fg"><label class="fl">Dueno o encargado</label><input class="fi" id="pFan" placeholder="Ej: Juan Perez" value="'+es(c.fan||'')+'"></div>'+
          '<div class="fg"><label class="fl">Telefono *</label><input class="fi" id="pTel" type="tel" inputmode="numeric" placeholder="Ej: 3511234567" value="'+es(c.tel||'')+'"></div>'+
          '<div class="fg"><label class="fl">Direccion</label><input class="fi" id="pDir" placeholder="Calle y numero" value="'+es(c.dir||'')+'"></div>'+
-         '<div class="fg"><label class="fl">Barrio</label><div class="chips" style="margin-top:6px">'+bH+'</div></div>'+
+         '<div class="fg"><label class="fl">Provincia *</label><select class="fi" id="pProv" onchange="actualizarCiudades()"><option value="">Seleccionar provincia...</option>'+provOpts+'</select></div>'+
+         '<div class="fg"><label class="fl">Ciudad *</label><input class="fi" id="pCiudad" list="ciudList" placeholder="Escribi para buscar..." value="'+es(c.ciu||'')+'"><datalist id="ciudList" id="ciudList"></datalist></div>'+
+         '<div class="fg" id="pBarrioFg" style="'+(c.ciu==='Córdoba Capital'?'':'display:none')+'"><label class="fl">Barrio</label><select class="fi" id="pBarrio"><option value="">Seleccionar barrio...</option>'+ARG_BARRIOS.map(function(b){return '<option value="'+es(b)+'"'+(c.bar===b?' selected':'')+'>'+es(b)+'</option>';}).join('')+'</select></div>'+
          '<div class="fg"><label class="fl">Tipo de negocio</label><div class="chips" style="margin-top:6px">'+tH+'</div></div>';
      },
-     init:function(){if(c.bar)sc('bar',c.bar);if(c.tipo)sc('tip',c.tipo);},
+     init:function(){
+       if(c.tipo)sc('tip',c.tipo);
+       if(c.prov){document.getElementById('pProv').value=c.prov;actualizarCiudades();}
+     },
      val:function(){
        var nm=document.getElementById('pNm').value.trim();
        var tel=document.getElementById('pTel').value.trim();
+       var prov=document.getElementById('pProv').value;
+       var ciu=document.getElementById('pCiudad').value.trim();
        if(!nm)return 'Ingresa el nombre del local';
        if(!tel)return 'Ingresa el telefono';
+       if(!prov)return 'Selecciona la provincia';
+       if(!ciu)return 'Ingresa la ciudad';
        var tn=tel.replace(/\D/g,'');
        var dp=D.cli.find(function(x){return x.tel&&x.tel.replace(/\D/g,'')===tn&&x.id!==id;});
        if(dp)return 'Ya existe un contacto con ese telefono: '+dp.nm;
        return null;
      },
-     sv:function(d){c.nm=d.nm=document.getElementById('pNm').value.trim();c.fan=d.fan=document.getElementById('pFan').value.trim();c.tel=d.tel=document.getElementById('pTel').value.trim();c.dir=d.dir=document.getElementById('pDir').value.trim();c.bar=d.bar=gc('bar');c.tipo=d.tipo=gc('tip');save();}},
+     sv:function(d){
+       c.nm=d.nm=document.getElementById('pNm').value.trim();
+       c.fan=d.fan=document.getElementById('pFan').value.trim();
+       c.tel=d.tel=document.getElementById('pTel').value.trim();
+       c.dir=d.dir=document.getElementById('pDir').value.trim();
+       c.prov=d.prov=document.getElementById('pProv').value;
+       c.ciu=d.ciu=document.getElementById('pCiudad').value.trim();
+       var bEl=document.getElementById('pBarrio');c.bar=d.bar=bEl&&bEl.value?bEl.value:'';
+       c.tipo=d.tipo=gc('tip');
+       save();
+     }},
+
     {sub:'2/4 · Competencia',
      render:function(){
        return '<div style="font-size:20px;font-weight:800;margin-bottom:14px">Competencia</div>'+
