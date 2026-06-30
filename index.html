@@ -144,14 +144,14 @@ input:checked+.sl3:before{transform:translateX(18px)}
 <div id="app">
 
 <!-- LOGIN -->
-<div class="sc on" id="sBoot" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px">
-  <div class="ll">Sei Tu</div>
+<div class="sc on" id="sBoot" style="align-items:center;justify-content:center;flex-direction:column;gap:14px">
+  <div style="font-size:13px;font-weight:700;color:var(--cyan);letter-spacing:.5px">CRM COMERCIAL</div>
   <div id="sBootMsg" style="color:var(--muted);font-size:13px">Conectando...</div>
 </div>
 <div class="sc" id="sLogin">
   <div class="lb">
-    <div class="ll">Sei Tu</div>
-    <div class="ls">CRM Comercial</div>
+    <div class="ll">CRM Comercial</div>
+    <div class="ls">Jorge Ledesma</div>
     <div class="fg"><label class="fl">Usuario</label><input class="fi" id="lU" type="text" autocomplete="username" autocorrect="off" autocapitalize="none"></div>
     <div class="fg"><label class="fl">Contrasena</label><input class="fi" id="lP" type="password" autocomplete="current-password"></div>
     <div id="lErr" style="color:var(--red);font-size:13px;margin-bottom:10px;display:none"></div>
@@ -222,13 +222,18 @@ input:checked+.sl3:before{transform:translateX(18px)}
     <button onclick="toggleGSide()" style="background:none;border:none;color:var(--cyan);cursor:pointer;padding:4px;margin-right:12px">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
-    <div style="font-size:16px;font-weight:700;color:var(--cyan)">Sei Tu CRM</div>
+    <div style="font-size:14px;font-weight:700;color:var(--cyan);flex:1">CRM Comercial</div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)">
+      <span id="syncDotAdmin" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green)"></span>
+      <span id="gMobUser"></span>
+    </div>
   </div>
   <!-- Overlay para cerrar menú -->
   <div id="gOverlay" onclick="toggleGSide()"></div>
   <!-- Side nav -->
   <div id="gSide">
-    <div class="glo">Sei Tu CRM</div>
+    <div class="glo" style="padding-bottom:4px">CRM Comercial</div>
+    <div id="gSideUser" style="padding:0 18px 16px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px"><span id="syncDotAdmin2" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green)"></span><span id="gSideUserNm"></span></div>
     <button class="gb on" id="gbD" onclick="gGo('D')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</button>
     <button class="gb" id="gbC" onclick="gGo('C')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Contactos</button>
     <button class="gb" id="gbE" onclick="gGo('E')"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Embudo</button>
@@ -331,6 +336,12 @@ var fsDB=firebase.firestore();
 try{fsDB.enablePersistence({synchronizeTabs:true});}catch(e){}
 
 var FS_READY=false;          // true cuando los 7 listeners ya bajaron al menos una vez
+var DEBUG_LOG=[];            // ultimos eventos tecnicos (errores, escrituras) para el Modo Debug del admin
+var DEBUG_LASTSYNC={contactos:null,visitas:null,comodatos:null,gira:null,log:null,usuarios:null,config:null};
+function debugLog(tipo,msg){
+  DEBUG_LOG.unshift({ts:new Date().toISOString(),tipo:tipo,msg:msg});
+  if(DEBUG_LOG.length>50)DEBUG_LOG=DEBUG_LOG.slice(0,50);
+}
 var FS_LOADED_COUNT=0;
 var FS_COLLECTIONS=['contactos','visitas','comodatos','gira','log','usuarios','config'];
 
@@ -356,35 +367,58 @@ function fsSetupListeners(){
   fsDB.collection('contactos').onSnapshot(function(snap){
     D.cli=fsSnapToArr(snap);
     normalizarDatos();
+    DEBUG_LASTSYNC.contactos=new Date().toISOString();
     fsOnFirstLoad();
     refrescarVistaActual();
-  },function(err){console.error('contactos',err);toast('Error de sincronizacion: contactos','err');});
+  },function(err){debugLog('error','contactos: '+err.message);toast('Error de sincronizacion: contactos','err');});
 
   fsDB.collection('visitas').onSnapshot(function(snap){
     D.vis=fsSnapToArr(snap);
+    DEBUG_LASTSYNC.visitas=new Date().toISOString();
     fsOnFirstLoad();
     refrescarVistaActual();
-  },function(err){console.error('visitas',err);});
+  },function(err){debugLog('error','visitas: '+err.message);});
 
   fsDB.collection('comodatos').onSnapshot(function(snap){
     D.com=fsSnapToArr(snap);
+    DEBUG_LASTSYNC.comodatos=new Date().toISOString();
     fsOnFirstLoad();
     refrescarVistaActual();
-  },function(err){console.error('comodatos',err);});
+  },function(err){debugLog('error','comodatos: '+err.message);});
 
   fsDB.collection('gira').onSnapshot(function(snap){
     D.gira=fsSnapToArr(snap);
+    DEBUG_LASTSYNC.gira=new Date().toISOString();
     fsOnFirstLoad();
     refrescarVistaActual();
-  },function(err){console.error('gira',err);});
+  },function(err){debugLog('error','gira: '+err.message);});
 
   fsDB.collection('log').onSnapshot(function(snap){
     D.log=fsSnapToArr(snap).sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
+    DEBUG_LASTSYNC.log=new Date().toISOString();
     fsOnFirstLoad();
-  },function(err){console.error('log',err);});
+  },function(err){debugLog('error','log: '+err.message);});
 
+  var USUARIOS_DEFAULT=[
+    {id:1,n:'JL',u:'jl',p:'seitu2026',r:'admin',activo:true,creado:'2026-06-01',ua:''},
+    {id:2,n:'Jorge',u:'jorge',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},
+    {id:3,n:'Chamu',u:'chamu',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},
+    {id:4,n:'Pablo',u:'pablo',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}
+  ];
   fsDB.collection('usuarios').onSnapshot(function(snap){
     var arr=fsSnapToArr(snap);
+    // Reparar usuarios faltantes (cubre tanto coleccion vacia como parcialmente poblada,
+    // que es justo lo que paso: el primer vendedor que logueo creo SOLO su propio documento
+    // y el listener pisaba D.usrs entero, haciendo desaparecer a JL y al resto)
+    var faltantes=USUARIOS_DEFAULT.filter(function(def){return !arr.some(function(a){return a.u===def.u;});});
+    if(faltantes.length){
+      var batch=fsDB.batch();
+      faltantes.forEach(function(u){batch.set(fsDB.collection('usuarios').doc(String(u.id)),u);});
+      batch.commit().catch(function(e){console.error('reparar usuarios',e);});
+      // No hace falta esperar: el propio onSnapshot se va a volver a disparar solo
+      // cuando el batch se confirme, y entonces arr ya va a venir completo.
+      if(!arr.length){fsOnFirstLoad();return;} // primera carga sin nada todavia: esperar la proxima vuelta
+    }
     if(arr.length){D.usrs=arr.map(function(u){u.id=isNaN(u.id)?u.id:Number(u.id);return u;});}
     fsOnFirstLoad();
     // Si el usuario logueado fue desactivado o eliminado por el admin, cerrar sesion en el acto
@@ -394,7 +428,8 @@ function fsSetupListeners(){
       else if(me.activo===false){toast('Tu usuario fue desactivado','err');doLogout();}
       else{D.user=me;}
     }
-  },function(err){console.error('usuarios',err);});
+    DEBUG_LASTSYNC.usuarios=new Date().toISOString();
+  },function(err){debugLog('error','usuarios: '+err.message);});
 
   fsDB.collection('config').doc('main').onSnapshot(function(doc){
     if(doc.exists){
@@ -404,8 +439,9 @@ function fsSetupListeners(){
       // Primera vez: no existe el doc de config, lo creamos con los valores por defecto
       fsDB.collection('config').doc('main').set(CFG).catch(function(e){console.error(e);});
     }
+    DEBUG_LASTSYNC.config=new Date().toISOString();
     fsOnFirstLoad();
-  },function(err){console.error('config',err);});
+  },function(err){debugLog('error','config: '+err.message);});
 }
 
 function fsArrancarApp(){
@@ -451,25 +487,25 @@ function fsSetContacto(c){
   setSyncDot('pending');
   return fsDB.collection('contactos').doc(c.id).set(c)
     .then(function(){setSyncDot('ok');})
-    .catch(function(e){setSyncDot('error');toast('No se pudo guardar: '+e.message,'err');});
+    .catch(function(e){setSyncDot('error');debugLog('error','contactos write: '+e.message);toast('No se pudo guardar: '+e.message,'err');});
 }
 function fsDelContacto(id){
   setSyncDot('pending');
   return fsDB.collection('contactos').doc(id).delete()
     .then(function(){setSyncDot('ok');})
-    .catch(function(e){setSyncDot('error');toast('Error al eliminar','err');});
+    .catch(function(e){setSyncDot('error');debugLog('error','contactos delete: '+e.message);toast('Error al eliminar','err');});
 }
 function fsSetVisita(v){
   setSyncDot('pending');
   return fsDB.collection('visitas').doc(v.id).set(v)
     .then(function(){setSyncDot('ok');})
-    .catch(function(e){setSyncDot('error');toast('No se pudo guardar la visita','err');});
+    .catch(function(e){setSyncDot('error');debugLog('error','visitas write: '+e.message);toast('No se pudo guardar la visita','err');});
 }
 function fsSetComodato(co){
   setSyncDot('pending');
   return fsDB.collection('comodatos').doc(co.id).set(co)
     .then(function(){setSyncDot('ok');})
-    .catch(function(e){setSyncDot('error');toast('No se pudo guardar el comodato','err');});
+    .catch(function(e){setSyncDot('error');debugLog('error','comodatos write: '+e.message);toast('No se pudo guardar el comodato','err');});
 }
 function fsDelComodato(id){
   setSyncDot('pending');
@@ -499,13 +535,13 @@ function fsSetUsuario(u){
   setSyncDot('pending');
   return fsDB.collection('usuarios').doc(String(u.id)).set(u)
     .then(function(){setSyncDot('ok');})
-    .catch(function(e){setSyncDot('error');toast('No se pudo guardar el usuario','err');});
+    .catch(function(e){setSyncDot('error');debugLog('error','usuarios write: '+e.message);toast('No se pudo guardar el usuario','err');});
 }
 function fsSetConfig(cfg){
   setSyncDot('pending');
   return fsDB.collection('config').doc('main').set(cfg,{merge:true})
     .then(function(){setSyncDot('ok');})
-    .catch(function(e){setSyncDot('error');toast('No se pudo guardar la configuracion','err');});
+    .catch(function(e){setSyncDot('error');debugLog('error','config write: '+e.message);toast('No se pudo guardar la configuracion','err');});
 }
 
 // ── MIGRACION UNICA: subir datos que hoy estan solo en localStorage (de pruebas previas) ──
@@ -568,6 +604,8 @@ function startApp(){
   if(D.user.r==='gerente'||D.user.r==='admin'){
     document.getElementById('sGerente').classList.add('on');
     document.getElementById('vNav').style.display='none';
+    var mu=document.getElementById('gMobUser');if(mu)mu.textContent=D.user.n;
+    var su=document.getElementById('gSideUserNm');if(su)su.textContent=D.user.n+' · Admin';
     renderGD();
   } else {
     document.getElementById('sVen').classList.add('on');
@@ -1572,7 +1610,40 @@ function renderGCfg(){
   h+='<button class="btn sec" onclick="expJSON()">Exportar backup</button>';
   h+='<label class="btn sec" style="text-align:center;cursor:pointer">Importar backup<input type="file" accept=".json" onchange="impJSON(this)" style="display:none"></label></div></div>';
 
+  // ── MODO DEBUG ────────────────────────────────────────────────────
+  h+='<div class="card"><div class="ct">SOPORTE TECNICO</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Informacion tecnica del sistema para diagnosticar problemas</div>';
+  h+='<button class="btn sec" onclick="abrirDebug()">Abrir Modo Debug</button></div>';
+
   document.getElementById('gCfgB').innerHTML=h;
+}
+function abrirDebug(){
+  var h='';
+  h+='<div class="fg"><div class="fl">Usuario logueado</div><div style="font-size:14px;font-weight:700">'+es(D.user?D.user.n:'-')+' (@'+es(D.user?D.user.u:'-')+')</div></div>';
+  h+='<div class="fg"><div class="fl">Rol</div><div style="font-size:14px;font-weight:700">'+es(D.user?D.user.r:'-')+'</div></div>';
+  h+='<div class="fg"><div class="fl">Estado de sincronizacion</div><div style="font-size:14px;font-weight:700;color:'+(syncEstado==='ok'?'var(--green)':syncEstado==='pending'?'var(--yellow)':'var(--red)')+'">'+es(syncEstado||'ok')+'</div></div>';
+  h+='<div class="fg"><div class="fl">Conexion a internet</div><div style="font-size:14px;font-weight:700">'+(navigator.onLine?'Online':'Offline')+'</div></div>';
+  h+='<div class="div"></div>';
+  h+='<div class="fl" style="margin-bottom:8px">REGISTROS CARGADOS</div>';
+  h+='<div class="sg" style="margin-bottom:14px">';
+  h+='<div class="sb"><div class="sn">'+D.cli.length+'</div><div class="sl2">Contactos</div></div>';
+  h+='<div class="sb"><div class="sn">'+D.vis.length+'</div><div class="sl2">Visitas</div></div>';
+  h+='<div class="sb"><div class="sn">'+D.com.length+'</div><div class="sl2">Comodatos</div></div>';
+  h+='<div class="sb"><div class="sn">'+D.usrs.length+'</div><div class="sl2">Usuarios</div></div>';
+  h+='</div>';
+  h+='<div class="fl" style="margin-bottom:8px">ULTIMA SINCRONIZACION POR COLECCION</div>';
+  Object.keys(DEBUG_LASTSYNC).forEach(function(k){
+    h+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--muted)">'+k+'</span><span>'+(DEBUG_LASTSYNC[k]?fmtTs(DEBUG_LASTSYNC[k]):'Sin datos aun')+'</span></div>';
+  });
+  h+='<div class="div"></div>';
+  h+='<div class="fl" style="margin-bottom:8px">ULTIMOS EVENTOS TECNICOS ('+DEBUG_LOG.length+')</div>';
+  if(!DEBUG_LOG.length){h+='<div style="color:var(--green);font-size:13px">Sin errores registrados</div>';}
+  DEBUG_LOG.forEach(function(e){
+    var col=e.tipo==='error'?'var(--red)':'var(--muted)';
+    h+='<div style="padding:7px 0;border-bottom:1px solid var(--border)"><div style="font-size:11px;color:var(--muted)">'+fmtTs(e.ts)+'</div><div style="font-size:12px;color:'+col+';font-family:monospace">'+es(e.msg)+'</div></div>';
+  });
+  h+='<button class="btn sec" onclick="DEBUG_LOG=[];abrirDebug()" style="margin-top:14px">Limpiar log</button>';
+  oMod('Modo Debug',h);
 }
 function expJSON(){
   var backup={cli:D.cli,vis:D.vis,com:D.com,gira:D.gira,log:D.log,cfg:D.cfg,usrs:D.usrs,fecha:new Date().toISOString()};
@@ -1650,9 +1721,11 @@ function envWA(id){var c=D.cli.find(function(x){return x.id===id;});if(!c){toast
 var syncEstado='ok'; // ok|pending|error
 function setSyncDot(estado){
   syncEstado=estado;
-  var dot=document.getElementById('syncDot');
-  if(!dot)return;
-  dot.style.background=estado==='ok'?'var(--green)':estado==='pending'?'var(--yellow)':'var(--red)';
+  var col=estado==='ok'?'var(--green)':estado==='pending'?'var(--yellow)':'var(--red)';
+  ['syncDot','syncDotAdmin','syncDotAdmin2'].forEach(function(id){
+    var dot=document.getElementById(id);
+    if(dot)dot.style.background=col;
+  });
 }
 function sincronizarManual(){
   setSyncDot('pending');
@@ -2170,7 +2243,7 @@ window.addEventListener('load',function(){
     fsBootMsg('Sincronizando datos...');
     fsSetupListeners();
   }).catch(function(err){
-    console.error('Auth error',err);
+    debugLog('error','Auth: '+err.message);
     fsBootMsg('Sin conexion. Reintentando...');
     setTimeout(function(){window.location.reload();},5000);
   });
