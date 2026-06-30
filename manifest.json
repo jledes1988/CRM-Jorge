@@ -1,7 +1,7 @@
 {
   "name": "CRM-JORGE",
   "short_name": "CRM-JORGE",
-  "description": "Sistema Comercial Sei Tu",
+  "description": "CRM Comercial - Jorge Ledesma",
   "start_url": "/CRM-Jorge/",
   "scope": "/CRM-Jorge/",
   "display": "standalone",
