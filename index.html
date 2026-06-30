@@ -302,7 +302,7 @@ var ARG_CIU={
 };
 var ARG_BARRIOS=['Alberdi','Alta Cordoba','Altamira','Altos de la Quintas','Argüello','Barra de Argüello','Bella Vista','Bimaco','Bo.13 de Diciembre','Bo.Ameghino','Bo.Calasanz Norte','Bo.Calasanz Sur','Bo.Centro','Bo.Cerro Chico','Bo.Cofico','Bo.Colinas de Velez Sarsfield','Bo.Don Bosco','Bo.General Paz','Bo.Jardin Espinosa','Bo.Jardin Hipico','Bo.Los Granados','Bo.Maipu','Bo.Muller','Bo.Naciones Unidas','Bo.Nueva Córdoba','Bo.Observatorio','Bo.Primero de Mayo','Bo.Residencial America','Bo.San Ignacio','Bo.San Lorenzo','Bo.San Vicente','Bo.Urca','Bo.Vallescondido','Bo.Velez Sarsfield','Bo.Villa Azalais','Bo.Villa Cornu','Bo.Villa del Parque','Bo.Villa Eucaristica','Bo.Villa Paez','Bo.Villa Progreso','Bo.Villa San Martin','Bo.Yapeyú','Casas Brujas','Centro','Cerro de las Rosas','Ciudad de los Cuartetos','Cofico','Colinas de Villa Allende','Country El Bosque','Country Los Cedros','Country Los Manantiales','Country Villa Allende','Estacion Juarez Celman','Ferreyra','General Bustos','General Fotheringham','General Paz','Guiñazú','Ituzaingo','Jardin','Jose Ignacio Diaz','Juniors','La Calera','La Floresta','Las Palmas','Lomas del Chateau','Los Bulevares','Los Cedros','Los Chasquis','Los Paraísos','Las Rosas','Manantiales','Marqués de Sobremonte','Mendiolaza','Miguel Cerro','Monte Cristo','Muller','Nicolas Avellaneda','Nuevo Cordoba','Palermo','Parque Capital','Parque Costanero','Parque Liceo','Parque San Martin','Parque Velez Sarsfield','Paso de los Andes','Patria Grande','Patricios','Pinar de Atenas','Pueyrredon','Quebrada Las Rosas','Quintas del Este','Quintas del Norte','Quintas del Sur','Ricardo Rojas','Rivadavia','Sagrada Familia','San Ignacio','San Juan Bautista','San Martin','San Roque','Santa Isabel','Santa Rita','Villa Acacias','Villa Allende','Villa Belgrano','Villa Bustos','Villa Cabrera','Villa Centenario','Villa Cornú','Villa del Prado','Villa Dolores','Villa Eucaristica','Villa Flores','Villa Fortabat','Villa Italia','Villa La Florida','Villa Libertad','Villa Maipú','Villa Martelli','Villa Páez','Villa Parque','Villa Poeta Lugones','Villa Progreso','Villa Rivera Indarte','Villa Rivadavia','Villa Sarmiento','Villa Sol','Villa Urquiza','Villa Warcalde','Yapeyú','Arguello','Colinas de Villa Allende'];
 
-var CFG={syncUrl:'https://script.google.com/macros/s/AKfycbyGnQIIrBDvOSik7YBp-Rpr3O70VGOwvwEDwBgtqfTuBukD-8u5uCncRFCbujvtKX6OAg/exec',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Kiosco','Drugstore','Despensa','Almacen','Autoservicio','Supermercado','Minimercado','Mayorista','Bar','Restaurante','Parrilla','Cafeteria','Heladeria','Panaderia','Confiteria','Rotiseria','Estacion de servicio','Club','Camping','Hotel','Hostel','Complejo turistico','Balneario','Distribuidor','Farmacia','Otro'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Otro'],msgs:Object.assign({},MD)};
+var CFG={syncUrl:'https://script.google.com/macros/s/AKfycbyGnQIIrBDvOSik7YBp-Rpr3O70VGOwvwEDwBgtqfTuBukD-8u5uCncRFCbujvtKX6OAg/exec',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Kiosco','Drugstore','Despensa','Almacen','Autoservicio','Supermercado','Minimercado','Mayorista','Bar','Restaurante','Parrilla','Cafeteria','Heladeria','Panaderia','Confiteria','Rotiseria','Estacion de servicio','Club','Camping','Hotel','Hostel','Complejo turistico','Balneario','Distribuidor','Farmacia','Otro'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Sin interes','Precio','Otro'],tiposProducto:['Helados','Panificacion','Fiambres y quesos','Bebidas','Congelados','Almacen','Golosinas','Lacteos','Otros'],msgs:Object.assign({},MD)};
 var D={user:null,usrs:[{id:1,n:'JL',u:'jl',p:'seitu2026',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:3,n:'Chamu',u:'chamu',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:4,n:'Pablo',u:'pablo',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
 // UTILS
 function uid(){return Date.now()+Math.random().toString(36).slice(2,5);}
@@ -322,7 +322,7 @@ function load(){
   var f=lg('jf',null);if(f){Object.keys(CFG).forEach(function(k){if(f[k]===undefined)f[k]=CFG[k];});D.cfg=f;}
   var u=lg('ju',null);if(u)D.usrs=u;
   var l=lg('jlog',null);if(l)D.log=l;
-  D.cli.forEach(function(c){if(!c.etapaEmbudo||c.etapaEmbudo==='')c.etapaEmbudo=c.esP?'Nuevo Prospecto':'Cliente Activo';if(!c.uv)c.uv='';if(!c.ex)c.ex={};if(c.deu===undefined)c.deu=false;if(!c.ing)c.ing='';if(!c.vend)c.vend='';});
+  D.cli.forEach(function(c){if(!c.etapaEmbudo||c.etapaEmbudo==='')c.etapaEmbudo=c.esP?'Nuevo Prospecto':'Cliente Activo';if(!c.uv)c.uv='';if(!c.ex)c.ex={};if(c.deu===undefined)c.deu=false;if(!c.ing)c.ing='';if(!c.vend)c.vend='';if(!c.prods)c.prods=[];if(!c.prov)c.prov='';if(!c.ciu)c.ciu='';});
   D.usrs.forEach(function(u){if(!u.activo)u.activo=true;if(!u.creado)u.creado='';if(!u.ua)u.ua='';});
   // Migrar gira vieja (array de strings) al nuevo formato {cid, fecha}
   if(D.gira.length&&typeof D.gira[0]==='string'){var hoyM=today();D.gira=D.gira.map(function(id){return{cid:id,fecha:hoyM};});}
@@ -468,8 +468,8 @@ function renderVH(){
 }
 
 // ── CONTACTOS ─────────────────────────────────────────────────────────
-var vcF={tipo:'',bar:'',tipOneg:'',vis:'',frez:'',comp:[],calU:'',trans:''};
-function qFiltro(k){if(k==='comp')vcF.comp=[];else vcF[k]='';renderVC();}
+var vcF={tipo:'',bar:'',tipOneg:'',vis:'',frez:'',comp:[],calU:'',trans:'',prods:[]};
+function qFiltro(k){if(k==='comp'||k==='prods')vcF[k]=[];else vcF[k]='';renderVC();}
 function abrirFiltros(){
   var barriosH=(D.cfg.barrios||[]).map(function(b){return '<span class="ch'+(vcF.bar===b?' on':'')+'" onclick="vcF.bar=vcF.bar===\''+es(b)+'\'?\'\':\\\''+es(b)+'\\\';renderVC();this.classList.toggle(\'on\')" style="font-size:12px;padding:6px 11px">'+es(b)+'</span>';}).join('');
   var tiposH=(D.cfg.tipos||[]).map(function(t){return '<span class="ch'+(vcF.tipOneg===t?' on':'')+'" onclick="vcF.tipOneg=vcF.tipOneg===\''+es(t)+'\'?\'\':\\\''+es(t)+'\\\';renderVC();this.classList.toggle(\'on\')" style="font-size:12px;padding:6px 11px">'+es(t)+'</span>';}).join('');
@@ -498,7 +498,10 @@ function abrirFiltros(){
   h+='<div class="fg"><div class="fl">Transito</div><div class="chips">';
   ['Alto','Medio','Bajo'].forEach(function(v){h+='<span class="ch'+(vcF.trans===v?' on':'')+'" onclick="vcF.trans=vcF.trans===\''+v+'\'?\'\':\\\''+v+'\\\';renderVC();this.classList.toggle(\'on\')" style="font-size:12px;padding:6px 11px">'+v+'</span>';});
   h+='</div></div>';
-  h+='<button class="btn sec" onclick="vcF={tipo:\'\',bar:\'\',tipOneg:\'\',vis:\'\',frez:\'\',comp:[],calU:\'\',trans:\'\'};renderVC();cMod()">Limpiar filtros</button>';
+  h+='<div class="fg"><div class="fl">Productos que vende</div><div class="chips">';
+  (D.cfg.tiposProducto||[]).forEach(function(p){var on=vcF.prods.indexOf(p)>=0;h+='<span class="ch'+(on?' on':'')+'" onclick="var i=vcF.prods.indexOf(\''+p+'\');if(i>=0)vcF.prods.splice(i,1);else vcF.prods.push(\''+p+'\');renderVC();this.classList.toggle(\'on\')" style="font-size:12px;padding:6px 11px">'+es(p)+'</span>';});
+  h+='</div></div>';
+  h+='<button class="btn sec" onclick="vcF={tipo:\'\',bar:\'\',tipOneg:\'\',vis:\'\',frez:\'\',comp:[],calU:\'\',trans:\'\',prods:[]};renderVC();cMod()">Limpiar filtros</button>';
   oMod('Filtrar contactos',h);
 }
 
@@ -508,13 +511,19 @@ function abrirFichaV(id){
   var vs=D.vis.filter(function(v){return v.cid===id;}).slice().reverse().slice(0,5);
   var h='<div style="margin-bottom:12px">';
   if(c.tel)h+='<a href="tel:'+es(c.tel)+'" style="display:block;font-size:20px;font-weight:900;color:var(--cyan);text-decoration:none">'+es(c.tel)+'</a>';
-  h+='<div style="font-size:13px;color:var(--muted);margin-top:4px">'+es(c.dir||'')+(c.bar?' · '+es(c.bar):'')+(c.tipo?' · '+es(c.tipo):'')+'</div>';
+  // Ubicacion completa
+  var ubicParts=[c.dir,c.ciu||c.bar,c.prov].filter(Boolean);
+  h+='<div style="font-size:13px;color:var(--muted);margin-top:4px">'+es(ubicParts.join(' · '))+(c.tipo?' · '+es(c.tipo):'')+'</div>';
   h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">';
   h+=(c.esP?'<span class="tg o">'+es(c.etapaEmbudo||'PROSPECTO')+'</span>':'<span class="tg g">CLIENTE ACTIVO</span>');
-  if(c.cFr)h+='<span class="tg m">Freezer: '+es(c.cFr)+'</span>';
+  if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900">⚠ DEUDOR</span>';
+  if(c.cFr)h+='<span class="tg m">'+es(c.cFr)+'</span>';
   if(c.calU)h+='<span class="tg m">Ubic: '+c.calU+'</span>';
   if(c.trans)h+='<span class="tg m">Transito: '+es(c.trans)+'</span>';
-  h+='</div></div>';
+  h+='</div>';
+  // Productos
+  if(c.prods&&c.prods.length){h+='<div style="font-size:12px;color:var(--muted);margin-top:6px">Vende: '+es(c.prods.join(' · '))+'</div>';}
+  h+='</div>';
   h+='<div class="div"></div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
   h+='<div class="sb"><div class="fl">Ultima visita</div><div style="font-size:14px;font-weight:700;color:var(--cyan)">'+fmt(c.ul)+'</div></div>';
@@ -532,12 +541,83 @@ function abrirFichaV(id){
     });
   }
   h+='<div class="div"></div>';
-  h+='<button class="btn" onclick="cMod();abrirVisita(\''+id+'\')" style="margin-bottom:8px">Registrar visita</button>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
+  h+='<button class="btn" onclick="cMod();abrirVisita(\''+id+'\')" style="margin:0">Registrar visita</button>';
+  h+='<button class="btn sec" onclick="cMod();editarContacto(\''+id+'\')" style="margin:0">Editar</button>';
+  h+='</div>';
   if(c.tel)h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin-bottom:8px">Enviar WhatsApp</button>';
-  // Historial de trazabilidad
-  var logH=htmlLog(id,10);
+  var logH=htmlLog(id,8);
   if(logH){h+='<div class="div"></div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">HISTORIAL</div>'+logH;}
   oMod(es(c.nm),h);
+}
+
+// ── EDITAR CONTACTO (VENDEDOR) ───────────────────────────────────────
+function editarContacto(id){
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  var provOpts=ARG_PROV.map(function(p){return '<option value="'+es(p)+'"'+(c.prov===p?' selected':'')+'>'+es(p)+'</option>';}).join('');
+  var tH=(D.cfg.tipos||[]).map(function(t){return ch(t,t,'eTip',false,'');}).join('');
+  var compOpts=['Frigor','Arcor','Grido','Glups','Sin competencia','Otra'];
+  var compH=compOpts.map(function(cp){var on2=c.comp&&c.comp.includes(cp);return '<span class="ch'+(on2?' on':'')+'" data-id="'+es(cp)+'" data-g="eComp" onclick="this.classList.toggle(\'on\')" style="font-size:12px;padding:5px 10px">'+es(cp)+'</span>';}).join('');
+  var frH=['Sin freezer','Propio','Competencia'].map(function(f){return ch(f,f,'eFr',false,'');}).join('');
+  var prodH=(D.cfg.tiposProducto||[]).map(function(p){var on3=c.prods&&c.prods.indexOf(p)>=0;return '<span class="ch'+(on3?' on':'')+'" data-id="'+es(p)+'" data-g="eProds" onclick="this.classList.toggle(\'on\')" style="font-size:12px;padding:5px 10px">'+es(p)+'</span>';}).join('');
+  var h='';
+  h+='<div class="fg"><label class="fl">Nombre del local *</label><input class="fi" id="eNm" value="'+es(c.nm||'')+'"></div>';
+  h+='<div class="fg"><label class="fl">Dueno / encargado</label><input class="fi" id="eFan" value="'+es(c.fan||'')+'"></div>';
+  h+='<div class="fg"><label class="fl">Telefono</label><input class="fi" type="tel" id="eTel" value="'+es(c.tel||'')+'"></div>';
+  h+='<div class="fg"><label class="fl">Direccion</label><input class="fi" id="eDir" value="'+es(c.dir||'')+'"></div>';
+  h+='<div class="fg"><label class="fl">Provincia</label><select class="fi" id="eProv" onchange="actualizarCiudadesEdit()"><option value="">Seleccionar...</option>'+provOpts+'</select></div>';
+  h+='<div class="fg"><label class="fl">Ciudad</label><input class="fi" id="eCiudad" list="eCiudList" value="'+es(c.ciu||'')+'" placeholder="Escribi para buscar..."><datalist id="eCiudList"></datalist></div>';
+  h+='<div class="fg" id="eBarrioFg" style="'+(c.ciu==='Córdoba Capital'?'':'display:none')+'"><label class="fl">Barrio</label><select class="fi" id="eBarrio"><option value="">Seleccionar...</option>'+ARG_BARRIOS.map(function(b){return '<option value="'+es(b)+'"'+(c.bar===b?' selected':'')+'>'+es(b)+'</option>';}).join('')+'</select></div>';
+  h+='<div class="fg"><label class="fl">Tipo de negocio</label><div class="chips">'+tH+'</div></div>';
+  h+='<div class="fg"><label class="fl">Productos que vende</label><div class="chips">'+prodH+'</div></div>';
+  h+='<div class="fg"><label class="fl">Competencia</label><div class="chips">'+compH+'</div></div>';
+  h+='<div class="fg"><label class="fl">Freezer</label><div class="chips">'+frH+'</div></div>';
+  h+='<div class="fg"><label class="fl">Calificacion ubicacion</label><div class="chips">'+['A','B','C','D'].map(function(v){return ch(v,v,'eCal',false,'');}).join('')+'</div></div>';
+  h+='<div class="fg"><label class="fl">Transito</label><div class="chips">'+['Alto','Medio','Bajo'].map(function(v){return ch(v,v,'eTr',false,'');}).join('')+'</div></div>';
+  h+='<div class="fg"><label class="fl">Observaciones</label><textarea class="fi fta" id="eObs" rows="3">'+es(c.obs||'')+'</textarea></div>';
+  h+='<button class="btn or" onclick="guardarEdicionContacto('+JSON.stringify(id)+')">Guardar cambios</button>';
+  oMod('Editar: '+es(c.nm),h);
+  // Init chips
+  setTimeout(function(){
+    if(c.tipo)sc('eTip',c.tipo);
+    if(c.cFr)sc('eFr',c.cFr);
+    if(c.calU)sc('eCal',c.calU);
+    if(c.trans)sc('eTr',c.trans);
+    if(c.prov){var pe=document.getElementById('eProv');if(pe){pe.value=c.prov;actualizarCiudadesEdit();}}
+    var ciu=document.getElementById('eCiudad');if(ciu){ciu.value=c.ciu||'';if(c.ciu==='Córdoba Capital'){var bf=document.getElementById('eBarrioFg');if(bf)bf.style.display='block';}}
+  },50);
+}
+function actualizarCiudadesEdit(){
+  var prov=document.getElementById('eProv');
+  var ciuInp=document.getElementById('eCiudad');
+  var ciudList=document.getElementById('eCiudList');
+  if(!prov||!ciuInp||!ciudList)return;
+  var cius=ARG_CIU[prov.value]||[];
+  ciudList.innerHTML=cius.map(function(c){return '<option value="'+es(c)+'"></option>';}).join('');
+  ciuInp.value='';
+  ciuInp.oninput=function(){var bf=document.getElementById('eBarrioFg');if(bf)bf.style.display=ciuInp.value.trim()==='Córdoba Capital'?'block':'none';};
+}
+function guardarEdicionContacto(id){
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  var cambios=[];
+  function chk(campo,nuevoVal){if((c[campo]||'')!==(nuevoVal||'')){cambios.push(campo+': '+JSON.stringify(c[campo])+' -> '+JSON.stringify(nuevoVal));c[campo]=nuevoVal;}}
+  chk('nm',document.getElementById('eNm').value.trim());
+  chk('fan',document.getElementById('eFan').value.trim());
+  chk('tel',document.getElementById('eTel').value.trim());
+  chk('dir',document.getElementById('eDir').value.trim());
+  chk('prov',document.getElementById('eProv').value);
+  chk('ciu',document.getElementById('eCiudad').value.trim());
+  var bEl=document.getElementById('eBarrio');if(bEl)chk('bar',bEl.value);
+  chk('tipo',gc('eTip'));
+  var nprod=gcs('eProds');if(JSON.stringify(c.prods)!==JSON.stringify(nprod)){cambios.push('prods');c.prods=nprod;}
+  var ncomp=gcs('eComp').join(', ');chk('comp',ncomp);
+  chk('cFr',gc('eFr'));
+  chk('calU',gc('eCal'));
+  chk('trans',gc('eTr'));
+  chk('obs',document.getElementById('eObs').value.trim());
+  if(cambios.length){logEvento('modificacion',id,c.nm,'Edicion: '+cambios.slice(0,3).join(' | ')+(cambios.length>3?' (+'+(cambios.length-3)+' mas)':''),'','');}
+  save();cMod();sincSubir(null);renderVC();
+  toast(cambios.length?cambios.length+' cambio'+(cambios.length!==1?'s':'')+' guardado'+(cambios.length!==1?'s':''):'Sin cambios','ok');
 }
 
 // ── EMBUDO ────────────────────────────────────────────────────────────
@@ -705,7 +785,7 @@ function guardarVisitaProspecto(id){
 function nuevoPros(){
   var tid=uid();
   var vend=D.user?D.user.n:'';
-  D.cli.push({id:tid,nm:'',fan:'',tel:'',dir:'',bar:'',tipo:'',esP:true,etapaEmbudo:'Nuevo Prospecto',calU:'',trans:'',comp:'',cFr:'',cEx:'',obs:'',uv:'',ul:'',prox:'',ing:today(),ex:{},deu:false,vend:vend});
+  D.cli.push({id:tid,nm:'',fan:'',tel:'',dir:'',bar:'',tipo:'',prov:'',ciu:'',esP:true,etapaEmbudo:'Nuevo Prospecto',calU:'',trans:'',comp:'',cFr:'',cEx:'',obs:'',uv:'',ul:'',prox:'',ing:today(),ex:{},deu:false,vend:vend,prods:[]});
   aVisPros(tid,true);
 }
 
@@ -1069,36 +1149,85 @@ function retCo(id){var co=D.com.find(function(c){return c.id===id;});if(!co)retu
 function delCo(id){if(!confirm('Eliminar?'))return;D.com=D.com.filter(function(c){return c.id!==id;});save();renderGCo();toast('Eliminado','ok');}
 // GERENTE CONFIG
 function renderGCfg(){
-  var su=D.cfg.syncUrl||'';
-  var h='<div style="padding:14px">';
-  h+='<div class="card"><div class="ct">Sincronizacion Google Sheets</div>';
-  h+='<div style="font-size:11px;font-weight:700;margin-bottom:8px;color:'+(su?'var(--green)':'var(--muted)')+'">'+(su?'Conectado':'Sin configurar')+'</div>';
-  h+='<div class="fg"><label class="fl">URL del Apps Script</label><input class="fi" id="cfgS" type="url" placeholder="https://script.google.com/..." value="'+es(su)+'"></div>';
-  h+='<div style="display:flex;gap:8px"><button class="btn" onclick="savSync()" style="flex:1">Guardar URL</button><button class="btn sec" onclick="sincBajar(function(ok){if(ok)renderGD();})" style="flex:1">Bajar datos</button><button class="btn sec" onclick="sincSubir(null)" style="flex:1">Subir datos</button></div></div>';
-  // Usuarios
-  h+='<div class="card"><div class="ct">Usuarios</div>';
+  var h='';
+  // ── USUARIOS ──────────────────────────────────────────────────────
+  h+='<div class="card"><div class="ct">USUARIOS DEL SISTEMA</div>';
   D.usrs.forEach(function(u){
     h+='<div class="sr"><div style="flex:1">';
     h+='<div style="font-size:13px;font-weight:700">'+es(u.n)+(u.activo===false?' <span class="tg r">INACTIVO</span>':'')+'</div>';
     h+='<div style="font-size:11px;color:var(--muted)">@'+es(u.u)+' · '+es(u.r)+'</div>';
     h+='<div style="font-size:10px;color:var(--muted)">Ultimo acceso: '+(u.ua?fmtTs(u.ua):'Nunca')+'</div></div>';
     h+='<div style="display:flex;gap:6px">';
-    h+='<button class="sm" onclick="togActivo('+u.id+')" style="font-size:11px;color:'+(u.activo===false?'var(--green)':'var(--muted)')+'">'+(u.activo===false?'Activar':'Desactivar')+'</button>';
+    h+='<button class="sm" onclick="togActivo('+u.id+')" style="font-size:11px;color:'+(u.activo===false?'var(--green)':'var(--muted)')+'">'+(u.activo===false?'Activar':'Desact.')+'</button>';
     h+='<button class="sm" onclick="cambPass('+u.id+')" style="font-size:11px">Pass</button></div></div>';
   });
   h+='</div>';
-  // Mensajes embudo
-  h+='<div class="card"><div class="ct">Mensajes del pipeline</div>';
-  ET.concat(SA).forEach(function(et,i){var msg=(D.cfg.msgs&&D.cfg.msgs[et])||MD[et]||'';h+='<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:'+(EC[et]||'var(--muted)')+';margin-bottom:4px">'+es(et)+'</div><textarea class="fi fta" id="msg'+i+'" data-et="'+es(et)+'" rows="2">'+es(msg)+'</textarea></div>';});
-  h+='<button class="btn" onclick="savMsgs()">Guardar mensajes</button></div>';
-  // Listas editables
-  var lsts=[{k:'barrios',l:'Barrios'},{k:'tipos',l:'Tipos de negocio'},{k:'razones',l:'Razones de no venta'},{k:'marcas',l:'Marcas de freezer'}];
-  lsts.forEach(function(li){h+='<div class="card"><div style="display:flex;align-items:center;margin-bottom:10px"><div class="ct" style="margin-bottom:0;flex:1">'+li.l+'</div><button class="sm" onclick="editLst(\''+li.k+'\',\''+li.l+'\')">Editar</button></div><div style="font-size:12px;color:var(--muted)">'+es((D.cfg[li.k]||[]).join(' · '))+'</div></div>';});
-  // Backup
-  h+='<div class="card"><div class="ct">Backup de datos</div><div class="fg" style="font-size:12px;color:var(--muted)">Exporta antes de actualizar el CRM para no perder datos.</div><div style="display:flex;gap:8px"><button class="btn" onclick="expDatos()">Exportar JSON</button><label class="btn sec" style="text-align:center;cursor:pointer">Importar JSON<input type="file" accept=".json" style="display:none" onchange="impDatos(this)"></label></div></div>';
-  h+='<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:12px;padding-bottom:20px">CRM Sei Tu · v1.0 · jledes1988.github.io/crm</div></div>';
+
+  // ── CATÁLOGO MANAGER ─────────────────────────────────────────────
+  h+='<div class="card"><div class="ct">ADMINISTRADOR DE CATALOGOS</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Todas las listas del sistema. Los cambios se aplican inmediatamente en toda la app.</div>';
+
+  var catalogos=[
+    {key:'tipos',label:'Tipos de negocio'},
+    {key:'tiposProducto',label:'Tipos de productos'},
+    {key:'marcas',label:'Marcas competidoras'},
+    {key:'razones',label:'Motivos de no venta'},
+    {key:'barrios',label:'Barrios de Cordoba Capital'},
+  ];
+  catalogos.forEach(function(cat){
+    var items=D.cfg[cat.key]||[];
+    h+='<div style="border:1px solid var(--border);border-radius:var(--rsm);padding:12px;margin-bottom:12px">';
+    h+='<div style="font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">'+es(cat.label)+' ('+items.length+')</div>';
+    items.forEach(function(item,i){
+      h+='<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)">';
+      h+='<span style="flex:1;font-size:13px">'+es(item)+'</span>';
+      h+='<button class="sm rd" onclick="elimItemCat(\''+cat.key+'\','+i+')" style="font-size:11px;padding:3px 8px">&#215;</button></div>';
+    });
+    h+='<div style="display:flex;gap:6px;margin-top:8px">';
+    h+='<input class="fi" id="niCat_'+es(cat.key)+'" placeholder="Agregar nuevo..." style="flex:1;margin:0;padding:8px 10px;font-size:13px">';
+    h+='<button class="sm g" onclick="addItemCat(\''+cat.key+'\')" >+ Agregar</button></div></div>';
+  });
+  h+='</div>';
+
+  // ── MENSAJES WHATSAPP POR ETAPA ───────────────────────────────────
+  h+='<div class="card"><div class="ct">MENSAJES DE WHATSAPP POR ETAPA</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Se envian al tocar el boton WA en cada contacto segun su etapa del embudo.</div>';
+  if(!D.cfg.msgs)D.cfg.msgs={};
+  ET.concat(SA).forEach(function(et,i){
+    var msg=(D.cfg.msgs&&D.cfg.msgs[et])||MD[et]||'';
+    h+='<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:'+(EC[et]||'var(--muted)')+';margin-bottom:4px">'+es(et)+'</div>';
+    h+='<textarea class="fi fta" id="msg'+i+'" data-et="'+es(et)+'" rows="2" style="font-size:13px">'+es(msg)+'</textarea></div>';
+  });
+  h+='<button class="btn sec" onclick="savMsgs()" style="margin-bottom:8px">Guardar mensajes</button></div>';
+
+  // ── SYNC URL ─────────────────────────────────────────────────────
+  h+='<div class="card"><div class="ct">SINCRONIZACION</div>';
+  h+='<div class="fg"><label class="fl">URL del servidor (Google Apps Script)</label>';
+  h+='<input class="fi" id="syncU" value="'+es(D.cfg.syncUrl||'')+'" placeholder="https://script.google.com/..."></div>';
+  h+='<button class="btn sec" onclick="savSync()">Guardar URL</button></div>';
+
+  // ── BACKUP JSON ───────────────────────────────────────────────────
+  h+='<div class="card"><div class="ct">BACKUP Y RESTAURACION</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h+='<button class="btn sec" onclick="expJSON()">Exportar backup</button>';
+  h+='<label class="btn sec" style="text-align:center;cursor:pointer">Importar backup<input type="file" accept=".json" onchange="impJSON(this)" style="display:none"></label></div></div>';
+
   document.getElementById('gCfgB').innerHTML=h;
 }
+function addItemCat(cat){
+  var inp=document.getElementById('niCat_'+cat);if(!inp)return;
+  var val=inp.value.trim();if(!val)return;
+  if(!D.cfg[cat])D.cfg[cat]=[];
+  if(D.cfg[cat].indexOf(val)<0){D.cfg[cat].push(val);save();renderGCfg();toast('Agregado: '+val,'ok');}
+  else{toast('Ya existe en la lista','err');}
+}
+function elimItemCat(cat,idx){
+  if(!D.cfg[cat])return;
+  var item=D.cfg[cat][idx];
+  if(!confirm('Eliminar "'+item+'" de la lista?'))return;
+  D.cfg[cat].splice(idx,1);save();renderGCfg();toast('Eliminado','ok');
+}
+
 function savSync(){var u=document.getElementById('cfgS').value.trim();D.cfg.syncUrl=u;save();toast(u?'URL guardada':'URL eliminada','ok');}
 function savMsgs(){ET.concat(SA).forEach(function(et,i){var el=document.getElementById('msg'+i);if(el)D.cfg.msgs[et]=el.value;});save();toast('Mensajes guardados','ok');}
 function togActivo(uid2){
@@ -1315,6 +1444,7 @@ function aVisPros(id,nu){
     {sub:'1/4 · Datos del local',
      render:function(){
        var tH=(D.cfg.tipos||[]).map(function(t){return ch(t,t,'tip',false,'');}).join('');
+       var prodH=(D.cfg.tiposProducto||[]).map(function(p){return ch(p,p,'prods',true,'');}).join('');
        var provOpts=ARG_PROV.map(function(p){return '<option value="'+es(p)+'"'+(c.prov===p?' selected':'')+'>'+es(p)+'</option>';}).join('');
        return '<div style="font-size:20px;font-weight:800;margin-bottom:14px">Datos del local</div>'+
          '<div class="fg"><label class="fl">Nombre del local *</label><input class="fi" id="pNm" placeholder="Ej: Kiosco El Sol" value="'+es(c.nm||'')+'"></div>'+
@@ -1324,11 +1454,13 @@ function aVisPros(id,nu){
          '<div class="fg"><label class="fl">Provincia *</label><select class="fi" id="pProv" onchange="actualizarCiudades()"><option value="">Seleccionar provincia...</option>'+provOpts+'</select></div>'+
          '<div class="fg"><label class="fl">Ciudad *</label><input class="fi" id="pCiudad" list="ciudList" placeholder="Escribi para buscar..." value="'+es(c.ciu||'')+'"><datalist id="ciudList" id="ciudList"></datalist></div>'+
          '<div class="fg" id="pBarrioFg" style="'+(c.ciu==='Córdoba Capital'?'':'display:none')+'"><label class="fl">Barrio</label><select class="fi" id="pBarrio"><option value="">Seleccionar barrio...</option>'+ARG_BARRIOS.map(function(b){return '<option value="'+es(b)+'"'+(c.bar===b?' selected':'')+'>'+es(b)+'</option>';}).join('')+'</select></div>'+
-         '<div class="fg"><label class="fl">Tipo de negocio</label><div class="chips" style="margin-top:6px">'+tH+'</div></div>';
+         '<div class="fg"><label class="fl">Tipo de negocio</label><div class="chips" style="margin-top:6px">'+tH+'</div></div>'+
+         '<div class="fg"><label class="fl">Productos que vende (podes elegir varios)</label><div class="chips" style="margin-top:6px">'+prodH+'</div></div>';
      },
      init:function(){
        if(c.tipo)sc('tip',c.tipo);
        if(c.prov){document.getElementById('pProv').value=c.prov;actualizarCiudades();}
+       if(c.prods&&c.prods.length){c.prods.forEach(function(p){var el=document.querySelector('[data-id="'+p+'"][data-g="prods"]');if(el)el.classList.add('on');});}
      },
      val:function(){
        var nm=document.getElementById('pNm').value.trim();
@@ -1353,6 +1485,7 @@ function aVisPros(id,nu){
        c.ciu=d.ciu=document.getElementById('pCiudad').value.trim();
        var bEl=document.getElementById('pBarrio');c.bar=d.bar=bEl&&bEl.value?bEl.value:'';
        c.tipo=d.tipo=gc('tip');
+       c.prods=d.prods=gcs('prods');
        save();
      }},
 
@@ -1477,24 +1610,37 @@ function renderGiraPlan(){
   document.getElementById('vGB').innerHTML=h;
 }
 function cambiarSem(d){giraSemOffset+=d;renderVG();}
+function moverEnGira(cid,fecha,dir){
+  var dd=D.gira.filter(function(g){return g.fecha===fecha;}).sort(function(a,b){return(a.orden||0)-(b.orden||0);});
+  var idx=dd.findIndex(function(g){return g.cid===cid;});
+  var idx2=idx+dir;if(idx2<0||idx2>=dd.length)return;
+  dd.forEach(function(g,i){g.orden=i;});
+  var tmp=dd[idx].orden;dd[idx].orden=dd[idx2].orden;dd[idx2].orden=tmp;
+  save();verDiaGira(fecha);
+}
 function verDiaGira(fecha){
-  var planDia=D.gira.filter(function(g){return g.fecha===fecha;});
-  var hoy=today();
-  var esHoy=fecha===hoy;
+  var planDia=D.gira.filter(function(g){return g.fecha===fecha;}).sort(function(a,b){return(a.orden||0)-(b.orden||0);});
+  var hoy=today();var esHoy=fecha===hoy;
   var nomDia=new Date(fecha+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
   var h='<div style="font-size:13px;color:var(--muted);margin-bottom:14px;text-transform:capitalize">'+nomDia+(esHoy?' · <span style="color:var(--cyan);font-weight:700">HOY</span>':'')+'</div>';
-  if(planDia.length){
-    planDia.forEach(function(g){
+  var n=planDia.length;
+  if(n){
+    planDia.forEach(function(g,idx){
       var c=D.cli.find(function(x){return x.id===g.cid;});if(!c)return;
       var yaVis=esHoy&&D.vis.some(function(v){return v.cid===g.cid&&v.fecha===hoy;});
-      h+='<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">';
-      h+='<div style="width:24px;height:24px;border-radius:50%;background:'+(yaVis?'var(--green)':'var(--s3)')+';display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">'+(yaVis?'&#10003;':'')+'</div>';
-      h+='<div style="flex:1"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div><div style="font-size:11px;color:var(--muted)">'+es(c.dir||'')+(c.bar?' · '+es(c.bar):'')+'</div></div>';
-      if(esHoy&&!yaVis){h+='<button class="sm g" onclick="cMod();abrirVisita(\''+c.id+'\')">Visitar</button>';}
+      h+='<div style="display:flex;align-items:center;gap:6px;padding:9px 0;border-bottom:1px solid var(--border)">';
+      h+='<div style="display:flex;flex-direction:column;gap:1px;flex-shrink:0">';
+      h+='<button style="background:none;border:none;font-size:13px;cursor:pointer;padding:2px 5px;opacity:'+(idx===0?'.2':'1')+'" '+(idx===0?'disabled':'')+' onclick="moverEnGira(\''+g.cid+'\',\''+fecha+'\',-1)">&#9650;</button>';
+      h+='<button style="background:none;border:none;font-size:13px;cursor:pointer;padding:2px 5px;opacity:'+(idx===n-1?'.2':'1')+'" '+(idx===n-1?'disabled':'')+' onclick="moverEnGira(\''+g.cid+'\',\''+fecha+'\',1)">&#9660;</button>';
+      h+='</div>';
+      h+='<div style="width:24px;height:24px;border-radius:50%;background:'+(yaVis?'var(--green)':'var(--s3)')+';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0">'+(yaVis?'&#10003;':idx+1)+'</div>';
+      h+='<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.nm)+'</div>';
+      h+='<div style="font-size:11px;color:var(--muted)">'+es(c.ciu||c.bar||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div>';
+      if(esHoy&&!yaVis){h+='<button class="sm g" onclick="cMod();abrirVisita(\''+c.id+'\')">Ir</button>';}
       h+='<button class="sm rd" onclick="quitarDeGira(\''+c.id+'\',\''+fecha+'\');verDiaGira(\''+fecha+'\')">&#215;</button></div>';
     });
   } else {
-    h+='<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">Sin visitas planificadas para este dia</div>';
+    h+='<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">Sin visitas planificadas</div>';
   }
   h+='<button class="btn" onclick="abrirAgregarAGira(\''+fecha+'\')" style="margin-top:14px">+ Agregar contactos</button>';
   oMod('Gira del dia',h);
@@ -1544,6 +1690,7 @@ function renderVC(){
   if(vcF.comp.length)cs=cs.filter(function(c){return vcF.comp.some(function(cp){return c.comp&&c.comp.includes(cp);});});
   if(vcF.calU)cs=cs.filter(function(c){return c.calU===vcF.calU;});
   if(vcF.trans)cs=cs.filter(function(c){return c.trans===vcF.trans;});
+  if(vcF.prods.length)cs=cs.filter(function(c){return vcF.prods.some(function(p){return c.prods&&c.prods.indexOf(p)>=0;});});
   if(q)cs=cs.filter(function(c){return (c.nm||'').toLowerCase().includes(q)||(c.dir||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q);});
   cs.sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   var chips='';
@@ -1555,6 +1702,7 @@ function renderVC(){
   if(vcF.comp.length){chips+='<span class="ch on" onclick="qFiltro(\'comp\')" style="font-size:11px;padding:5px 10px">Comp: '+es(vcF.comp.join(', '))+' &#215;</span>';}
   if(vcF.calU){chips+='<span class="ch on" onclick="qFiltro(\'calU\')" style="font-size:11px;padding:5px 10px">Ubic: '+vcF.calU+' &#215;</span>';}
   if(vcF.trans){chips+='<span class="ch on" onclick="qFiltro(\'trans\')" style="font-size:11px;padding:5px 10px">Transito: '+vcF.trans+' &#215;</span>';}
+  if(vcF.prods.length){chips+='<span class="ch on" onclick="qFiltro(\'prods\')" style="font-size:11px;padding:5px 10px">Vende: '+es(vcF.prods.join(', '))+' &#215;</span>';}
   var actDiv=document.getElementById('vCActivos');
   if(actDiv){actDiv.innerHTML=chips;actDiv.style.display=chips?'block':'none';}
   var h='<div style="padding:6px 14px;font-size:11px;color:var(--muted);font-weight:700">'+cs.length+' CONTACTOS</div>';
