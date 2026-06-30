@@ -802,7 +802,7 @@ function editarContacto(id){
   h+='<div class="fg"><label class="fl">Calificacion ubicacion</label><div class="chips">'+['A','B','C','D'].map(function(v){return ch(v,v,'eCal',false,'');}).join('')+'</div></div>';
   h+='<div class="fg"><label class="fl">Transito</label><div class="chips">'+['Alto','Medio','Bajo'].map(function(v){return ch(v,v,'eTr',false,'');}).join('')+'</div></div>';
   h+='<div class="fg"><label class="fl">Observaciones</label><textarea class="fi fta" id="eObs" rows="3">'+es(c.obs||'')+'</textarea></div>';
-  h+='<button class="btn or" onclick="guardarEdicionContacto('+JSON.stringify(id)+')">Guardar cambios</button>';
+  h+='<button class="btn or" onclick="guardarEdicionContacto(\'' + id.replace(/'/g,"\\'") + '\')">Guardar cambios</button>';
   oMod('Editar: '+es(c.nm),h);
   setTimeout(function(){
     if(c.tipo)sc('eTip',c.tipo);
@@ -1084,7 +1084,7 @@ function renderGD(){
       var bg=a.t==='r'?'rgba(248,113,113,.08)':a.t==='o'?'rgba(251,146,60,.08)':'rgba(251,191,36,.08)';
       var bc=a.t==='r'?'rgba(248,113,113,.25)':a.t==='o'?'rgba(251,146,60,.25)':'rgba(251,191,36,.25)';
       var emo=a.t==='r'?'🔴':a.t==='o'?'🟠':'🟡';
-      h+='<div style="background:'+bg+';border:1px solid '+bc+';border-radius:var(--rsm);padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;'+(a.ids?'cursor:pointer':'')+'"'+(a.ids?' onclick="abrirListaDash('+JSON.stringify(a.ids)+')"':'')+'>';
+      h+='<div style="background:'+bg+';border:1px solid '+bc+';border-radius:var(--rsm);padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;'+(a.ids?'cursor:pointer':'')+'"'+(a.ids?' onclick="abrirListaDash('+JSON.stringify(a.ids).replace(/"/g,"'")+')"':'')+'>';
       h+='<span>'+emo+'</span><span style="font-size:13px;font-weight:600;color:'+col+';flex:1">'+es(a.msg)+'</span>';
       if(a.ids)h+='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="'+col+'" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
       h+='</div>';
@@ -1101,7 +1101,7 @@ function renderGD(){
    {n:conv.length,l:'Conversiones',c:'var(--purple)',ids:conv.map(function(v){return v.cid;}).filter(function(id,i,a){return a.indexOf(id)===i;})},
    {n:com_per.length,l:'Comodatos firmados',c:'var(--yellow)',ids:null}
   ].forEach(function(k){
-    var click=k.ids&&k.ids.length?' onclick="abrirListaDash('+JSON.stringify(k.ids)+')" style="cursor:pointer"':' style="cursor:default"';
+    var click=k.ids&&k.ids.length?' onclick="abrirListaDash('+JSON.stringify(k.ids).replace(/"/g,"'")+')" style="cursor:pointer"':' style="cursor:default"';
     h+='<div class="sb"'+click+'><div class="sn" style="color:'+k.c+'">'+k.n+'</div><div class="sl2">'+es(k.l)+'</div></div>';
   });
   h+='</div>';
@@ -1135,7 +1135,7 @@ function renderGD(){
    {l:'7 a 14 dias sin visita',n:sv7l.length,c:'var(--yellow)',ids:sv7l.map(function(c){return c.id;})}
   ].forEach(function(item){
     if(!item.n)return;
-    svh+='<div class="br" style="cursor:pointer;margin-bottom:4px" onclick="abrirListaDash('+JSON.stringify(item.ids)+')">';
+    svh+='<div class="br" style="cursor:pointer;margin-bottom:4px" onclick="abrirListaDash('+JSON.stringify(item.ids).replace(/"/g,"'")+')">';
     svh+='<div class="bl">'+es(item.l)+'</div><div class="bt"><div class="bf" style="width:100%;background:'+item.c+';opacity:.2"></div></div>';
     svh+='<div class="bv" style="color:'+item.c+'">'+item.n+'</div>';
     svh+='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="'+item.c+'" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>';
@@ -1452,9 +1452,9 @@ function renderGI(){
   var prosSinSeg=prospectos.filter(function(c){return !c.ul||dias(c.ul)>7;});
   var tasaConv=prospectos.length?Math.round(prosConv.length/Math.max(prospectos.length+clientes.length,1)*100):0;
   h+='<div class="sg">';
-  h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(prosNuevos.map(function(c){return c.id;}))+')" style="cursor:pointer"><div class="sn" style="color:var(--orange)">'+prosNuevos.length+'</div><div class="sl2">Nuevos (periodo)</div></div>';
+  h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(prosNuevos.map(function(c){return c.id;})).replace(/"/g,"'")+')" style="cursor:pointer"><div class="sn" style="color:var(--orange)">'+prosNuevos.length+'</div><div class="sl2">Nuevos (periodo)</div></div>';
   h+='<div class="sb"><div class="sn" style="color:var(--green)">'+prosConv.length+'</div><div class="sl2">Convertidos</div></div>';
-  h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(prosSinSeg.map(function(c){return c.id;}))+')" style="cursor:pointer"><div class="sn" style="color:var(--red)">'+prosSinSeg.length+'</div><div class="sl2">Sin seguimiento +7d</div></div>';
+  h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(prosSinSeg.map(function(c){return c.id;})).replace(/"/g,"'")+')" style="cursor:pointer"><div class="sn" style="color:var(--red)">'+prosSinSeg.length+'</div><div class="sl2">Sin seguimiento +7d</div></div>';
   h+='<div class="sb"><div class="sn">'+tasaConv+'%</div><div class="sl2">Tasa conversion</div></div>';
   h+='</div>';
   h+='<div style="margin-top:10px"><div class="br"><div class="bl">Prospectos por ciudad</div></div>';
@@ -1471,8 +1471,8 @@ function renderGI(){
   var cliConCom=D.com.filter(function(co){return !co.ret;}).map(function(co){return co.cid;}).filter(function(id,i,a){return a.indexOf(id)===i;});
   h+='<div class="sg">';
   h+='<div class="sb"><div class="sn">'+clientes.length+'</div><div class="sl2">Total clientes</div></div>';
-  h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(cliSinVisitar.map(function(c){return c.id;}))+')" style="cursor:pointer"><div class="sn" style="color:var(--red)">'+cliSinVisitar.length+'</div><div class="sl2">Sin visitar nunca</div></div>';
-  h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(cliVencidos.map(function(c){return c.id;}))+')" style="cursor:pointer"><div class="sn" style="color:var(--orange)">'+cliVencidos.length+'</div><div class="sl2">Visita vencida +30d</div></div>';
+  h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(cliSinVisitar.map(function(c){return c.id;})).replace(/"/g,"'")+')" style="cursor:pointer"><div class="sn" style="color:var(--red)">'+cliSinVisitar.length+'</div><div class="sl2">Sin visitar nunca</div></div>';
+  h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(cliVencidos.map(function(c){return c.id;})).replace(/"/g,"'")+')" style="cursor:pointer"><div class="sn" style="color:var(--orange)">'+cliVencidos.length+'</div><div class="sl2">Visita vencida +30d</div></div>';
   h+='<div class="sb"><div class="sn" style="color:var(--cyan)">'+cliConCom.length+'</div><div class="sl2">Con comodato activo</div></div>';
   h+='</div></div>';
 
