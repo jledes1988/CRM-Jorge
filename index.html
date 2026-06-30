@@ -227,6 +227,7 @@ input:checked+.sl3:before{transform:translateX(18px)}
     <button class="gb" id="gbE" onclick="gGo('E')"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Embudo</button>
     <button class="gb" id="gbV" onclick="gGo('V')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Visitas</button>
     <button class="gb" id="gbCo" onclick="gGo('Co')"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>Comodatos</button>
+    <button class="gb" id="gbI" onclick="gGo('I')"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Informes</button>
     <button class="gb" id="gbCfg" onclick="gGo('Cfg')" style="margin-top:auto"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Config</button>
     <button class="gb" onclick="doLogout()" style="color:var(--red)"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Salir</button>
   </div>
@@ -234,6 +235,7 @@ input:checked+.sl3:before{transform:translateX(18px)}
   <div id="gCont">
     <div class="sc on" id="sGD"><div class="scr" id="gDB"></div></div>
     <div class="sc" id="sGC">
+      <div class="tb"><div class="tb-t">Contactos</div><button class="sm g" onclick="nuevoProsAdmin()" style="margin-left:auto">+ Nuevo</button></div>
       <div class="filts" id="gCF"></div>
       <div class="srch"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="gCS" placeholder="Buscar..." oninput="renderGC()"></div>
       <div class="scr" id="gCB"></div>
@@ -245,6 +247,7 @@ input:checked+.sl3:before{transform:translateX(18px)}
       <div class="filts" id="gCoF"></div>
       <div class="scr" id="gCoB"></div>
     </div>
+    <div class="sc" id="sGI"><div class="scr" id="gIB"></div></div>
     <div class="sc" id="sGCfg"><div class="scr" id="gCfgB"></div></div>
   </div>
 </div>
@@ -418,8 +421,22 @@ function vGo(t){
   var m={H:['sVH','vbH',renderVH],C:['sVC','vbC',renderVC],E:['sVE','vbE',renderVE],G:['sVG','vbG',renderVG]};
   if(m[t]){document.getElementById(m[t][0]).classList.add('on');document.getElementById(m[t][1]).classList.add('on');m[t][2]();}
 }
-function showWiz(){document.getElementById('sVen').classList.remove('on');document.getElementById('sWiz').classList.add('on');document.getElementById('vNav').style.display='none';}
-function hideWiz(){document.getElementById('sWiz').classList.remove('on');document.getElementById('sVen').classList.add('on');document.getElementById('vNav').style.display='flex';}
+function showWiz(){
+  var esAdmin=D.user&&D.user.r==='admin';
+  W.origenAdmin=esAdmin;
+  document.getElementById(esAdmin?'sGerente':'sVen').classList.remove('on');
+  document.getElementById('sWiz').classList.add('on');
+  if(!esAdmin)document.getElementById('vNav').style.display='none';
+}
+function hideWiz(){
+  document.getElementById('sWiz').classList.remove('on');
+  if(W.origenAdmin){
+    document.getElementById('sGerente').classList.add('on');
+  } else {
+    document.getElementById('sVen').classList.add('on');
+    document.getElementById('vNav').style.display='flex';
+  }
+}
 
 // ── HOY ───────────────────────────────────────────────────────────────
 function renderVH(){
@@ -554,7 +571,6 @@ function abrirFichaV(id){
 // ── EDITAR CONTACTO (VENDEDOR) ───────────────────────────────────────
 function editarContacto(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
-  var provOpts=ARG_PROV.map(function(p){return '<option value="'+es(p)+'"'+(c.prov===p?' selected':'')+'>'+es(p)+'</option>';}).join('');
   var tH=(D.cfg.tipos||[]).map(function(t){return ch(t,t,'eTip',false,'');}).join('');
   var compOpts=['Frigor','Arcor','Grido','Glups','Sin competencia','Otra'];
   var compH=compOpts.map(function(cp){var on2=c.comp&&c.comp.includes(cp);return '<span class="ch'+(on2?' on':'')+'" data-id="'+es(cp)+'" data-g="eComp" onclick="this.classList.toggle(\'on\')" style="font-size:12px;padding:5px 10px">'+es(cp)+'</span>';}).join('');
@@ -565,9 +581,9 @@ function editarContacto(id){
   h+='<div class="fg"><label class="fl">Dueno / encargado</label><input class="fi" id="eFan" value="'+es(c.fan||'')+'"></div>';
   h+='<div class="fg"><label class="fl">Telefono</label><input class="fi" type="tel" id="eTel" value="'+es(c.tel||'')+'"></div>';
   h+='<div class="fg"><label class="fl">Direccion</label><input class="fi" id="eDir" value="'+es(c.dir||'')+'"></div>';
-  h+='<div class="fg"><label class="fl">Provincia</label><select class="fi" id="eProv" onchange="actualizarCiudadesEdit()"><option value="">Seleccionar...</option>'+provOpts+'</select></div>';
-  h+='<div class="fg"><label class="fl">Ciudad</label><input class="fi" id="eCiudad" list="eCiudList" value="'+es(c.ciu||'')+'" placeholder="Escribi para buscar..."><datalist id="eCiudList"></datalist></div>';
-  h+='<div class="fg" id="eBarrioFg" style="'+(c.ciu==='Córdoba Capital'?'':'display:none')+'"><label class="fl">Barrio</label><select class="fi" id="eBarrio"><option value="">Seleccionar...</option>'+ARG_BARRIOS.map(function(b){return '<option value="'+es(b)+'"'+(c.bar===b?' selected':'')+'>'+es(b)+'</option>';}).join('')+'</select></div>';
+  h+='<div class="fg" style="position:relative"><label class="fl">Provincia</label><input class="fi" id="eProv" autocomplete="off" value="'+es(c.prov||'')+'" placeholder="Escribi para buscar..."><div id="eProvSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>';
+  h+='<div class="fg" style="position:relative"><label class="fl">Ciudad</label><input class="fi" id="eCiudad" autocomplete="off" value="'+es(c.ciu||'')+'" placeholder="Escribi para buscar..."><div id="eCiudadSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>';
+  h+='<div class="fg" id="eBarrioFg" style="position:relative;'+(c.ciu==='Córdoba Capital'?'':'display:none')+'"><label class="fl">Barrio</label><input class="fi" id="eBarrio" autocomplete="off" value="'+es(c.bar||'')+'" placeholder="Escribi para buscar..."><div id="eBarrioSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>';
   h+='<div class="fg"><label class="fl">Tipo de negocio</label><div class="chips">'+tH+'</div></div>';
   h+='<div class="fg"><label class="fl">Productos que vende</label><div class="chips">'+prodH+'</div></div>';
   h+='<div class="fg"><label class="fl">Competencia</label><div class="chips">'+compH+'</div></div>';
@@ -577,25 +593,18 @@ function editarContacto(id){
   h+='<div class="fg"><label class="fl">Observaciones</label><textarea class="fi fta" id="eObs" rows="3">'+es(c.obs||'')+'</textarea></div>';
   h+='<button class="btn or" onclick="guardarEdicionContacto('+JSON.stringify(id)+')">Guardar cambios</button>';
   oMod('Editar: '+es(c.nm),h);
-  // Init chips
   setTimeout(function(){
     if(c.tipo)sc('eTip',c.tipo);
     if(c.cFr)sc('eFr',c.cFr);
     if(c.calU)sc('eCal',c.calU);
     if(c.trans)sc('eTr',c.trans);
-    if(c.prov){var pe=document.getElementById('eProv');if(pe){pe.value=c.prov;actualizarCiudadesEdit();}}
-    var ciu=document.getElementById('eCiudad');if(ciu){ciu.value=c.ciu||'';if(c.ciu==='Córdoba Capital'){var bf=document.getElementById('eBarrioFg');if(bf)bf.style.display='block';}}
+    initAuto('eProv','eProvSugg',function(){return ARG_PROV;});
+    initAuto('eCiudad','eCiudadSugg',function(){var pv=document.getElementById('eProv').value;return ARG_CIU[pv]||[];});
+    initAuto('eBarrio','eBarrioSugg',function(){return ARG_BARRIOS;});
+    document.getElementById('eCiudad').addEventListener('change',function(){
+      var bf=document.getElementById('eBarrioFg');if(bf)bf.style.display=(this.value.trim()==='Córdoba Capital')?'block':'none';
+    });
   },50);
-}
-function actualizarCiudadesEdit(){
-  var prov=document.getElementById('eProv');
-  var ciuInp=document.getElementById('eCiudad');
-  var ciudList=document.getElementById('eCiudList');
-  if(!prov||!ciuInp||!ciudList)return;
-  var cius=ARG_CIU[prov.value]||[];
-  ciudList.innerHTML=cius.map(function(c){return '<option value="'+es(c)+'"></option>';}).join('');
-  ciuInp.value='';
-  ciuInp.oninput=function(){var bf=document.getElementById('eBarrioFg');if(bf)bf.style.display=ciuInp.value.trim()==='Córdoba Capital'?'block':'none';};
 }
 function guardarEdicionContacto(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
@@ -607,7 +616,7 @@ function guardarEdicionContacto(id){
   chk('dir',document.getElementById('eDir').value.trim());
   chk('prov',document.getElementById('eProv').value);
   chk('ciu',document.getElementById('eCiudad').value.trim());
-  var bEl=document.getElementById('eBarrio');if(bEl)chk('bar',bEl.value);
+  var bEl=document.getElementById('eBarrio');var ciuVal2=document.getElementById('eCiudad').value.trim();if(bEl)chk('bar',ciuVal2==='Córdoba Capital'?bEl.value.trim():'');
   chk('tipo',gc('eTip'));
   var nprod=gcs('eProds');if(JSON.stringify(c.prods)!==JSON.stringify(nprod)){cambios.push('prods');c.prods=nprod;}
   var ncomp=gcs('eComp').join(', ');chk('comp',ncomp);
@@ -992,7 +1001,7 @@ function renderGC(){
   if(gCF2==='Clientes')cs=cs.filter(function(c){return !c.esP;});
   else if(gCF2==='Prospectos')cs=cs.filter(function(c){return c.esP;});
   else if(gCF2==='Sin visitar')cs=cs.filter(function(c){return !c.ul;});
-  else if(gCF2==='Con freezer')cs=cs.filter(function(c){return c.freezer&&c.freezer!=='No tiene';});
+  else if(gCF2==='Con freezer')cs=cs.filter(function(c){return c.cFr==='Propio';});
   else if(gCF2==='Deudores')cs=cs.filter(function(c){return c.deu;});
   else if(gCF2.startsWith('V:'))cs=cs.filter(function(c){return c.vend===gCF2.slice(2);});
   if(q)cs=cs.filter(function(c){return c.nm.toLowerCase().includes(q)||(c.dir||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q);});
@@ -1021,19 +1030,29 @@ function aFicha(id){
   h+=(c.fan?'<div style="font-size:13px;color:var(--muted)">'+es(c.fan)+'</div>':'');
   h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">';
   h+=(c.esP?'<span class="tg o">'+es(c.etapaEmbudo||'PROSPECTO')+'</span>':'<span class="tg g">CLIENTE</span>');
-  h+=(c.deu?'<span class="tg r">DEUDOR</span>':'')+'</div></div>';
+  if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900">⚠ DEUDOR</span>';
+  if(c.vend)h+='<span class="tg m">'+es(c.vend)+'</span>';
+  h+='</div></div>';
   h+='<div class="div"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0">';
   if(c.tel)h+='<div><div class="fl">Telefono</div><div style="font-size:14px;font-weight:700">'+es(c.tel)+'</div></div>';
   if(c.dir)h+='<div><div class="fl">Direccion</div><div style="font-size:14px;font-weight:700">'+es(c.dir)+'</div></div>';
+  if(c.prov)h+='<div><div class="fl">Provincia</div><div style="font-size:14px;font-weight:700">'+es(c.prov)+'</div></div>';
+  if(c.ciu)h+='<div><div class="fl">Ciudad</div><div style="font-size:14px;font-weight:700">'+es(c.ciu)+'</div></div>';
   if(c.bar)h+='<div><div class="fl">Barrio</div><div style="font-size:14px;font-weight:700">'+es(c.bar)+'</div></div>';
   if(c.tipo)h+='<div><div class="fl">Tipo</div><div style="font-size:14px;font-weight:700">'+es(c.tipo)+'</div></div>';
+  if(c.cFr)h+='<div><div class="fl">Freezer</div><div style="font-size:14px;font-weight:700">'+es(c.cFr)+'</div></div>';
   if(c.calU)h+='<div><div class="fl">Ubicacion</div><div style="font-size:14px;font-weight:700">'+es(c.calU)+'</div></div>';
   if(c.trans)h+='<div><div class="fl">Transito</div><div style="font-size:14px;font-weight:700">'+es(c.trans)+'</div></div>';
   if(c.ul)h+='<div><div class="fl">Ultima visita</div><div style="font-size:14px;font-weight:700">'+fmt(c.ul)+'</div></div>';
   if(c.uv)h+='<div><div class="fl">Ultima venta</div><div style="font-size:14px;font-weight:700;color:var(--green)">'+fmt(c.uv)+'</div></div>';
   h+='</div>';
+  if(c.prods&&c.prods.length)h+='<div class="fl">Vende</div><div style="font-size:13px;margin-bottom:10px">'+es(c.prods.join(' · '))+'</div>';
   if(c.comp){h+='<div class="fl">Competencia</div><div style="font-size:13px;margin-bottom:10px">'+es(c.comp)+'</div>';}
   if(c.obs){h+='<div class="fl">Observaciones</div><div style="font-size:13px;color:var(--muted);margin-bottom:10px">'+es(c.obs)+'</div>';}
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0">';
+  h+='<button class="btn" onclick="cMod();editarContacto(\''+id+'\')" style="margin:0">Editar</button>';
+  h+='<button class="btn sec" onclick="cMod();abrirVisita(\''+id+'\')" style="margin:0">Registrar visita</button>';
+  h+='</div>';
   h+='<div class="div"></div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">HISTORIAL DE VISITAS ('+vs.length+')</div>';
   if(!vs.length){h+='<div style="color:var(--muted);font-size:13px">Sin visitas registradas</div>';}
   vs.forEach(function(v){
@@ -1147,6 +1166,133 @@ function saveCo(){
 }
 function retCo(id){var co=D.com.find(function(c){return c.id===id;});if(!co)return;co.ret=true;co.fr=new Date().toISOString().split('T')[0];logEvento('comodato',co.cid,co.cnm||'?','Comodato retirado · Freezer #'+(co.nro||''),'activo','retirado');save();renderGCo();toast('Retiro registrado','ok');}
 function delCo(id){if(!confirm('Eliminar?'))return;D.com=D.com.filter(function(c){return c.id!==id;});save();renderGCo();toast('Eliminado','ok');}
+// ── MODULO INFORMES (INDEPENDIENTE DEL DASHBOARD) ──────────────────────
+var infPer='mes';
+function getPerInf(){
+  var hoy=today();var d=new Date();var desde;
+  if(infPer==='hoy')desde=hoy;
+  else if(infPer==='sem'){d.setDate(d.getDate()-(d.getDay()===0?6:d.getDay()-1));desde=d.toISOString().split('T')[0];}
+  else if(infPer==='mes'){desde=hoy.slice(0,7)+'-01';}
+  else if(infPer==='ano'){desde=hoy.slice(0,4)+'-01-01';}
+  else{desde='2000-01-01';}
+  return{desde:desde,hasta:hoy};
+}
+function renderGI(){
+  var per=getPerInf();
+  var visP=D.vis.filter(function(v){return v.fecha>=per.desde&&v.fecha<=per.hasta;});
+  var clientes=D.cli.filter(function(c){return !c.esP;});
+  var prospectos=D.cli.filter(function(c){return c.esP;});
+  var vendedores=D.usrs.filter(function(u){return u.r==='vendedor';});
+  var h='';
+  h+='<div class="tb"><div class="tb-t">Informes</div></div>';
+  h+='<div style="padding:0 14px">';
+  h+='<div style="display:flex;gap:6px;margin:14px 0;flex-wrap:wrap">';
+  [{k:'hoy',l:'Hoy'},{k:'sem',l:'Esta semana'},{k:'mes',l:'Este mes'},{k:'ano',l:'Este ano'},{k:'todo',l:'Todo'}].forEach(function(p){
+    h+='<span class="fb'+(infPer===p.k?' on':'')+'" onclick="infPer=\''+p.k+'\';renderGI()">'+p.l+'</span>';
+  });
+  h+='</div>';
+
+  // ── PROSPECTOS ──
+  h+='<div class="card"><div class="ct">PROSPECTOS</div>';
+  var prosNuevos=prospectos.filter(function(c){return c.ing>=per.desde&&c.ing<=per.hasta;});
+  var prosConv=visP.filter(function(v){return v.conversion===true;});
+  var prosPerdidos=prospectos.filter(function(c){return c.etapaEmbudo==='Perdido';});
+  var prosNoInteresa=prospectos.filter(function(c){return c.etapaEmbudo==='No Le Interesa';});
+  var prosSinSeg=prospectos.filter(function(c){return !c.ul||dias(c.ul)>7;});
+  var tasaConv=prospectos.length?Math.round(prosConv.length/Math.max(prospectos.length+clientes.length,1)*100):0;
+  h+='<div class="sg">';
+  h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(prosNuevos.map(function(c){return c.id;}))+')" style="cursor:pointer"><div class="sn" style="color:var(--orange)">'+prosNuevos.length+'</div><div class="sl2">Nuevos (periodo)</div></div>';
+  h+='<div class="sb"><div class="sn" style="color:var(--green)">'+prosConv.length+'</div><div class="sl2">Convertidos</div></div>';
+  h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(prosSinSeg.map(function(c){return c.id;}))+')" style="cursor:pointer"><div class="sn" style="color:var(--red)">'+prosSinSeg.length+'</div><div class="sl2">Sin seguimiento +7d</div></div>';
+  h+='<div class="sb"><div class="sn">'+tasaConv+'%</div><div class="sl2">Tasa conversion</div></div>';
+  h+='</div>';
+  h+='<div style="margin-top:10px"><div class="br"><div class="bl">Prospectos por ciudad</div></div>';
+  var porCiu={};prospectos.forEach(function(c){if(c.ciu)porCiu[c.ciu]=(porCiu[c.ciu]||0)+1;});
+  var ciuArr=Object.keys(porCiu).map(function(k){return{k:k,n:porCiu[k]};}).sort(function(a,b){return b.n-a.n;});
+  if(ciuArr.length){var mxc=ciuArr[0].n;ciuArr.slice(0,8).forEach(function(x){h+='<div class="br"><div class="bl">'+es(x.k)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(x.n/mxc*100)+'%;background:var(--orange)"></div></div><div class="bv">'+x.n+'</div></div>';});}
+  h+='</div></div>';
+
+  // ── CLIENTES ──
+  h+='<div class="card"><div class="ct">CLIENTES</div>';
+  var cliNuevos=clientes.filter(function(c){return c.ing>=per.desde&&c.ing<=per.hasta;});
+  var cliSinVisitar=clientes.filter(function(c){return !c.ul;});
+  var cliVencidos=clientes.filter(function(c){return c.ul&&dias(c.ul)>30;});
+  var cliConCom=D.com.filter(function(co){return !co.ret;}).map(function(co){return co.cid;}).filter(function(id,i,a){return a.indexOf(id)===i;});
+  h+='<div class="sg">';
+  h+='<div class="sb"><div class="sn">'+clientes.length+'</div><div class="sl2">Total clientes</div></div>';
+  h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(cliSinVisitar.map(function(c){return c.id;}))+')" style="cursor:pointer"><div class="sn" style="color:var(--red)">'+cliSinVisitar.length+'</div><div class="sl2">Sin visitar nunca</div></div>';
+  h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(cliVencidos.map(function(c){return c.id;}))+')" style="cursor:pointer"><div class="sn" style="color:var(--orange)">'+cliVencidos.length+'</div><div class="sl2">Visita vencida +30d</div></div>';
+  h+='<div class="sb"><div class="sn" style="color:var(--cyan)">'+cliConCom.length+'</div><div class="sl2">Con comodato activo</div></div>';
+  h+='</div></div>';
+
+  // ── VISITAS ──
+  h+='<div class="card"><div class="ct">VISITAS (PERIODO)</div>';
+  var ventasP=visP.filter(function(v){return v.vendio===true;});
+  h+='<div class="sg">';
+  h+='<div class="sb"><div class="sn">'+visP.length+'</div><div class="sl2">Total visitas</div></div>';
+  h+='<div class="sb"><div class="sn" style="color:var(--green)">'+ventasP.length+'</div><div class="sl2">Con venta</div></div>';
+  h+='</div>';
+  h+='<div style="margin-top:10px">';
+  vendedores.forEach(function(u){
+    var vv=visP.filter(function(v){return v.vend===u.n;});
+    var vt=vv.filter(function(v){return v.vendio===true;});
+    h+='<div class="br"><div class="bl">'+es(u.n)+'</div><div class="bt"><div class="bf" style="width:'+(visP.length?Math.round(vv.length/Math.max(visP.length,1)*100):0)+'%;background:var(--cyan)"></div></div><div class="bv">'+vv.length+'</div><div style="font-size:10px;color:var(--green);width:50px;text-align:right">'+vt.length+' vtas</div></div>';
+  });
+  h+='</div></div>';
+
+  // ── EMBUDO ──
+  h+='<div class="card"><div class="ct">EMBUDO COMERCIAL</div>';
+  ET.forEach(function(et){
+    var n=D.cli.filter(function(c){return c.etapaEmbudo===et;}).length;if(!n)return;
+    var col=EC[et]||'var(--muted)';
+    h+='<div class="br" style="cursor:pointer" onclick="abrirListaEtapa(\''+es(et)+'\')"><div class="bl">'+es(et)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(n/Math.max(D.cli.length,1)*100)+'%;background:'+col+'"></div></div><div class="bv">'+n+'</div></div>';
+  });
+  h+='</div>';
+
+  // ── TIPO DE NEGOCIO ──
+  h+='<div class="card"><div class="ct">RELEVAMIENTO POR TIPO DE NEGOCIO</div>';
+  var porTipo={};D.cli.forEach(function(c){if(c.tipo)porTipo[c.tipo]=(porTipo[c.tipo]||0)+1;});
+  var tipoArr=Object.keys(porTipo).map(function(k){return{k:k,n:porTipo[k]};}).sort(function(a,b){return b.n-a.n;});
+  if(tipoArr.length){var mxt=tipoArr[0].n;tipoArr.forEach(function(x){h+='<div class="br" style="cursor:pointer" onclick="abrirListaTipo(\''+es(x.k)+'\')"><div class="bl">'+es(x.k)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(x.n/mxt*100)+'%;background:var(--purple)"></div></div><div class="bv">'+x.n+'</div></div>';});}
+  h+='</div>';
+
+  // ── COMODATOS ──
+  h+='<div class="card"><div class="ct">COMODATOS</div>';
+  var comAct=D.com.filter(function(co){return !co.ret;});
+  var comRet=D.com.filter(function(co){return co.ret;});
+  var comPer=D.com.filter(function(co){return co.fe>=per.desde&&co.fe<=per.hasta;});
+  h+='<div class="sg">';
+  h+='<div class="sb"><div class="sn" style="color:var(--green)">'+comAct.length+'</div><div class="sl2">Activos</div></div>';
+  h+='<div class="sb"><div class="sn" style="color:var(--red)">'+comRet.length+'</div><div class="sl2">Retirados</div></div>';
+  h+='<div class="sb"><div class="sn" style="color:var(--orange)">'+comPer.length+'</div><div class="sl2">Firmados (periodo)</div></div>';
+  h+='</div></div>';
+
+  // ── CLIENTES SIN VISITAR POR SEMANA/MES ──
+  h+='<div class="card"><div class="ct">COBERTURA - CLIENTES SIN VISITAR</div>';
+  var sv7=clientes.filter(function(c){return !c.ul||dias(c.ul)>7;}).length;
+  var sv30=clientes.filter(function(c){return !c.ul||dias(c.ul)>30;}).length;
+  h+='<div class="br"><div class="bl">Sin visitar hace +7 dias</div><div class="bt"><div class="bf" style="width:'+(clientes.length?Math.round(sv7/clientes.length*100):0)+'%;background:var(--orange)"></div></div><div class="bv">'+sv7+'</div></div>';
+  h+='<div class="br"><div class="bl">Sin visitar hace +30 dias</div><div class="bt"><div class="bf" style="width:'+(clientes.length?Math.round(sv30/clientes.length*100):0)+'%;background:var(--red)"></div></div><div class="bv">'+sv30+'</div></div>';
+  h+='</div>';
+
+  h+='<button class="btn sec" onclick="expCSVAll()" style="margin:10px 0 24px">Exportar todos los datos a CSV</button>';
+  h+='</div>';
+  document.getElementById('gIB').innerHTML=h;
+}
+
+// ── ADMIN: CREAR NUEVO PROSPECTO/CLIENTE ────────────────────────────────
+function nuevoProsAdmin(){
+  var vendOpts=D.usrs.filter(function(u){return u.r==='vendedor';}).map(function(u){return '<option value="'+es(u.n)+'">'+es(u.n)+'</option>';}).join('');
+  oMod('Nuevo contacto','<div class="fg"><label class="fl">Asignar a vendedor</label><select class="fi" id="npaVend"><option value="">Sin asignar</option>'+vendOpts+'</select></div><button class="btn" onclick="confirmarNuevoProsAdmin()">Continuar</button>');
+}
+function confirmarNuevoProsAdmin(){
+  var vend=document.getElementById('npaVend').value;
+  var tid=uid();
+  D.cli.push({id:tid,nm:'',fan:'',tel:'',dir:'',bar:'',tipo:'',prov:'',ciu:'',esP:true,etapaEmbudo:'Nuevo Prospecto',calU:'',trans:'',comp:'',cFr:'',cEx:'',obs:'',uv:'',ul:'',prox:'',ing:today(),ex:{},deu:false,vend:vend,prods:[]});
+  cMod();
+  aVisPros(tid,true);
+}
+
 // GERENTE CONFIG
 function renderGCfg(){
   var h='';
@@ -1214,6 +1360,33 @@ function renderGCfg(){
 
   document.getElementById('gCfgB').innerHTML=h;
 }
+function expJSON(){
+  var backup={cli:D.cli,vis:D.vis,com:D.com,gira:D.gira,log:D.log,cfg:D.cfg,usrs:D.usrs,fecha:new Date().toISOString()};
+  var blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='CRM-backup-'+today()+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('Backup exportado','ok');
+}
+function impJSON(inp){
+  if(!inp.files||!inp.files[0])return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var data=JSON.parse(e.target.result);
+      if(!confirm('Esto reemplazara TODOS los datos actuales por los del backup. Confirmar?'))return;
+      if(data.cli)D.cli=data.cli;
+      if(data.vis)D.vis=data.vis;
+      if(data.com)D.com=data.com;
+      if(data.gira)D.gira=data.gira;
+      if(data.log)D.log=data.log;
+      if(data.cfg)D.cfg=data.cfg;
+      if(data.usrs)D.usrs=data.usrs;
+      save();renderGCfg();renderGD();
+      toast('Backup restaurado correctamente','ok');
+    }catch(err){toast('Archivo invalido o corrupto','err');}
+  };
+  reader.readAsText(inp.files[0]);
+}
 function addItemCat(cat){
   var inp=document.getElementById('niCat_'+cat);if(!inp)return;
   var val=inp.value.trim();if(!val)return;
@@ -1228,7 +1401,7 @@ function elimItemCat(cat,idx){
   D.cfg[cat].splice(idx,1);save();renderGCfg();toast('Eliminado','ok');
 }
 
-function savSync(){var u=document.getElementById('cfgS').value.trim();D.cfg.syncUrl=u;save();toast(u?'URL guardada':'URL eliminada','ok');}
+function savSync(){var el=document.getElementById('syncU');if(!el)return;var u=el.value.trim();D.cfg.syncUrl=u;save();toast(u?'URL guardada':'URL eliminada','ok');}
 function savMsgs(){ET.concat(SA).forEach(function(et,i){var el=document.getElementById('msg'+i);if(el)D.cfg.msgs[et]=el.value;});save();toast('Mensajes guardados','ok');}
 function togActivo(uid2){
   var u=D.usrs.find(function(x){return x.id==uid2;});if(!u)return;
@@ -1281,27 +1454,31 @@ window.addEventListener('focus',function(){
   }
 });
 
-// ── PROVINCIA / CIUDAD / BARRIO ───────────────────────────────────────
-function actualizarCiudades(){
-  var prov=document.getElementById('pProv');
-  var ciuInp=document.getElementById('pCiudad');
-  var ciudList=document.getElementById('ciudList');
-  var barrioFg=document.getElementById('pBarrioFg');
-  if(!prov||!ciuInp||!ciudList)return;
-  var provVal=prov.value;
-  ciuInp.value='';
-  // Llenar datalist con ciudades de la provincia
-  var cius=ARG_CIU[provVal]||[];
-  ciudList.innerHTML=cius.map(function(c){return '<option value="'+es(c)+'"></option>';}).join('');
-  if(barrioFg)barrioFg.style.display='none';
-  // Listener para mostrar barrio cuando es Córdoba Capital
-  ciuInp.oninput=function(){
-    var v=ciuInp.value.trim();
-    if(barrioFg)barrioFg.style.display=(v==='Córdoba Capital')?'block':'none';
+// ── AUTOCOMPLETE GENERICO (reemplaza datalist nativo, mas confiable en mobile) ──
+function initAuto(inpId,suggId,getList){
+  var inp=document.getElementById(inpId);var sugg=document.getElementById(suggId);
+  if(!inp||!sugg)return;
+  inp.oninput=function(){
+    var q=inp.value.trim().toLowerCase();
+    if(q.length<2){sugg.style.display='none';sugg.innerHTML='';return;}
+    var list=getList();
+    var matches=list.filter(function(x){return x.toLowerCase().indexOf(q)>=0;}).slice(0,8);
+    if(!matches.length){sugg.style.display='none';sugg.innerHTML='';return;}
+    sugg.innerHTML=matches.map(function(m){return '<div style="padding:11px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)" onmousedown="event.preventDefault();selAuto(\''+inpId+'\',\''+suggId+'\',this.textContent)">'+es(m)+'</div>';}).join('');
+    sugg.style.display='block';
   };
+  inp.onblur=function(){setTimeout(function(){sugg.style.display='none';},150);};
+  inp.onfocus=function(){if(inp.value.trim().length>=2)inp.oninput();};
+}
+function selAuto(inpId,suggId,val){
+  var inp=document.getElementById(inpId);
+  inp.value=val;
+  document.getElementById(suggId).style.display='none';
+  inp.dispatchEvent(new Event('change'));
 }
 
-// ── TRAZABILIDAD ─────────────────────────────────────────────────────
+// ── PROVINCIA / CIUDAD / BARRIO ───────────────────────────────────────
+
 function logEvento(tipo,cid,nm,desc,ant,nue){
   D.log.push({
     id:uid(),
@@ -1367,9 +1544,9 @@ function toggleGSide(){
 function gGo(sec){
   document.querySelectorAll('#gCont .sc').forEach(function(s){s.classList.remove('on');});
   document.querySelectorAll('.gb').forEach(function(b){b.classList.remove('on');});
-  var ids={D:'sGD',C:'sGC',E:'sGE',V:'sGV',Co:'sGCo',Cfg:'sGCfg'};
-  var bids={D:'gbD',C:'gbC',E:'gbE',V:'gbV',Co:'gbCo',Cfg:'gbCfg'};
-  var rend={D:renderGD,C:renderGC,E:renderGE,V:renderGV,Co:renderGCo,Cfg:renderGCfg};
+  var ids={D:'sGD',C:'sGC',E:'sGE',V:'sGV',Co:'sGCo',I:'sGI',Cfg:'sGCfg'};
+  var bids={D:'gbD',C:'gbC',E:'gbE',V:'gbV',Co:'gbCo',I:'gbI',Cfg:'gbCfg'};
+  var rend={D:renderGD,C:renderGC,E:renderGE,V:renderGV,Co:renderGCo,I:renderGI,Cfg:renderGCfg};
   if(ids[sec]){document.getElementById(ids[sec]).classList.add('on');}
   if(bids[sec]){document.getElementById(bids[sec]).classList.add('on');}
   if(rend[sec])rend[sec]();
@@ -1422,7 +1599,13 @@ function wFin(){
   else if(W.nu){logEvento('prospecto',W.cid,c?c.nm:'?','Nuevo prospecto registrado','','');}
   else{logEvento('visita',W.cid,c?c.nm:'?','Visita a prospecto','','');}
   save();hideWiz();sincSubir(null);toast('Guardado!','ok');
-  if(W.nu&&W.tipo==='prospecto'){vGo('C');}else{renderVH();if(gTab==='ejec')renderGiraEjec();}
+  if(W.origenAdmin){
+    gGo('C');
+  } else if(W.nu&&W.tipo==='prospecto'){
+    vGo('C');
+  } else {
+    renderVH();if(gTab==='ejec')renderGiraEjec();
+  }
 }
 function wf(inp,fk,lk,pk){
   if(!inp.files||!inp.files[0])return;
@@ -1445,22 +1628,28 @@ function aVisPros(id,nu){
      render:function(){
        var tH=(D.cfg.tipos||[]).map(function(t){return ch(t,t,'tip',false,'');}).join('');
        var prodH=(D.cfg.tiposProducto||[]).map(function(p){return ch(p,p,'prods',true,'');}).join('');
-       var provOpts=ARG_PROV.map(function(p){return '<option value="'+es(p)+'"'+(c.prov===p?' selected':'')+'>'+es(p)+'</option>';}).join('');
        return '<div style="font-size:20px;font-weight:800;margin-bottom:14px">Datos del local</div>'+
          '<div class="fg"><label class="fl">Nombre del local *</label><input class="fi" id="pNm" placeholder="Ej: Kiosco El Sol" value="'+es(c.nm||'')+'"></div>'+
          '<div class="fg"><label class="fl">Dueno o encargado</label><input class="fi" id="pFan" placeholder="Ej: Juan Perez" value="'+es(c.fan||'')+'"></div>'+
          '<div class="fg"><label class="fl">Telefono *</label><input class="fi" id="pTel" type="tel" inputmode="numeric" placeholder="Ej: 3511234567" value="'+es(c.tel||'')+'"></div>'+
          '<div class="fg"><label class="fl">Direccion</label><input class="fi" id="pDir" placeholder="Calle y numero" value="'+es(c.dir||'')+'"></div>'+
-         '<div class="fg"><label class="fl">Provincia *</label><select class="fi" id="pProv" onchange="actualizarCiudades()"><option value="">Seleccionar provincia...</option>'+provOpts+'</select></div>'+
-         '<div class="fg"><label class="fl">Ciudad *</label><input class="fi" id="pCiudad" list="ciudList" placeholder="Escribi para buscar..." value="'+es(c.ciu||'')+'"><datalist id="ciudList" id="ciudList"></datalist></div>'+
-         '<div class="fg" id="pBarrioFg" style="'+(c.ciu==='Córdoba Capital'?'':'display:none')+'"><label class="fl">Barrio</label><select class="fi" id="pBarrio"><option value="">Seleccionar barrio...</option>'+ARG_BARRIOS.map(function(b){return '<option value="'+es(b)+'"'+(c.bar===b?' selected':'')+'>'+es(b)+'</option>';}).join('')+'</select></div>'+
+         '<div class="fg" style="position:relative"><label class="fl">Provincia *</label><input class="fi" id="pProv" autocomplete="off" placeholder="Escribi para buscar..." value="'+es(c.prov||'')+'"><div id="pProvSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>'+
+         '<div class="fg" style="position:relative"><label class="fl">Ciudad *</label><input class="fi" id="pCiudad" autocomplete="off" placeholder="Escribi para buscar..." value="'+es(c.ciu||'')+'"><div id="pCiudadSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>'+
+         '<div class="fg" id="pBarrioFg" style="position:relative;'+(c.ciu==='Córdoba Capital'?'':'display:none')+'"><label class="fl">Barrio</label><input class="fi" id="pBarrio" autocomplete="off" placeholder="Escribi para buscar..." value="'+es(c.bar||'')+'"><div id="pBarrioSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>'+
          '<div class="fg"><label class="fl">Tipo de negocio</label><div class="chips" style="margin-top:6px">'+tH+'</div></div>'+
          '<div class="fg"><label class="fl">Productos que vende (podes elegir varios)</label><div class="chips" style="margin-top:6px">'+prodH+'</div></div>';
      },
      init:function(){
        if(c.tipo)sc('tip',c.tipo);
-       if(c.prov){document.getElementById('pProv').value=c.prov;actualizarCiudades();}
        if(c.prods&&c.prods.length){c.prods.forEach(function(p){var el=document.querySelector('[data-id="'+p+'"][data-g="prods"]');if(el)el.classList.add('on');});}
+       initAuto('pProv','pProvSugg',function(){return ARG_PROV;});
+       initAuto('pCiudad','pCiudadSugg',function(){var pv=document.getElementById('pProv').value;return ARG_CIU[pv]||[];});
+       initAuto('pBarrio','pBarrioSugg',function(){return ARG_BARRIOS;});
+       document.getElementById('pProv').addEventListener('change',function(){document.getElementById('pCiudad').value='';});
+       document.getElementById('pCiudad').addEventListener('change',function(){
+         var v=this.value.trim();
+         var bf=document.getElementById('pBarrioFg');if(bf)bf.style.display=(v==='Córdoba Capital')?'block':'none';
+       });
      },
      val:function(){
        var nm=document.getElementById('pNm').value.trim();
@@ -1481,9 +1670,9 @@ function aVisPros(id,nu){
        c.fan=d.fan=document.getElementById('pFan').value.trim();
        c.tel=d.tel=document.getElementById('pTel').value.trim();
        c.dir=d.dir=document.getElementById('pDir').value.trim();
-       c.prov=d.prov=document.getElementById('pProv').value;
+       c.prov=d.prov=document.getElementById('pProv').value.trim();
        c.ciu=d.ciu=document.getElementById('pCiudad').value.trim();
-       var bEl=document.getElementById('pBarrio');c.bar=d.bar=bEl&&bEl.value?bEl.value:'';
+       var bEl=document.getElementById('pBarrio');c.bar=d.bar=(bEl&&c.ciu==='Córdoba Capital')?bEl.value.trim():'';
        c.tipo=d.tipo=gc('tip');
        c.prods=d.prods=gcs('prods');
        save();
