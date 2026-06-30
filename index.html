@@ -1110,7 +1110,7 @@ function renderGD(){
     var rvh='<div class="bc">';
     var mx=0;
     var rvd=vendedores.map(function(u){var vv=vis.filter(function(v){return v.vend===u.n;});var vtas=vv.filter(function(v){return v.vendio===true;}).length;mx=Math.max(mx,vv.length);return{n:u.n,v:vv.length,vtas:vtas};}).sort(function(a,b){return b.v-a.v;});
-    rvd.forEach(function(d){rvh+='<div class="br"><div class="bl">'+es(d.n)+'</div><div class="bt"><div class="bf" style="width:'+(mx>0?Math.round(d.v/mx*100):0)+'%;background:var(--cyan)"></div></div><div class="bv">'+d.v+'</div><div style="font-size:10px;color:var(--green);width:44px;text-align:right">'+d.vtas+' vtas</div></div>';});
+    rvd.forEach(function(d){rvh+='<div class="br" style="cursor:pointer" onclick="oMod(\'Informe: '+es(d.n)+'\',\'\');_renderInformeVendedor(\''+es(d.n)+'\')"><div class="bl" style="color:var(--cyan);text-decoration:underline">'+es(d.n)+'</div><div class="bt"><div class="bf" style="width:'+(mx>0?Math.round(d.v/mx*100):0)+'%;background:var(--cyan)"></div></div><div class="bv">'+d.v+'</div><div style="font-size:10px;color:var(--green);width:44px;text-align:right">'+d.vtas+' vtas</div></div>';});
     rvh+='</div>';
     h+=sG('Ranking de vendedores',rvh);
   }
@@ -1346,32 +1346,218 @@ function renderGE(){
 }
 function sGEF(f){gEF2=f;renderGE();}
 // GERENTE VISITAS
-var gVF2='7d';
+// ── VISITAS CON FILTROS COMPLETOS ─────────────────────────────────────
+var gVF={per:'30d',vend:'',res:'',tipNeg:'',prov:'',eta:'',q:'',desde:'',hasta:''};
 function renderGV(){
-  var fs=[{k:'h',l:'Hoy'},{k:'7d',l:'7 dias'},{k:'30d',l:'30 dias'},{k:'all',l:'Todas'}];
-  document.getElementById('gVF').innerHTML=fs.map(function(f){return '<span class="fb'+(gVF2===f.k?' on':'')+'" onclick="sGVF(\''+f.k+'\')">'+f.l+'</span>';}).join('')+'<span class="fb" onclick="expCSV()" style="margin-left:auto">Exportar CSV</span>';
+  var vendedores=D.usrs.filter(function(u){return u.r==='vendedor';});
+  var hoy=today();
+  // Barra de filtros
+  var h='<div style="padding:10px 14px;background:var(--s1);border-bottom:1px solid var(--border)">';
+  // Fila 1: período + vendedor
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
+  [{k:'h',l:'Hoy'},{k:'7d',l:'7 dias'},{k:'30d',l:'30 dias'},{k:'mes',l:'Este mes'},{k:'all',l:'Todas'},{k:'rng',l:'Rango'}].forEach(function(p){
+    h+='<span class="fb'+(gVF.per===p.k?' on':'')+'" onclick="gVF.per=\''+p.k+'\';renderGV()" style="font-size:11px">'+p.l+'</span>';
+  });
+  h+='</div>';
+  // Rango personalizado
+  if(gVF.per==='rng'){
+    h+='<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">';
+    h+='<input type="date" class="fi" id="vDesde" value="'+es(gVF.desde)+'" oninput="gVF.desde=this.value;renderGV()" style="flex:1;margin:0;padding:7px 10px;font-size:12px">';
+    h+='<span style="color:var(--muted);font-size:12px">a</span>';
+    h+='<input type="date" class="fi" id="vHasta" value="'+es(gVF.hasta||hoy)+'" oninput="gVF.hasta=this.value;renderGV()" style="flex:1;margin:0;padding:7px 10px;font-size:12px">';
+    h+='</div>';
+  }
+  // Fila 2: vendedor + resultado
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
+  h+='<select onchange="gVF.vend=this.value;renderGV()" style="background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;font-size:12px;cursor:pointer"><option value="">Todos los vendedores</option>';
+  vendedores.forEach(function(u){h+='<option value="'+es(u.n)+'"'+(gVF.vend===u.n?' selected':'')+'>'+es(u.n)+'</option>';});
+  h+='</select>';
+  h+='<select onchange="gVF.res=this.value;renderGV()" style="background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;font-size:12px;cursor:pointer"><option value="">Todo resultado</option><option value="venta"'+(gVF.res==='venta'?' selected':'')+'>Con venta</option><option value="sinventa"'+(gVF.res==='sinventa'?' selected':'')+'>Sin venta</option><option value="prospecto"'+(gVF.res==='prospecto'?' selected':'')+'>Visita prospecto</option></select>';
+  h+='<select onchange="gVF.tipNeg=this.value;renderGV()" style="background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;font-size:12px;cursor:pointer"><option value="">Tipo de negocio</option>';
+  (D.cfg.tipos||[]).forEach(function(t){h+='<option value="'+es(t)+'"'+(gVF.tipNeg===t?' selected':'')+'>'+es(t)+'</option>';});
+  h+='</select>';
+  h+='<select onchange="gVF.eta=this.value;renderGV()" style="background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;font-size:12px;cursor:pointer"><option value="">Etapa embudo</option>';
+  ET.concat(SA).forEach(function(e){h+='<option value="'+es(e)+'"'+(gVF.eta===e?' selected':'')+'>'+es(e)+'</option>';});
+  h+='</select>';
+  h+='</div>';
+  // Búsqueda texto + exportar
+  h+='<div style="display:flex;gap:6px;align-items:center">';
+  h+='<div class="srch" style="flex:1;margin:0"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Buscar cliente..." value="'+es(gVF.q)+'" oninput="gVF.q=this.value;renderGV()" style="background:none;border:none;outline:none;color:var(--text);font-size:13px;font-family:inherit;width:100%"></div>';
+  h+='<button class="sm" onclick="gVF={per:\'30d\',vend:\'\',res:\'\',tipNeg:\'\',prov:\'\',eta:\'\',q:\'\',desde:\'\',hasta:\'\'};renderGV()" style="font-size:11px">Limpiar</button>';
+  h+='<button class="sm g" onclick="expCSV()">CSV</button>';
+  if(gVF.vend){h+='<button class="sm" onclick="abrirInformeVendedor(\''+es(gVF.vend)+'\')" style="color:var(--cyan)">Informe completo</button>';}
+  h+='</div></div>';
+  // Aplicar filtros
   var vs=D.vis.slice().reverse();
-  var hoy=new Date().toISOString().split('T')[0];
-  if(gVF2==='h')vs=vs.filter(function(v){return v.fecha===hoy;});
-  else if(gVF2==='7d')vs=vs.filter(function(v){return dias(v.fecha)<=7;});
-  else if(gVF2==='30d')vs=vs.filter(function(v){return dias(v.fecha)<=30;});
-  var h='<div style="padding:8px 14px;font-size:11px;color:var(--muted);font-weight:700">'+vs.length+' VISITAS</div>';
-  if(!vs.length){h+='<div class="empty">Sin visitas en este periodo</div>';document.getElementById('gVB').innerHTML=h;return;}
+  var desde,hasta=hoy;
+  if(gVF.per==='h'){desde=hoy;}
+  else if(gVF.per==='7d'){var d7=new Date();d7.setDate(d7.getDate()-7);desde=d7.toISOString().split('T')[0];}
+  else if(gVF.per==='30d'){var d30=new Date();d30.setDate(d30.getDate()-30);desde=d30.toISOString().split('T')[0];}
+  else if(gVF.per==='mes'){desde=hoy.slice(0,7)+'-01';}
+  else if(gVF.per==='rng'){desde=gVF.desde;hasta=gVF.hasta||hoy;}
+  if(desde)vs=vs.filter(function(v){return v.fecha>=desde&&v.fecha<=hasta;});
+  if(gVF.vend)vs=vs.filter(function(v){return v.vend===gVF.vend;});
+  if(gVF.res==='venta')vs=vs.filter(function(v){return v.vendio===true;});
+  else if(gVF.res==='sinventa')vs=vs.filter(function(v){return v.vendio===false;});
+  else if(gVF.res==='prospecto')vs=vs.filter(function(v){return v.tipo==='prospecto';});
+  if(gVF.tipNeg||gVF.prov||gVF.eta){
+    vs=vs.filter(function(v){
+      var c=D.cli.find(function(x){return x.id===v.cid;});
+      if(!c)return false;
+      if(gVF.tipNeg&&c.tipo!==gVF.tipNeg)return false;
+      if(gVF.prov&&c.prov!==gVF.prov)return false;
+      if(gVF.eta&&c.etapaEmbudo!==gVF.eta)return false;
+      return true;
+    });
+  }
+  if(gVF.q){var q=gVF.q.toLowerCase();vs=vs.filter(function(v){var c=D.cli.find(function(x){return x.id===v.cid;});return c&&(c.nm||'').toLowerCase().includes(q);});}
+  // Resultado
+  var ventas=vs.filter(function(v){return v.vendio===true;}).length;
+  var sinventa=vs.filter(function(v){return v.vendio===false;}).length;
+  h+='<div style="display:flex;gap:6px;padding:10px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap">';
+  h+='<span style="font-size:11px;font-weight:700;color:var(--muted)">'+vs.length+' VISITAS</span>';
+  h+='<span style="font-size:11px;color:var(--green)">'+ventas+' con venta</span>';
+  h+='<span style="font-size:11px;color:var(--red)">'+sinventa+' sin venta</span>';
+  if(vs.length>0)h+='<span style="font-size:11px;color:var(--cyan);margin-left:auto">'+Math.round(ventas/vs.length*100)+'% conversion</span>';
+  h+='</div>';
+  if(!vs.length){h+='<div class="empty">Sin visitas con los filtros actuales</div>';document.getElementById('gVB').innerHTML=h;return;}
   vs.forEach(function(v){
     var c=D.cli.find(function(x){return x.id===v.cid;});
-    h+='<div class="vh" style="cursor:pointer" onclick="'+(c?'aFicha(\''+c.id+'\')':'')+'"><div class="vhd">'+fmt(v.fecha)+(v.vend?' · '+es(v.vend):'')+'</div>';
-    h+='<div class="vhr">'+es(c?c.nm:'?')+' — '+(v.tipo==='prospecto'?'Visita prospecto':v.vendio===true?'VENTA':'Sin venta')+'</div>';
-    if(v.vendio===false&&v.razones)h+='<div class="vhx">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>';
+    var res=v.tipo==='prospecto'?'Prospecto':v.vendio===true?'VENTA':'Sin venta';
+    var col=v.tipo==='prospecto'?'var(--orange)':v.vendio===true?'var(--green)':'var(--red)';
+    h+='<div class="vh" style="cursor:pointer" onclick="'+(c?'aFicha(\''+c.id+'\')':'')+'">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center">';
+    h+='<div class="vhd">'+fmt(v.fecha)+(v.vend?' · <span style="color:var(--cyan)">'+es(v.vend)+'</span>':'')+'</div>';
+    h+='<span style="font-size:10px;font-weight:700;color:'+col+'">'+res+'</span></div>';
+    h+='<div class="vhr">'+es(c?c.nm:'?')+(c&&c.tipo?' · '+es(c.tipo):'')+'</div>';
+    if(c&&c.ciu)h+='<div class="vhx">'+es(c.ciu)+(c.bar?' · '+es(c.bar):'')+'</div>';
+    if(v.vendio===false&&v.razones)h+='<div class="vhx" style="color:var(--red)">Motivo: '+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>';
+    if(v.nt)h+='<div class="vhx" style="font-style:italic">'+es(v.nt)+'</div>';
     h+='</div>';
   });
   document.getElementById('gVB').innerHTML=h;
 }
-function sGVF(f){gVF2=f;renderGV();}
+function sGVF(f){gVF.per=f;renderGV();}
 function expCSV(){
-  var rows=['Fecha,Vendedor,Cliente,Tipo,Venta,Motivo,Etapa,Notas'];
-  D.vis.forEach(function(v){var c=D.cli.find(function(x){return x.id===v.cid;});var m=v.razones?(Array.isArray(v.razones)?v.razones.join('; '):v.razones):'';rows.push([v.fecha,v.vend||'',(c?c.nm:'?'),v.tipo||'',v.vendio===true?'SI':v.vendio===false?'NO':'',m,v.eta||'',v.nt||''].map(function(f){return '"'+String(f).replace(/"/g,'""')+'"';}).join(','));});
-  var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='visitas_'+new Date().toISOString().split('T')[0]+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);toast('CSV exportado','ok');
+  var vs=D.vis.slice().reverse();
+  var rows=['Fecha,Vendedor,Cliente,Tipo negocio,Ciudad,Barrio,Tipo visita,Venta,Motivo,Etapa embudo,Notas'];
+  vs.forEach(function(v){
+    var c=D.cli.find(function(x){return x.id===v.cid;});
+    var m=v.razones?(Array.isArray(v.razones)?v.razones.join('; '):v.razones):'';
+    rows.push([v.fecha,v.vend||'',(c?c.nm:'?'),(c?c.tipo||'':''),(c?c.ciu||'':''),(c?c.bar||'':''),v.tipo||'',v.vendio===true?'SI':v.vendio===false?'NO':'',m,v.eta||c&&c.etapaEmbudo||'',v.nt||''].map(function(f){return '"'+String(f).replace(/"/g,'""')+'"';}).join(','));
+  });
+  var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='visitas_'+today()+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('CSV exportado ('+vs.length+' visitas)','ok');
 }
+
+// ── INFORME INDIVIDUAL POR VENDEDOR ───────────────────────────────────
+var infVendPer='mes'; // periodo por defecto del informe individual
+function abrirInformeVendedor(vend){
+  infVendPer=infVendPer||'mes';
+  _renderInformeVendedor(vend);
+}
+function _renderInformeVendedor(vend){
+  var hoy=today();var hoyD=new Date();
+  // Calcular rango segun periodo
+  var desde;
+  if(infVendPer==='sem'){var dl=new Date();dl.setDate(dl.getDate()-(dl.getDay()===0?6:dl.getDay()-1));desde=dl.toISOString().split('T')[0];}
+  else if(infVendPer==='mes'){desde=hoy.slice(0,7)+'-01';}
+  else if(infVendPer==='ano'){desde=hoy.slice(0,4)+'-01-01';}
+  else{desde='2000-01-01';}
+  // Datos del vendedor
+  var misCli=D.cli.filter(function(c){return c.vend===vend;});
+  var misVis=D.vis.filter(function(v){return v.vend===vend;});
+  var misVisP=misVis.filter(function(v){return v.fecha>=desde;});
+  var misCom=D.com.filter(function(co){
+    var c=D.cli.find(function(x){return x.id===co.cid;});
+    return c&&c.vend===vend;
+  });
+  var prosT=misCli.filter(function(c){return c.esP;});
+  var cliT=misCli.filter(function(c){return !c.esP;});
+  var prosNuevos=prosT.filter(function(c){return c.ing>=desde;});
+  var conv=misVisP.filter(function(v){return v.conversion===true;});
+  var ventasP=misVisP.filter(function(v){return v.vendio===true;});
+  var cliVisP=cliT.filter(function(c){return misVisP.some(function(v){return v.cid===c.id;});});
+  var cliNoVis=cliT.filter(function(c){return !c.ul||dias(c.ul)>30;});
+  var comP=misCom.filter(function(co){return co.fe>=desde;});
+  var comAct=misCom.filter(function(co){return !co.ret;});
+  var tasaConv=prosT.length>0?Math.round(conv.length/prosT.length*100):0;
+  // Causas de pérdida
+  var noVentaVis=misVisP.filter(function(v){return v.vendio===false&&v.razones;});
+  var causas={};
+  noVentaVis.forEach(function(v){var rs=Array.isArray(v.razones)?v.razones:[v.razones];rs.forEach(function(r){if(r)causas[r]=(causas[r]||0)+1;});});
+  var causasArr=Object.keys(causas).map(function(k){return{k:k,n:causas[k]};}).sort(function(a,b){return b.n-a.n;});
+  // Construir modal
+  var h='';
+  // Selector de período
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">';
+  [{k:'sem',l:'Esta semana'},{k:'mes',l:'Este mes'},{k:'ano',l:'Este año'},{k:'todo',l:'Todo'}].forEach(function(p){
+    h+='<span class="fb'+(infVendPer===p.k?' on':'')+'" onclick="infVendPer=\''+p.k+'\';_renderInformeVendedor(\''+es(vend)+'\')" style="font-size:11px">'+p.l+'</span>';
+  });
+  h+='<button class="sm g" onclick="expCSVVendedor(\''+es(vend)+'\')" style="margin-left:auto;font-size:11px">Exportar CSV</button>';
+  h+='</div>';
+  // KPIs principales
+  h+='<div class="ct" style="margin-bottom:8px">RESUMEN DEL PERÍODO</div>';
+  h+='<div class="sg" style="margin-bottom:14px">';
+  [{n:misVisP.length,l:'Visitas',c:'var(--cyan)'},{n:ventasP.length,l:'Ventas',c:'var(--green)'},{n:prosNuevos.length,l:'Prospectos nuevos',c:'var(--orange)'},{n:conv.length,l:'Conversiones',c:'var(--purple)'},{n:comP.length,l:'Comodatos firmados',c:'var(--yellow)'}].forEach(function(k){
+    h+='<div class="sb"><div class="sn" style="color:'+k.c+'">'+k.n+'</div><div class="sl2">'+k.l+'</div></div>';
+  });
+  h+='</div>';
+  // KPIs de cartera total
+  h+='<div class="ct" style="margin-bottom:8px">CARTERA TOTAL</div>';
+  h+='<div class="sg" style="margin-bottom:14px">';
+  [{n:cliT.length,l:'Clientes activos',c:'var(--green)'},{n:prosT.length,l:'Prospectos',c:'var(--orange)'},{n:cliVisP.length,l:'Clientes visitados',c:'var(--cyan)'},{n:cliNoVis.length,l:'Sin visita +30d',c:'var(--red)'},{n:comAct.length,l:'Comodatos activos',c:'var(--yellow)'},{n:tasaConv,l:'% Conversión',c:'var(--purple)'}].forEach(function(k){
+    h+='<div class="sb"><div class="sn" style="color:'+k.c+'">'+k.n+(k.l.includes('%')?'%':'')+'</div><div class="sl2">'+k.l+'</div></div>';
+  });
+  h+='</div>';
+  // Embudo
+  h+='<div class="ct" style="margin-bottom:8px">EMBUDO</div>';
+  var totalEmb=misCli.length||1;
+  ET.concat(SA).forEach(function(et){
+    var n=misCli.filter(function(c){return c.etapaEmbudo===et;}).length;if(!n)return;
+    var col=EC[et]||'var(--muted)';
+    h+='<div class="br" style="margin-bottom:4px"><div class="bl">'+es(et)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(n/totalEmb*100)+'%;background:'+col+'"></div></div><div class="bv">'+n+'</div></div>';
+  });
+  // Causas de no venta
+  if(causasArr.length){
+    h+='<div class="ct" style="margin:12px 0 8px">CAUSAS DE NO VENTA</div>';
+    var mxc=causasArr[0].n;
+    causasArr.slice(0,5).forEach(function(x){h+='<div class="br"><div class="bl">'+es(x.k)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(x.n/mxc*100)+'%;background:var(--red)"></div></div><div class="bv">'+x.n+'</div></div>';});
+  }
+  // Clientes sin visitar
+  if(cliNoVis.length){
+    h+='<div class="ct" style="margin:12px 0 8px">CLIENTES SIN VISITA +30 DIAS</div>';
+    cliNoVis.slice(0,5).forEach(function(c){
+      h+='<div class="vh"><div class="vhd">'+es(c.nm)+'</div><div class="vhx">Ultima visita: '+fmt(c.ul)+'</div></div>';
+    });
+    if(cliNoVis.length>5)h+='<div style="font-size:12px;color:var(--muted);padding:6px 0">... y '+(cliNoVis.length-5)+' mas</div>';
+  }
+  // Actividad semanal (últimas 4 semanas)
+  h+='<div class="ct" style="margin:12px 0 8px">ACTIVIDAD SEMANAL (ultimas 4 semanas)</div>';
+  for(var w=3;w>=0;w--){
+    var wStart=new Date();wStart.setDate(wStart.getDate()-((wStart.getDay()===0?6:wStart.getDay()-1)+w*7));
+    var wEnd=new Date(wStart);wEnd.setDate(wStart.getDate()+6);
+    var ws=wStart.toISOString().split('T')[0];var we=wEnd.toISOString().split('T')[0];
+    var visW=misVis.filter(function(v){return v.fecha>=ws&&v.fecha<=we;});
+    var ventW=visW.filter(function(v){return v.vendio===true;});
+    h+='<div class="br"><div class="bl" style="font-size:11px">'+wStart.toLocaleDateString('es-AR',{day:'numeric',month:'short'})+'</div><div class="bt"><div class="bf" style="width:'+(visW.length?Math.min(Math.round(visW.length/10*100),100):0)+'%;background:var(--cyan)"></div></div><div class="bv">'+visW.length+'</div><div style="font-size:10px;color:var(--green);width:40px;text-align:right">'+ventW.length+' vta</div></div>';
+  }
+  document.getElementById('mB').innerHTML=h;
+}
+function expCSVVendedor(vend){
+  var misVis=D.vis.filter(function(v){return v.vend===vend;});
+  var rows=['Fecha,Cliente,Tipo negocio,Ciudad,Tipo visita,Venta,Motivo,Etapa embudo,Notas'];
+  misVis.forEach(function(v){
+    var c=D.cli.find(function(x){return x.id===v.cid;});
+    var m=v.razones?(Array.isArray(v.razones)?v.razones.join('; '):v.razones):'';
+    rows.push([v.fecha,(c?c.nm:'?'),(c?c.tipo||'':''),(c?c.ciu||'':''),v.tipo||'',v.vendio===true?'SI':v.vendio===false?'NO':'',m,v.eta||c&&c.etapaEmbudo||'',v.nt||''].map(function(f){return '"'+String(f).replace(/"/g,'""')+'"';}).join(','));
+  });
+  var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='informe_'+vend+'_'+today()+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('CSV de '+vend+' exportado','ok');
+}
+
 // GERENTE COMODATOS
 var gCoF2='act';
 function renderGCo(){
@@ -1487,7 +1673,7 @@ function renderGI(){
   vendedores.forEach(function(u){
     var vv=visP.filter(function(v){return v.vend===u.n;});
     var vt=vv.filter(function(v){return v.vendio===true;});
-    h+='<div class="br"><div class="bl">'+es(u.n)+'</div><div class="bt"><div class="bf" style="width:'+(visP.length?Math.round(vv.length/Math.max(visP.length,1)*100):0)+'%;background:var(--cyan)"></div></div><div class="bv">'+vv.length+'</div><div style="font-size:10px;color:var(--green);width:50px;text-align:right">'+vt.length+' vtas</div></div>';
+    h+='<div class="br" style="cursor:pointer" onclick="oMod(\'Informe: '+es(u.n)+'\',\'\');_renderInformeVendedor(\''+es(u.n)+'\')"><div class="bl" style="color:var(--cyan);text-decoration:underline">'+es(u.n)+'</div><div class="bt"><div class="bf" style="width:'+(visP.length?Math.round(vv.length/Math.max(visP.length,1)*100):0)+'%;background:var(--cyan)"></div></div><div class="bv">'+vv.length+'</div><div style="font-size:10px;color:var(--green);width:50px;text-align:right">'+vt.length+' vtas</div></div>';
   });
   h+='</div></div>';
 
