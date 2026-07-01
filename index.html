@@ -881,7 +881,7 @@ function renderVG(){if(gTab==='plan')renderGiraPlan();else renderGiraEjec();}
 // EJECUTAR HOY
 function renderGiraEjec(){
   var hoy=today();
-  var gHoy=D.gira.filter(function(g){return g.fecha===hoy;});
+  var gHoy=misGira().filter(function(g){return g.fecha===hoy;});
   if(!gHoy.length){
     document.getElementById('vGB').innerHTML='<div class="card" style="text-align:center;padding:24px"><div style="font-size:32px;margin-bottom:10px">&#128197;</div><div style="font-size:15px;font-weight:700;margin-bottom:6px">Sin visitas planificadas para hoy</div><div style="font-size:13px;color:var(--muted);margin-bottom:14px">Planifica la gira en la pestana PLANIFICAR</div><button class="btn sec" onclick="setGTab(\'plan\')" style="margin:0">Ir a Planificar</button></div>';
     return;
@@ -968,7 +968,7 @@ function abrirVisitaProspecto(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
   var h='<div style="font-size:22px;font-weight:800;margin-bottom:6px">'+es(c.nm)+'</div>';
   h+='<div style="font-size:13px;color:var(--muted);margin-bottom:16px">'+es(c.etapaEmbudo||'Prospecto')+(c.bar?' · '+es(c.bar):'')+'</div>';
-  h+='<div class="fg"><label class="fl">Observaciones de la visita</label><textarea class="fi fta" id="vpObs" rows="4" placeholder="Que paso en la visita? Mostro interes? Datos importantes..."></textarea></div>';
+  h+='<div class="fg"><label class="fl">Observaciones de la visita</label><textarea class="fi fta" id="vpObs" rows="3" placeholder="Que paso en la visita? Mostro interes? Datos importantes..."></textarea></div>';
   h+='<div class="fg"><label class="fl">Se realizo una venta?</label>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">';
   h+='<div id="vpSi" onclick="togVP(true)" style="padding:16px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:16px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">SI</div>';
@@ -980,6 +980,9 @@ function abrirVisitaProspecto(id){
   h+='<select class="fi" id="vpEta"><option value="">Mantener etapa actual ('+es(c.etapaEmbudo||'Nuevo Prospecto')+')</option>';
   ET.concat(SA).forEach(function(et){if(et!==c.etapaEmbudo)h+='<option value="'+es(et)+'">'+es(et)+'</option>';});
   h+='</select></div>';
+  // CAMPO CLAVE: próxima visita -> se agrega sola a la Gira
+  h+='<div class="fg"><label class="fl">Proxima visita <span style="color:var(--cyan);font-size:11px">(se agrega automaticamente a la Gira)</span></label>';
+  h+='<input class="fi" type="date" id="vpProx" min="'+today()+'" value="'+(c.prox||'')+'"></div>';
   h+='<button class="btn or" onclick="guardarVisitaProspecto(\''+id+'\')">Guardar visita</button>';
   oMod('Visita a prospecto',h);
 }
@@ -1006,15 +1009,28 @@ function guardarVisitaProspecto(id){
     if(conv){c.esP=false;c.etapaEmbudo='Cliente Activo';v.eta='Cliente Activo';v.conversion=true;}
   }
   c.ul=hoy;
+  // Próxima visita → agregar automáticamente a la Gira
+  var proxEl=document.getElementById('vpProx');
+  var prox=proxEl?proxEl.value:'';
+  if(prox){
+    c.prox=prox;
+    v.prox=prox;
+    var yaEnGira=D.gira.some(function(g){return g.cid===id&&g.fecha===prox;});
+    if(!yaEnGira){
+      var ng={cid:id,fecha:prox,orden:D.gira.filter(function(x){return x.fecha===prox;}).length};
+      D.gira.push(ng);
+      fsSetGira(ng);
+    }
+  }
   D.vis.push(v);
   // Trazabilidad
   if(conv){logEvento('conversion',c.id,c.nm,'Prospecto convertido a Cliente Activo','Prospecto','Cliente Activo');}
   else if(vpVendio===true){logEvento('venta',c.id,c.nm,'Venta registrada en visita a prospecto','','');}
-  else{logEvento('visita',c.id,c.nm,'Visita registrada','','');}
+  else{logEvento('visita',c.id,c.nm,'Visita registrada'+(prox?' — Proxima: '+prox:''),'','');}
   fsSetVisita(v);
   fsSetContacto(c);
   cMod();
-  toast(vpVendio===true?'Venta registrada!':'Visita guardada','ok');
+  toast(prox?'Visita guardada · Gira agendada para '+fmt(prox):vpVendio===true?'Venta registrada!':'Visita guardada','ok');
   vpVendio=null;
   renderVH();
   if(gTab==='ejec')renderVG();
@@ -1984,12 +2000,24 @@ function fmtTs(ts){
 // Retorna los contactos visibles para el usuario actual
 function misContactos(incluirPerdidos){
   var base;
-  if(!D.user||D.user.r==='admin'||D.user.r==='gerente'){base=D.cli;}
-  else{base=D.cli.filter(function(c){return c.vend===D.user.n||!c.vend;});}
+  if(!D.user||D.user.r==='admin'||D.user.r==='gerente'){
+    base=D.cli;
+  } else {
+    // Cada vendedor solo ve sus propios contactos. Sin excepciones.
+    base=D.cli.filter(function(c){return c.vend===D.user.n;});
+  }
   if(!incluirPerdidos){
     base=base.filter(function(c){return c.etapaEmbudo!=='No Le Interesa'&&c.etapaEmbudo!=='Perdido';});
   }
   return base;
+}
+// Gira filtrada por vendedor: cada vendedor solo ve sus propias paradas
+function misGira(){
+  if(!D.user||D.user.r==='admin'||D.user.r==='gerente')return D.gira;
+  return D.gira.filter(function(g){
+    var c=D.cli.find(function(x){return x.id===g.cid;});
+    return c&&c.vend===D.user.n;
+  });
 }
 // Log de un contacto especifico (para mostrar en ficha)
 function logDeContacto(cid){
@@ -2082,7 +2110,23 @@ function wFin(){
   Object.assign(v,W.data);
   D.vis.push(v);
   var c=D.cli.find(function(x){return x.id===W.cid;});
-  if(c){c.ul=v.fecha;if(v.vendio===true)c.uv=v.fecha;if(v.prox)c.prox=v.prox;if(v.eta)c.etapaEmbudo=v.eta;if(v.deu!==undefined)c.deu=v.deu;}
+  if(c){
+    c.ul=v.fecha;
+    if(v.vendio===true)c.uv=v.fecha;
+    if(v.eta)c.etapaEmbudo=v.eta;
+    if(v.deu!==undefined)c.deu=v.deu;
+    if(v.prox){
+      c.prox=v.prox;
+      // Agregar automaticamente a la Gira en la fecha de proxima visita
+      var yaEnGira=D.gira.some(function(g){return g.cid===W.cid&&g.fecha===v.prox;});
+      if(!yaEnGira){
+        var ng={cid:W.cid,fecha:v.prox,orden:D.gira.filter(function(x){return x.fecha===v.prox;}).length};
+        D.gira.push(ng);
+        fsSetGira(ng);
+        toast('Agregado a la Gira para '+fmt(v.prox),'ok');
+      }
+    }
+  }
   // Trazabilidad
   if(W.tipo==='cliente'){logEvento('visita',W.cid,c?c.nm:'?',v.vendio===true?'Visita con venta':'Visita sin venta','','');}
   else if(W.nu){logEvento('prospecto',W.cid,c?c.nm:'?','Nuevo prospecto registrado','','');}
@@ -2274,7 +2318,7 @@ function renderGiraPlan(){
   for(var i=0;i<5;i++){
     var dia=new Date(lunes);dia.setDate(dia.getDate()+i);
     var diaStr=dia.toISOString().split('T')[0];
-    var planDia=D.gira.filter(function(g){return g.fecha===diaStr;});
+    var planDia=misGira().filter(function(g){return g.fecha===diaStr;});
     var esHoy=diaStr===hoy;
     var numDia=dia.getDate();
     h+='<div onclick="verDiaGira(\''+diaStr+'\')" style="background:var(--s1);border:1px solid '+(esHoy?'var(--cyan)':'var(--border)')+';border-radius:var(--rsm);padding:10px 6px;text-align:center;cursor:pointer;min-height:80px">';
