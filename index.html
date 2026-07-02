@@ -773,7 +773,12 @@ function abrirFichaV(id){
   h+='<button class="btn" onclick="cMod();abrirVisita(\''+id+'\')" style="margin:0">Registrar visita</button>';
   h+='<button class="btn sec" onclick="cMod();editarContacto(\''+id+'\')" style="margin:0">Editar</button>';
   h+='</div>';
-  if(c.tel)h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin-bottom:8px">Enviar WhatsApp</button>';
+  if(c.tel){
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
+    h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin:0">Enviar WhatsApp</button>';
+    h+='<button class="btn sec" onclick="exportarVCard(\''+id+'\')" style="margin:0">📋 Agregar a agenda</button>';
+    h+='</div>';
+  }
   var logH=htmlLog(id,8);
   if(logH){h+='<div class="div"></div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">HISTORIAL</div>'+logH;}
   oMod(es(c.nm),h);
@@ -1299,6 +1304,12 @@ function aFicha(id){
   h+='<button class="btn" onclick="cMod();editarContacto(\''+id+'\')" style="margin:0">Editar</button>';
   h+='<button class="btn sec" onclick="cMod();abrirVisita(\''+id+'\')" style="margin:0">Registrar visita</button>';
   h+='</div>';
+  if(c.tel){
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">';
+    h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin:0">Enviar WhatsApp</button>';
+    h+='<button class="btn sec" onclick="exportarVCard(\''+id+'\')" style="margin:0">📋 Agregar a agenda</button>';
+    h+='</div>';
+  }
   h+='<div class="div"></div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">HISTORIAL DE VISITAS ('+vs.length+')</div>';
   if(!vs.length){h+='<div style="color:var(--muted);font-size:13px">Sin visitas registradas</div>';}
   vs.forEach(function(v){
@@ -1792,7 +1803,14 @@ function renderGCfg(){
 
   // ── MENSAJES WHATSAPP POR ETAPA ───────────────────────────────────
   h+='<div class="card"><div class="ct">MENSAJES DE WHATSAPP POR ETAPA</div>';
-  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Se envian al tocar el boton WA en cada contacto segun su etapa del embudo.</div>';
+  h+='<div style="background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);border-radius:var(--rsm);padding:10px 12px;margin-bottom:14px">';
+  h+='<div style="font-size:11px;font-weight:700;color:var(--cyan);margin-bottom:6px">VARIABLES DISPONIBLES</div>';
+  h+='<div style="font-size:12px;color:var(--muted);line-height:1.7">';
+  h+='<code style="color:var(--cyan)">{nombre}</code> — Nombre del dueño o encargado<br>';
+  h+='<code style="color:var(--cyan)">{negocio}</code> — Nombre del local<br>';
+  h+='<code style="color:var(--cyan)">{ciudad}</code> — Ciudad o barrio<br>';
+  h+='<code style="color:var(--cyan)">{etapa}</code> — Etapa actual del embudo<br>';
+  h+='<span style="font-style:italic">Ejemplo: "Hola <code style=\\"color:var(--cyan)\\">{nombre}</code>, soy Jorge de Sei Tu. Quería seguir en contacto con {negocio}..."</span></div></div>';
   if(!D.cfg.msgs)D.cfg.msgs={};
   ET.concat(SA).forEach(function(et,i){
     var msg=(D.cfg.msgs&&D.cfg.msgs[et])||MD[et]||'';
@@ -1918,7 +1936,46 @@ function confPass(uid2){
   fsSetUsuario(u);
   cMod();toast('Contrasena actualizada','ok');
 }
-function envWA(id){var c=D.cli.find(function(x){return x.id===id;});if(!c){toast('Contacto no encontrado','err');return;}if(!c.tel){toast('Sin telefono','err');return;}var m=c.esP?((D.cfg.msgs&&D.cfg.msgs[c.etapaEmbudo])||MD[c.etapaEmbudo]||'Hola! Te escribo de Sei Tu Helados.'):'Hola! Te escribo de Sei Tu Helados.';window.open('https://wa.me/54'+c.tel.replace(/\D/g,'')+'?text='+encodeURIComponent(m),'_blank');}
+function exportarVCard(id){
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  if(!c.tel){toast('Este contacto no tiene telefono cargado','err');return;}
+  var tel=c.tel.replace(/\D/g,'');
+  // Agregar codigo de pais Argentina si no lo tiene
+  var telIntl=tel.startsWith('54')?'+'+tel:'+54'+tel;
+  var vcard=[
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    'FN:'+es(c.nm||''),
+    'N:'+es(c.nm||'')+';;;',
+    'TEL;TYPE=CELL:'+telIntl,
+    c.fan?'TITLE:'+es(c.fan):'',
+    (c.dir||c.ciu||c.bar)?'ADR:;;'+es(c.dir||'')+';'+es(c.ciu||c.bar||'')+';;Argentina':'',
+    c.tipo?'ORG:'+es(c.nm||''):'',
+    'NOTE:CRM Jorge - '+es(c.tipo||'')+(c.etapaEmbudo?' - '+es(c.etapaEmbudo):'')+(c.obs?' - '+es(c.obs):''),
+    'END:VCARD'
+  ].filter(Boolean).join('\r\n');
+  var blob=new Blob([vcard],{type:'text/vcard;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;
+  a.download=((c.nm||'contacto').replace(/[^a-zA-Z0-9 ]/g,'').trim()||'contacto')+'.vcf';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('Archivo .vcf descargado — abrite para agregar a la agenda','ok');
+}
+function envWA(id){
+  var c=D.cli.find(function(x){return x.id===id;});
+  if(!c){toast('Contacto no encontrado','err');return;}
+  if(!c.tel){toast('Este contacto no tiene telefono','err');return;}
+  var mBase=c.esP
+    ?((D.cfg.msgs&&D.cfg.msgs[c.etapaEmbudo])||MD[c.etapaEmbudo]||'Hola! Te escribo de Sei Tu Helados.')
+    :'Hola! Te escribo de Sei Tu Helados.';
+  // Reemplazar variables personalizadas en el mensaje
+  var m=mBase
+    .replace(/\{nombre\}/gi, c.fan||c.nm||'')   // dueño/encargado
+    .replace(/\{negocio\}/gi, c.nm||'')           // nombre del local
+    .replace(/\{ciudad\}/gi, c.ciu||c.bar||'')    // ciudad o barrio
+    .replace(/\{etapa\}/gi, c.etapaEmbudo||'');   // etapa del embudo
+  window.open('https://wa.me/54'+c.tel.replace(/\D/g,'')+'?text='+encodeURIComponent(m),'_blank');
+}
 // ── SINCRONIZACION CON ESTADO VISUAL ────────────────────────────────
 var syncEstado='ok'; // ok|pending|error
 function setSyncDot(estado){
