@@ -613,7 +613,7 @@ function startApp(){
     document.getElementById('vDt').textContent=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
     renderVH();
     // Iniciar en tab ejecutar
-    setGTab('ejec');
+    renderVG();
   }
 }
 function doLogout(){
@@ -2244,7 +2244,7 @@ function wFin(){
   } else if(W.nu&&W.tipo==='prospecto'){
     vGo('C');
   } else {
-    renderVH();if(gTab==='ejec')renderGiraEjec();
+    renderVH();if(gTab==='ejec')renderVG();
   }
 }
 function wf(inp,fk,lk,pk){
@@ -2400,7 +2400,8 @@ function tgV(si){
 }
 
 // ── GIRA UNIFICADA (semanal + tarjetas del día) ─────────────────────
-var gSemOffset=0;    // 0=esta semana, 1=próxima, etc.
+var gSemOffset=0;
+var gTab="ejec"; // compatibilidad con wFin y guardarVisitaProspecto
 var gDiaActivo='';   // fecha 'YYYY-MM-DD' del día expandido
 
 function renderVG(){
@@ -2631,7 +2632,7 @@ function renderVE(){
 // ── CONTACTOS: tarjetas mejoradas con todos los datos ─────────────────
 function renderVC(){
   var q=(document.getElementById('vCQ')&&document.getElementById('vCQ').value||'').toLowerCase();
-  var cs=D.cli.slice();
+  var cs=misContactos().slice();
   if(vcF.tipo_ctx==='prospecto')cs=cs.filter(function(c){return c.esP;});
   else if(vcF.tipo_ctx==='cliente')cs=cs.filter(function(c){return !c.esP;});
   if(vcF.bar)cs=cs.filter(function(c){return c.bar===vcF.bar||c.ciu===vcF.bar;});
