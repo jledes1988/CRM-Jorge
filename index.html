@@ -359,41 +359,57 @@ function fsSnapToArr(snap){
 }
 
 function fsSetupListeners(){
-  fsBootMsg('Sincronizando contactos...');
-  fsDB.collection('contactos').onSnapshot(function(snap){
+  fsBootMsg('Conectando...');
+
+  // TIMEOUT DE SEGURIDAD: si en 8 segundos no cargaron todos los listeners,
+  // arrancar igual con los datos que haya (puede ser conexion lenta o error)
+  var bootTimeout=setTimeout(function(){
+    if(!FS_READY){
+      debugLog('warn','Timeout de arranque - iniciando con datos parciales');
+      FS_READY=true;
+      fsArrancarApp();
+    }
+  },8000);
+
+  // Wrapper que SIEMPRE llama fsOnFirstLoad, incluso con error
+  function safeSnap(colName,onSuccess,onError){
+    fsDB.collection(colName).onSnapshot(
+      function(snap){
+        try{onSuccess(snap);}catch(e){debugLog('error',colName+' parse: '+e.message);}
+        DEBUG_LASTSYNC[colName]=new Date().toISOString();
+        fsOnFirstLoad();
+      },
+      function(err){
+        debugLog('error',colName+' listener: '+err.message);
+        fsOnFirstLoad(); // ← CRÍTICO: llamar igual para no bloquear el arranque
+      }
+    );
+  }
+
+  safeSnap('contactos',function(snap){
     D.cli=fsSnapToArr(snap);
     normalizarDatos();
-    DEBUG_LASTSYNC.contactos=new Date().toISOString();
-    fsOnFirstLoad();
-    refrescarVistaActual();
-  },function(err){debugLog('error','contactos: '+err.message);toast('Error de sincronizacion: contactos','err');});
+    if(FS_READY)refrescarVistaActual();
+  });
 
-  fsDB.collection('visitas').onSnapshot(function(snap){
+  safeSnap('visitas',function(snap){
     D.vis=fsSnapToArr(snap);
-    DEBUG_LASTSYNC.visitas=new Date().toISOString();
-    fsOnFirstLoad();
-    refrescarVistaActual();
-  },function(err){debugLog('error','visitas: '+err.message);});
+    if(FS_READY)refrescarVistaActual();
+  });
 
-  fsDB.collection('comodatos').onSnapshot(function(snap){
+  safeSnap('comodatos',function(snap){
     D.com=fsSnapToArr(snap);
-    DEBUG_LASTSYNC.comodatos=new Date().toISOString();
-    fsOnFirstLoad();
-    refrescarVistaActual();
-  },function(err){debugLog('error','comodatos: '+err.message);});
+    if(FS_READY)refrescarVistaActual();
+  });
 
-  fsDB.collection('gira').onSnapshot(function(snap){
+  safeSnap('gira',function(snap){
     D.gira=fsSnapToArr(snap);
-    DEBUG_LASTSYNC.gira=new Date().toISOString();
-    fsOnFirstLoad();
-    refrescarVistaActual();
-  },function(err){debugLog('error','gira: '+err.message);});
+    if(FS_READY)refrescarVistaActual();
+  });
 
-  fsDB.collection('log').onSnapshot(function(snap){
+  safeSnap('log',function(snap){
     D.log=fsSnapToArr(snap).sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
-    DEBUG_LASTSYNC.log=new Date().toISOString();
-    fsOnFirstLoad();
-  },function(err){debugLog('error','log: '+err.message);});
+  });
 
   var USUARIOS_DEFAULT=[
     {id:1,n:'JL',u:'jl',p:'seitu2026',r:'admin',activo:true,creado:'2026-06-01',ua:''},
@@ -441,6 +457,7 @@ function fsSetupListeners(){
 }
 
 function fsArrancarApp(){
+  if(typeof bootTimeout!=='undefined')clearTimeout(bootTimeout); // limpiar timeout de seguridad
   document.getElementById('sBoot').classList.remove('on');
   var ses=lg('jses',null);
   if(ses){
@@ -629,7 +646,20 @@ function vGo(t){
   document.querySelectorAll('#sVen .sc').forEach(function(s){s.classList.remove('on');});
   document.querySelectorAll('.vb').forEach(function(b){b.classList.remove('on');});
   var m={H:['sVH','vbH',renderVH],C:['sVC','vbC',renderVC],E:['sVE','vbE',renderVE],G:['sVG','vbG',renderVG]};
-  if(m[t]){document.getElementById(m[t][0]).classList.add('on');document.getElementById(m[t][1]).classList.add('on');m[t][2]();}
+  if(m[t]){
+    var el0=document.getElementById(m[t][0]);
+    var el1=document.getElementById(m[t][1]);
+    if(el0)el0.classList.add('on');
+    if(el1)el1.classList.add('on');
+    try{m[t][2]();}catch(e){
+      debugLog('error','render'+t+': '+e.message);
+      var cont=document.getElementById(m[t][0]);
+      if(cont){
+        var inner=cont.querySelector('.scr');
+        if(inner)inner.innerHTML='<div style="padding:20px;color:var(--red);font-size:13px">Error al cargar. Toca Sync para reintentar.<br><small>'+e.message+'</small></div>';
+      }
+    }
+  }
 }
 function showWiz(){
   var esAdmin=D.user&&D.user.r==='admin';
@@ -705,7 +735,7 @@ function renderVH(){
       });
     });
   }
-  document.getElementById('vHB').innerHTML=h;
+  var _vhb=document.getElementById('vHB');if(_vhb)_vhb.innerHTML=h;
 }
 
 // ── CONTACTOS ─────────────────────────────────────────────────────────
@@ -2497,7 +2527,7 @@ function renderVG(){
     });
   }
   h+='</div>';
-  document.getElementById('vGB').innerHTML=h;
+  var _vgb=document.getElementById('vGB');if(_vgb)_vgb.innerHTML=h;
 }
 // Alias para dias() con nombre diferente para usar dentro de renderVG sin conflicto de scope
 function dias_fn(f){return dias(f);}
@@ -2599,7 +2629,7 @@ function renderVE(){
     if(vETipNeg)fh+='<span class="fb" onclick="vETipNeg=\'\';renderVE()" style="font-size:10px;color:var(--red)">&#215;</span>';
     fh+='</div>';
   }
-  document.getElementById('vEF').innerHTML=fh;
+  var _vef=document.getElementById('vEF');if(_vef)_vef.innerHTML=fh;
   // Filtrar
   var cs=vEFil==='Todos'?mc.slice():mc.filter(function(c){
     if(vEFil==='Nuevo Prospecto')return c.esP&&(!c.etapaEmbudo||c.etapaEmbudo==='Nuevo Prospecto');
@@ -2608,7 +2638,7 @@ function renderVE(){
   if(vEBar)cs=cs.filter(function(c){return c.bar===vEBar||c.ciu===vEBar;});
   if(vETipNeg)cs=cs.filter(function(c){return c.tipo===vETipNeg;});
   cs.sort(function(a,b){return(a[vEOrd]||'').localeCompare(b[vEOrd]||'');});
-  if(!cs.length){document.getElementById('vEB').innerHTML='<div class="empty">Sin contactos con los filtros actuales</div>';return;}
+  if(!cs.length){var _veb0=document.getElementById('vEB');if(_veb0)_veb0.innerHTML='<div class="empty">Sin contactos con los filtros actuales</div>';return;}
   var h='';
   cs.forEach(function(c){
     var col=EC[c.etapaEmbudo]||'var(--muted)';
@@ -2626,7 +2656,7 @@ function renderVE(){
     ET.concat(SA).forEach(function(et){if(et!==c.etapaEmbudo)h+='<option value="'+es(et)+'">'+es(et)+'</option>';});
     h+='</select></div></div>';
   });
-  document.getElementById('vEB').innerHTML=h;
+  var _veb=document.getElementById('vEB');if(_veb)_veb.innerHTML=h;
 }
 
 // ── CONTACTOS: tarjetas mejoradas con todos los datos ─────────────────
@@ -2684,7 +2714,7 @@ function renderVC(){
     if(c.tel){h+='<button class="sm wa" onclick="event.stopPropagation();envWA(\''+c.id+'\')" title="WhatsApp"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>';}
     h+='</div></div>';
   });
-  document.getElementById('vCB').innerHTML=h;
+  var _vcb=document.getElementById('vCB');if(_vcb)_vcb.innerHTML=h;
 }
 
 // INIT
