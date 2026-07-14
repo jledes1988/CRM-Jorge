@@ -900,7 +900,7 @@ function guardarEdicionContacto(id){
 
 // ── EMBUDO ────────────────────────────────────────────────────────────
 var vEFil='Todos';
-function setVEF(f){vEFil=f;renderVE();}
+function setVEF(v){vEFil=v||'Todos';renderVE();}
 function cambiarEtapa(id,eta){
   if(!eta)return;
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
@@ -2553,32 +2553,53 @@ function verDiaGira(fecha){
   oMod('Gira del dia',h);
 }
 
+// ── EMBUDO: helper para filtros sin comillas anidadas
+function setVEFiltro(el){
+  var k=el.getAttribute('data-k');
+  var v=el.getAttribute('data-v');
+  if(k==='bar'){vEBar=(vEBar===v?'':v);}
+  else if(k==='tip'){vETipNeg=(vETipNeg===v?'':v);}
+  renderVE();
+}
 // ── EMBUDO: ordenamiento ──────────────────────────────────────────────
 var vEOrd='nm';var vEBar='';var vETipNeg='';
 function renderVE(){
   var mc=misContactos();
+  var all=['Todos','Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo','No Le Interesa','Perdido'];
+  // Valores dinámicos de zona y tipo
   var eSet={};mc.forEach(function(c){if(c.bar)eSet[c.bar]=true;if(c.ciu)eSet[c.ciu]=true;});
   var eLugares=Object.keys(eSet).sort();
-  var eTipoSet={};mc.forEach(function(c){if(c.tipo)eTipoSet[c.tipo]=true;});
-  var eTipos=Object.keys(eTipoSet).sort();
-  var all=['Todos','Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo','No Le Interesa','Perdido'];
-  var fh=all.map(function(e){return '<span class="fb'+(vEFil===e?' on':'')+'" onclick="setVEF(\''+es(e)+'\')">'+es(e)+'</span>';}).join('');
+  var eTSet={};mc.forEach(function(c){if(c.tipo)eTSet[c.tipo]=true;});
+  var eTipos=Object.keys(eTSet).sort();
+  var fh='';
+  // Etapas
+  fh+=all.map(function(e){return '<span class="fb'+(vEFil===e?' on':'')+'" onclick="setVEF(this.getAttribute(\'data-e\')" data-e="'+es(e)+'">'+es(e)+'</span>';}).join('');
+  // Ordenamiento
   fh+='<div style="margin-top:6px;display:flex;gap:4px">';
-  [['nm','A-Z'],['bar','Barrio'],['tipo','Tipo']].forEach(function(x){fh+='<span class="fb'+(vEOrd===x[0]?' on':'')+'" onclick="vEOrd=\''+x[0]+'\';renderVE()" style="font-size:10px">'+x[1]+'</span>';});
+  [['nm','A-Z'],['bar','Barrio'],['tipo','Tipo']].forEach(function(x){
+    fh+='<span class="fb'+(vEOrd===x[0]?' on':'')+'" onclick="vEOrd=\''+x[0]+'\';renderVE()" style="font-size:10px">'+x[1]+'</span>';
+  });
   fh+='</div>';
+  // Filtro zona
   if(eLugares.length){
     fh+='<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><span style="font-size:10px;color:var(--muted);align-self:center">Zona:</span>';
-    eLugares.forEach(function(l2){fh+='<span class="fb'+(vEBar===l2?' on':'')+'" onclick="vEBar=vEBar===\''+es(l2)+'\'\'?\'\':\''+es(l2)+'\';renderVE()" style="font-size:10px">'+es(l2)+'</span>';});
-    if(vEBar)fh+='<span class="fb" onclick="vEBar=\'\';renderVE()" style="font-size:10px;color:var(--red)">x Limpiar</span>';
+    eLugares.forEach(function(l){
+      fh+='<span class="fb'+(vEBar===l?' on':'')+'" data-k="bar" data-v="'+es(l)+'" onclick="setVEFiltro(this)" style="font-size:10px">'+es(l)+'</span>';
+    });
+    if(vEBar)fh+='<span class="fb" onclick="vEBar=\'\';renderVE()" style="font-size:10px;color:var(--red)">&#215;</span>';
     fh+='</div>';
   }
+  // Filtro tipo
   if(eTipos.length){
     fh+='<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><span style="font-size:10px;color:var(--muted);align-self:center">Tipo:</span>';
-    eTipos.forEach(function(t2){fh+='<span class="fb'+(vETipNeg===t2?' on':'')+'" onclick="vETipNeg=vETipNeg===\''+es(t2)+'\'\'?\'\':\''+es(t2)+'\';renderVE()" style="font-size:10px">'+es(t2)+'</span>';});
-    if(vETipNeg)fh+='<span class="fb" onclick="vETipNeg=\'\';renderVE()" style="font-size:10px;color:var(--red)">x Limpiar</span>';
+    eTipos.forEach(function(t){
+      fh+='<span class="fb'+(vETipNeg===t?' on':'')+'" data-k="tip" data-v="'+es(t)+'" onclick="setVEFiltro(this)" style="font-size:10px">'+es(t)+'</span>';
+    });
+    if(vETipNeg)fh+='<span class="fb" onclick="vETipNeg=\'\';renderVE()" style="font-size:10px;color:var(--red)">&#215;</span>';
     fh+='</div>';
   }
   document.getElementById('vEF').innerHTML=fh;
+  // Filtrar
   var cs=vEFil==='Todos'?mc.slice():mc.filter(function(c){
     if(vEFil==='Nuevo Prospecto')return c.esP&&(!c.etapaEmbudo||c.etapaEmbudo==='Nuevo Prospecto');
     return c.etapaEmbudo===vEFil;
@@ -2590,13 +2611,17 @@ function renderVE(){
   var h='';
   cs.forEach(function(c){
     var col=EC[c.etapaEmbudo]||'var(--muted)';
-    h+='<div class="cc"><div style="display:flex;align-items:center;gap:10px;margin-bottom:9px"><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">'+es(c.nm)+'</div>';
+    h+='<div class="cc">';
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">'+es(c.nm)+'</div>';
     if(c.fan)h+='<div style="font-size:12px;color:var(--cyan);font-weight:600">'+es(c.fan)+'</div>';
     h+='<div style="font-size:12px;color:var(--muted)">'+es(c.bar||c.ciu||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div>';
     h+='<span style="background:rgba('+h2r(col)+',.15);color:'+col+';padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap">'+es(c.etapaEmbudo||'Prospecto')+'</span></div>';
-    h+='<div style="display:flex;gap:6px"><button class="sm g" onclick="abrirVisita(\''+c.id+'\')">Visita</button>';
+    h+='<div style="display:flex;gap:6px">';
+    h+='<button class="sm g" onclick="abrirVisita(\''+c.id+'\')">Visita</button>';
     if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>';
-    h+='<select class="sm" onchange="cambiarEtapa(\''+c.id+'\',this.value);this.value=\'\'" style="border-color:'+col+';color:'+col+';max-width:120px"><option value="">Mover etapa</option>';
+    h+='<select class="sm" onchange="cambiarEtapa(\''+c.id+'\',this.value);this.value=\'\'" style="border-color:'+col+';color:'+col+';max-width:120px">';
+    h+='<option value="">Mover etapa</option>';
     ET.concat(SA).forEach(function(et){if(et!==c.etapaEmbudo)h+='<option value="'+es(et)+'">'+es(et)+'</option>';});
     h+='</select></div></div>';
   });
