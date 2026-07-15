@@ -2600,18 +2600,20 @@ function renderVE(){
   var eLugares=Object.keys(eSet).sort();
   var eTSet={};mc.forEach(function(c){if(c.tipo)eTSet[c.tipo]=true;});
   var eTipos=Object.keys(eTSet).sort();
-  var fh='';
+  var fh='<div style="display:flex;flex-direction:column;gap:6px;width:100%">';
   // Etapas
-  fh+=all.map(function(e){return '<span class="fb'+(vEFil===e?' on':'')+'" onclick="setVEF(this.getAttribute(\'data-e\')" data-e="'+es(e)+'">'+es(e)+'</span>';}).join('');
+  fh+='<div style="display:flex;gap:5px;flex-wrap:wrap">';
+  fh+=all.map(function(e){return '<span class="fb'+(vEFil===e?' on':'')+'" onclick="setVEF(this.getAttribute(\'data-e\'))" data-e="'+es(e)+'" style="font-size:11px;padding:5px 10px">'+es(e)+'</span>';}).join('');
+  fh+='</div>';
   // Ordenamiento
-  fh+='<div style="margin-top:6px;display:flex;gap:4px">';
+  fh+='<div style="display:flex;gap:4px;flex-wrap:wrap">';
   [['nm','A-Z'],['bar','Barrio'],['tipo','Tipo']].forEach(function(x){
     fh+='<span class="fb'+(vEOrd===x[0]?' on':'')+'" onclick="vEOrd=\''+x[0]+'\';renderVE()" style="font-size:10px">'+x[1]+'</span>';
   });
   fh+='</div>';
   // Filtro zona
   if(eLugares.length){
-    fh+='<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><span style="font-size:10px;color:var(--muted);align-self:center">Zona:</span>';
+    fh+='<div style="display:flex;gap:4px;flex-wrap:wrap"><span style="font-size:10px;color:var(--muted);align-self:center">Zona:</span>';
     eLugares.forEach(function(l){
       fh+='<span class="fb'+(vEBar===l?' on':'')+'" data-k="bar" data-v="'+es(l)+'" onclick="setVEFiltro(this)" style="font-size:10px">'+es(l)+'</span>';
     });
@@ -2620,13 +2622,14 @@ function renderVE(){
   }
   // Filtro tipo
   if(eTipos.length){
-    fh+='<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><span style="font-size:10px;color:var(--muted);align-self:center">Tipo:</span>';
+    fh+='<div style="display:flex;gap:4px;flex-wrap:wrap"><span style="font-size:10px;color:var(--muted);align-self:center">Tipo:</span>';
     eTipos.forEach(function(t){
       fh+='<span class="fb'+(vETipNeg===t?' on':'')+'" data-k="tip" data-v="'+es(t)+'" onclick="setVEFiltro(this)" style="font-size:10px">'+es(t)+'</span>';
     });
     if(vETipNeg)fh+='<span class="fb" onclick="vETipNeg=\'\';renderVE()" style="font-size:10px;color:var(--red)">&#215;</span>';
     fh+='</div>';
   }
+  fh+='</div>';
   var _vef=document.getElementById('vEF');if(_vef)_vef.innerHTML=fh;
   // Filtrar
   var cs=vEFil==='Todos'?mc.slice():mc.filter(function(c){
