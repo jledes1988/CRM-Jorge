@@ -327,9 +327,7 @@ var firebaseConfig={
   messagingSenderId:"803130355928",
   appId:"1:803130355928:web:e5c2743eb2c6c961b6e7ad"
 };
-firebase.initializeApp(firebaseConfig);
-var fsDB=firebase.firestore();
-try{fsDB.enablePersistence({synchronizeTabs:true});}catch(e){}
+var fsDB=null; // se inicializa en window.load cuando los CDN están cargados
 
 var FS_READY=false;          // true cuando los 7 listeners ya bajaron al menos una vez
 var DEBUG_LOG=[];            // ultimos eventos tecnicos (errores, escrituras) para el Modo Debug del admin
@@ -2726,17 +2724,43 @@ window.addEventListener('load',function(){
   document.getElementById('lP').addEventListener('keypress',function(e){if(e.key==='Enter')doLogin();});
   document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)cMod();});
 
-  // Arrancar Firebase: autenticacion anonima (requerida por las reglas de seguridad)
-  // y recien despues activar los listeners en tiempo real de cada coleccion
   fsBootMsg('Conectando...');
-  firebase.auth().signInAnonymously().then(function(){
-    fsBootMsg('Sincronizando datos...');
-    fsSetupListeners();
-  }).catch(function(err){
-    debugLog('error','Auth: '+err.message);
-    fsBootMsg('Sin conexion. Reintentando...');
-    setTimeout(function(){window.location.reload();},5000);
-  });
+
+  // Inicializar Firebase con protección total - si falla, la app funciona igual en modo local
+  try{
+    if(typeof firebase==='undefined'){throw new Error('Firebase CDN no cargó');}
+    firebase.initializeApp(firebaseConfig);
+    fsDB=firebase.firestore();
+    try{fsDB.enablePersistence({synchronizeTabs:true});}catch(e){}
+
+    firebase.auth().signInAnonymously().then(function(){
+      fsBootMsg('Sincronizando datos...');
+      fsSetupListeners();
+    }).catch(function(err){
+      debugLog('error','Auth: '+err.message);
+      fsBootMsg('Error de conexion - abriendo en modo local...');
+      setTimeout(function(){
+        FS_READY=true;
+        fsArrancarApp();
+      },2000);
+    });
+  } catch(e){
+    // Firebase no disponible: usar datos de localStorage si existen
+    debugLog('error','Firebase init: '+e.message);
+    fsBootMsg('Modo sin conexion...');
+    // Cargar datos del localStorage como fallback
+    var c=lg('jc',null);if(c){D.cli=c;}
+    var v=lg('jv',null);if(v){D.vis=v;}
+    var o=lg('jo',null);if(o){D.com=o;}
+    var g=lg('jg',null);if(g){D.gira=g;}
+    var f=lg('jf',null);if(f){Object.keys(CFG).forEach(function(k){if(f[k]!==undefined)D.cfg[k]=f[k];});}
+    var u=lg('ju',null);if(u){D.usrs=u;}
+    normalizarDatos();
+    setTimeout(function(){
+      FS_READY=true;
+      fsArrancarApp();
+    },1000);
+  }
 });
 </script>
 </body>
