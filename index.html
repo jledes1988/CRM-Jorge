@@ -147,8 +147,9 @@ input:checked+.sl3:before{transform:translateX(18px)}
 /* ═══ ESCRITORIO (>=900px): el mismo index.html se adapta con CSS, sin tocar HTML ═══ */
 @media (min-width:900px){
   #app{flex-direction:row}
-  /* La barra inferior del vendedor pasa a ser un sidebar izquierdo */
-  #vNav{flex-direction:column;width:200px;border-top:none;border-right:1px solid var(--border);padding-top:10px;height:100vh;flex-shrink:0}
+  /* La barra inferior del vendedor pasa a ser un sidebar izquierdo.
+     vNav es el ULTIMO hijo de #app, por eso order:-1 para llevarlo a la izquierda. */
+  #vNav{order:-1;flex-direction:column;width:200px;border-top:none;border-right:1px solid var(--border);padding-top:10px;height:100vh;flex-shrink:0}
   #vNav .vb{flex-direction:row;justify-content:flex-start;gap:10px;padding:12px 18px;font-size:13px;letter-spacing:0}
   #vNav .vb svg{width:20px;height:20px}
   #sVen{flex:1;min-width:0}
@@ -312,6 +313,7 @@ input:checked+.sl3:before{transform:translateX(18px)}
   <button class="vb" id="vbE" onclick="vGo('E')"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>EMBUDO</button>
   <button class="vb" id="vbG" onclick="vGo('G')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>GIRA</button>
 </div>
+</div><!-- /#app -->
 
 <script>
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
@@ -527,37 +529,51 @@ function refrescarVistaActual(){
 }
 
 // ── ESCRITURAS A FIRESTORE (cada una devuelve una promesa real, a diferencia del no-cors anterior) ──
+// MODO LOCAL: si fsDB es null (el CDN de Firebase no cargo), las escrituras NO deben crashear.
+// Se guarda todo el estado en localStorage y se avisa que quedo pendiente de sincronizar.
+function fsGuardaLocal(){
+  ls('jc',D.cli);ls('jv',D.vis);ls('jo',D.com);ls('jg',D.gira);ls('jf',D.cfg);ls('ju',D.usrs);
+  setSyncDot('error');
+  toast('Sin conexion a la base: guardado solo en este dispositivo','err');
+  return Promise.resolve();
+}
 function fsSetContacto(c){
+  if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   return fsDB.collection('contactos').doc(c.id).set(c)
     .then(function(){setSyncDot('ok');})
     .catch(function(e){setSyncDot('error');debugLog('error','contactos write: '+e.message);toast('No se pudo guardar: '+e.message,'err');});
 }
 function fsDelContacto(id){
+  if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   return fsDB.collection('contactos').doc(id).delete()
     .then(function(){setSyncDot('ok');})
     .catch(function(e){setSyncDot('error');debugLog('error','contactos delete: '+e.message);toast('Error al eliminar','err');});
 }
 function fsSetVisita(v){
+  if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   return fsDB.collection('visitas').doc(v.id).set(v)
     .then(function(){setSyncDot('ok');})
     .catch(function(e){setSyncDot('error');debugLog('error','visitas write: '+e.message);toast('No se pudo guardar la visita','err');});
 }
 function fsSetComodato(co){
+  if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   return fsDB.collection('comodatos').doc(co.id).set(co)
     .then(function(){setSyncDot('ok');})
     .catch(function(e){setSyncDot('error');debugLog('error','comodatos write: '+e.message);toast('No se pudo guardar el comodato','err');});
 }
 function fsDelComodato(id){
+  if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   return fsDB.collection('comodatos').doc(id).delete()
     .then(function(){setSyncDot('ok');})
     .catch(function(e){setSyncDot('error');});
 }
 function fsSetGira(g){
+  if(!fsDB)return fsGuardaLocal();
   // id sintetico: cid + fecha (un contacto solo puede estar una vez por dia)
   var gid=g.cid+'_'+g.fecha;
   setSyncDot('pending');
@@ -566,6 +582,7 @@ function fsSetGira(g){
     .catch(function(e){setSyncDot('error');});
 }
 function fsDelGira(cid,fecha){
+  if(!fsDB)return fsGuardaLocal();
   var gid=cid+'_'+fecha;
   setSyncDot('pending');
   return fsDB.collection('gira').doc(gid).delete()
@@ -573,15 +590,18 @@ function fsDelGira(cid,fecha){
     .catch(function(e){setSyncDot('error');});
 }
 function fsAddLog(entry){
+  if(!fsDB){ls('jl_log',D.log);return Promise.resolve();}
   return fsDB.collection('log').doc(entry.id).set(entry).catch(function(e){console.error('log',e);});
 }
 function fsSetUsuario(u){
+  if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   return fsDB.collection('usuarios').doc(String(u.id)).set(u)
     .then(function(){setSyncDot('ok');})
     .catch(function(e){setSyncDot('error');debugLog('error','usuarios write: '+e.message);toast('No se pudo guardar el usuario','err');});
 }
 function fsSetConfig(cfg){
+  if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   return fsDB.collection('config').doc('main').set(cfg,{merge:true})
     .then(function(){setSyncDot('ok');})
@@ -602,12 +622,21 @@ function dias(d){if(!d)return null;return Math.floor((Date.now()-new Date(d+'T12
 // Dias de tolerancia sin gestion antes de considerar un contacto "inactivo", por etapa
 var UMBRAL_INACCION={'Nuevo Prospecto':5,'Contactado':7,'Propuesta Enviada':7,'Negociacion':7,'Cliente Activo':30};
 function umbralEtapa(eta){return UMBRAL_INACCION[eta]||14;}
-// Sugiere una fecha de proxima visita segun la etapa, para que ningun contacto quede sin seguimiento agendado
+// Sugiere una fecha de proxima visita segun la etapa, para que ningun contacto quede sin seguimiento agendado.
+// Si cae sabado o domingo se corre al lunes, porque la Gira solo muestra Lunes a Viernes.
 function sugerirProxima(eta){
   var dd={'Nuevo Prospecto':3,'Contactado':5,'Propuesta Enviada':5,'Negociacion':5,'Cliente Activo':21};
   var n=dd[eta]||7;
   var d=new Date();d.setDate(d.getDate()+n);
-  return d.toISOString().split('T')[0];
+  if(d.getDay()===6)d.setDate(d.getDate()+2);      // sabado -> lunes
+  else if(d.getDay()===0)d.setDate(d.getDate()+1); // domingo -> lunes
+  return fechaLocal(d);
+}
+// Dias sin gestion de un contacto, con el mismo criterio en toda la app:
+// referencia = ultima visita, o si nunca fue visitado, la fecha de ingreso.
+function diasSinGestion(c){
+  var ref=c.ul||c.ing;
+  return ref?dias(ref):null;
 }
 // Devuelve la lista de contactos del vendedor en inaccion, ordenada de mas a menos urgente
 function calcInaccion(){
@@ -616,10 +645,9 @@ function calcInaccion(){
   mc.forEach(function(c){
     var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
     if(eta==='No Le Interesa'||eta==='Perdido')return;
-    var ref=c.ul||c.ing;
-    var d=ref?dias(ref):9999;
+    var d=diasSinGestion(c);
     var umb=umbralEtapa(eta);
-    if(d>=umb)out.push({c:c,dias:d===9999?null:d,etapa:eta,umbral:umb});
+    if(d===null||d>=umb)out.push({c:c,dias:d,etapa:eta,umbral:umb});
   });
   out.sort(function(a,b){return(b.dias===null?9999:b.dias)-(a.dias===null?9999:a.dias);});
   return out;
@@ -707,7 +735,11 @@ function doLogout(){
   document.getElementById('lU').value='';document.getElementById('lP').value='';
 }
 // NAV
-function today(){return new Date().toISOString().split('T')[0];}
+// Fecha en formato YYYY-MM-DD usando la HORA LOCAL del dispositivo.
+// NUNCA usar toISOString() para fechas: devuelve UTC, y en Argentina (UTC-3)
+// despues de las 21:00 daria la fecha de MANANA.
+function fechaLocal(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function today(){return fechaLocal();}
 function vGo(t){
   document.querySelectorAll('#sVen .sc').forEach(function(s){s.classList.remove('on');});
   document.querySelectorAll('.vb').forEach(function(b){b.classList.remove('on');});
@@ -1255,7 +1287,7 @@ var gDVend=''; // '' = todos los vendedores
 function getPer(){
   var hoy=today();var d=new Date();var desde,hasta=hoy;
   if(gPer==='hoy')desde=hoy;
-  else if(gPer==='sem'){d.setDate(d.getDate()-(d.getDay()===0?6:d.getDay()-1));desde=d.toISOString().split('T')[0];}
+  else if(gPer==='sem'){d.setDate(d.getDate()-(d.getDay()===0?6:d.getDay()-1));desde=fechaLocal(d);}
   else if(gPer==='mes'){desde=hoy.slice(0,7)+'-01';}
   else if(gPer==='mesEsp'){
     var m=gMesEsp||hoy.slice(0,7);
@@ -1266,7 +1298,7 @@ function getPer(){
   else{desde=hoy.slice(0,4)+'-01-01';}
   return{desde:desde,hasta:hasta};
 }
-function getLunesSem(){var d=new Date();var dow=d.getDay()===0?6:d.getDay()-1;d.setDate(d.getDate()-dow);return d.toISOString().split('T')[0];}
+function getLunesSem(){var d=new Date();var dow=d.getDay()===0?6:d.getDay()-1;d.setDate(d.getDate()-dow);return fechaLocal(d);}
 function visEnPer(){var r=getPer();var v=D.vis.filter(function(v){return v.fecha>=r.desde&&v.fecha<=r.hasta;});return gDVend?v.filter(function(x){return x.vend===gDVend;}):v;}
 function sG(titulo,cont){return '<div class="card" style="margin-bottom:12px"><div class="ct">'+es(titulo)+'</div>'+cont+'</div>';}
 
@@ -1680,8 +1712,8 @@ function renderGV(){
   var vs=D.vis.slice().reverse();
   var desde,hasta=hoy;
   if(gVF.per==='h'){desde=hoy;}
-  else if(gVF.per==='7d'){var d7=new Date();d7.setDate(d7.getDate()-7);desde=d7.toISOString().split('T')[0];}
-  else if(gVF.per==='30d'){var d30=new Date();d30.setDate(d30.getDate()-30);desde=d30.toISOString().split('T')[0];}
+  else if(gVF.per==='7d'){var d7=new Date();d7.setDate(d7.getDate()-7);desde=fechaLocal(d7);}
+  else if(gVF.per==='30d'){var d30=new Date();d30.setDate(d30.getDate()-30);desde=fechaLocal(d30);}
   else if(gVF.per==='mes'){desde=hoy.slice(0,7)+'-01';}
   else if(gVF.per==='rng'){desde=gVF.desde;hasta=gVF.hasta||hoy;}
   if(desde)vs=vs.filter(function(v){return v.fecha>=desde&&v.fecha<=hasta;});
@@ -1749,7 +1781,7 @@ function _renderInformeVendedor(vend){
   var hoy=today();var hoyD=new Date();
   // Calcular rango segun periodo
   var desde;
-  if(infVendPer==='sem'){var dl=new Date();dl.setDate(dl.getDate()-(dl.getDay()===0?6:dl.getDay()-1));desde=dl.toISOString().split('T')[0];}
+  if(infVendPer==='sem'){var dl=new Date();dl.setDate(dl.getDate()-(dl.getDay()===0?6:dl.getDay()-1));desde=fechaLocal(dl);}
   else if(infVendPer==='mes'){desde=hoy.slice(0,7)+'-01';}
   else if(infVendPer==='ano'){desde=hoy.slice(0,4)+'-01-01';}
   else{desde='2000-01-01';}
@@ -1826,7 +1858,7 @@ function _renderInformeVendedor(vend){
   for(var w=3;w>=0;w--){
     var wStart=new Date();wStart.setDate(wStart.getDate()-((wStart.getDay()===0?6:wStart.getDay()-1)+w*7));
     var wEnd=new Date(wStart);wEnd.setDate(wStart.getDate()+6);
-    var ws=wStart.toISOString().split('T')[0];var we=wEnd.toISOString().split('T')[0];
+    var ws=fechaLocal(wStart);var we=fechaLocal(wEnd);
     var visW=misVis.filter(function(v){return v.fecha>=ws&&v.fecha<=we;});
     var ventW=visW.filter(function(v){return v.vendio===true;});
     h+='<div class="br"><div class="bl" style="font-size:11px">'+wStart.toLocaleDateString('es-AR',{day:'numeric',month:'short'})+'</div><div class="bt"><div class="bf" style="width:'+(visW.length?Math.min(Math.round(visW.length/10*100),100):0)+'%;background:var(--cyan)"></div></div><div class="bv">'+visW.length+'</div><div style="font-size:10px;color:var(--green);width:40px;text-align:right">'+ventW.length+' vta</div></div>';
@@ -1865,7 +1897,7 @@ function sGCoF(f){gCoF2=f;renderGCo();}
 function nuevoComodato(){
   var cH=D.cli.filter(function(c){return !c.esP;}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');}).map(function(c){return '<option value="'+c.id+'">'+es(c.nm)+'</option>';}).join('');
   var mH=(D.cfg.marcas||[]).map(function(m){return '<option>'+es(m)+'</option>';}).join('');
-  oMod('Nuevo comodato','<div class="fg"><label class="fl">Cliente</label><select class="fi" id="coC"><option value="">Seleccionar...</option>'+cH+'</select></div><div class="fg"><label class="fl">N° de freezer</label><input class="fi" id="coN" placeholder="Ej: 042"></div><div class="fg"><label class="fl">Marca</label><select class="fi" id="coM"><option value="">Seleccionar...</option>'+mH+'</select></div><div class="fg"><label class="fl">Fecha de entrega</label><input class="fi" type="date" id="coF" value="'+new Date().toISOString().split('T')[0]+'"></div><div class="fg"><label class="fl">Observaciones</label><textarea class="fi fta" id="coO" placeholder="Notas..."></textarea></div><button class="btn" onclick="saveCo()">Guardar</button>');
+  oMod('Nuevo comodato','<div class="fg"><label class="fl">Cliente</label><select class="fi" id="coC"><option value="">Seleccionar...</option>'+cH+'</select></div><div class="fg"><label class="fl">N° de freezer</label><input class="fi" id="coN" placeholder="Ej: 042"></div><div class="fg"><label class="fl">Marca</label><select class="fi" id="coM"><option value="">Seleccionar...</option>'+mH+'</select></div><div class="fg"><label class="fl">Fecha de entrega</label><input class="fi" type="date" id="coF" value="'+fechaLocal()+'"></div><div class="fg"><label class="fl">Observaciones</label><textarea class="fi fta" id="coO" placeholder="Notas..."></textarea></div><button class="btn" onclick="saveCo()">Guardar</button>');
 }
 function saveCo(){
   var cid=document.getElementById('coC').value;var nro=document.getElementById('coN').value.trim();
@@ -1879,7 +1911,7 @@ function saveCo(){
 }
 function retCo(id){
   var co=D.com.find(function(c){return c.id===id;});if(!co)return;
-  co.ret=true;co.fr=new Date().toISOString().split('T')[0];
+  co.ret=true;co.fr=fechaLocal();
   logEvento('comodato',co.cid,co.cnm||'?','Comodato retirado · Freezer #'+(co.nro||''),'activo','retirado');
   fsSetComodato(co);
   renderGCo();toast('Retiro registrado','ok');
@@ -1896,7 +1928,7 @@ var infMesEsp='';
 function getPerInf(){
   var hoy=today();var d=new Date();var desde,hasta=hoy;
   if(infPer==='hoy')desde=hoy;
-  else if(infPer==='sem'){d.setDate(d.getDate()-(d.getDay()===0?6:d.getDay()-1));desde=d.toISOString().split('T')[0];}
+  else if(infPer==='sem'){d.setDate(d.getDate()-(d.getDay()===0?6:d.getDay()-1));desde=fechaLocal(d);}
   else if(infPer==='mes'){desde=hoy.slice(0,7)+'-01';}
   else if(infPer==='ano'){desde=hoy.slice(0,4)+'-01-01';}
   else if(infPer==='mesEsp'){
@@ -2686,8 +2718,8 @@ function renderVG(){
   lunes.setDate(lunes.getDate()-dow+(gSemOffset*7));
   lunes.setHours(0,0,0,0);
   var viernes=new Date(lunes);viernes.setDate(lunes.getDate()+4);
-  var lunesS=lunes.toISOString().split('T')[0];
-  var viernesS=viernes.toISOString().split('T')[0];
+  var lunesS=fechaLocal(lunes);
+  var viernesS=fechaLocal(viernes);
   var nomSem=lunes.toLocaleDateString('es-AR',{day:'numeric',month:'short'})+' — '+viernes.toLocaleDateString('es-AR',{day:'numeric',month:'short'});
   var h='';
   // Navegación semana
@@ -2702,7 +2734,7 @@ function renderVG(){
   h+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:8px 10px;border-bottom:1px solid var(--border);flex-shrink:0">';
   for(var i=0;i<5;i++){
     var dia=new Date(lunes);dia.setDate(lunes.getDate()+i);
-    var diaS=dia.toISOString().split('T')[0];
+    var diaS=fechaLocal(dia);
     var plan=misGira().filter(function(g){return g.fecha===diaS;});
     var visitados=plan.filter(function(g){return D.vis.some(function(v){return v.cid===g.cid&&v.fecha===diaS;});}).length;
     var esHoy=diaS===hoy;var esActivo=diaS===gDiaActivo;
@@ -2880,7 +2912,7 @@ function renderVE(){
   if(vEBar)cs=cs.filter(function(c){return c.bar===vEBar||c.ciu===vEBar;});
   if(vETipNeg)cs=cs.filter(function(c){return c.tipo===vETipNeg;});
   if(vEOrd==='_inac'){
-    cs.sort(function(a,b){var da=a.ul?dias(a.ul):9999;var db=b.ul?dias(b.ul):9999;return db-da;});
+    cs.sort(function(a,b){var da=diasSinGestion(a);var db=diasSinGestion(b);return(db===null?9999:db)-(da===null?9999:da);});
   } else {
     cs.sort(function(a,b){return(a[vEOrd]||'').localeCompare(b[vEOrd]||'');});
   }
@@ -2910,7 +2942,7 @@ function renderVE(){
 function embudoCardHTML(c){
   var col=EC[c.etapaEmbudo]||'var(--muted)';
   var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
-  var dInac=c.ul?dias(c.ul):null;
+  var dInac=diasSinGestion(c);
   var esInac=eta!=='No Le Interesa'&&eta!=='Perdido'&&(dInac===null||dInac>=umbralEtapa(eta));
   var h='<div class="cc">';
   h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">';
