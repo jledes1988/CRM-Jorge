@@ -80,6 +80,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .bt{flex:1;height:8px;background:var(--s3);border-radius:4px;overflow:hidden}
 .bf{height:100%;border-radius:4px}
 .bv{width:28px;text-align:right;color:var(--muted);flex-shrink:0}
+.pieWrap{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.pieChart{width:120px;height:120px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 1px var(--border) inset}
+.pieLeg{flex:1;min-width:160px;display:flex;flex-direction:column;gap:7px}
+.pieLegItem{display:flex;align-items:center;gap:8px;font-size:12px}
+.pieDot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 /* MISC */
 .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px}
 #modal{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.75);align-items:flex-end}
@@ -90,6 +95,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #toast.on{opacity:1}
 .div{height:1px;background:var(--border);margin:12px 0}
 .filts{display:flex;gap:6px;overflow-x:auto;padding:10px 14px;flex-shrink:0}
+#vEF{display:block;overflow:visible;padding:10px 14px 6px}
+#vEF .veRow{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+#vEF .veRow::-webkit-scrollbar{display:none}
+#vEF select{background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:7px 12px;font-size:12px;font-weight:600;flex:1;min-width:0}
 .filts::-webkit-scrollbar{display:none}
 .fb{padding:7px 14px;border-radius:20px;background:var(--s2);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
 .fb.on{background:rgba(34,211,238,.15);border-color:var(--cyan);color:var(--cyan)}
@@ -135,10 +144,34 @@ input:checked+.sl3:before{transform:translateX(18px)}
   #gSide{position:relative;left:0!important;height:auto;transition:none;width:200px;flex-shrink:0}
   .sg{grid-template-columns:1fr 1fr 1fr 1fr}
 }
+/* ═══ ESCRITORIO (>=900px): el mismo index.html se adapta con CSS, sin tocar HTML ═══ */
+@media (min-width:900px){
+  #app{flex-direction:row}
+  /* La barra inferior del vendedor pasa a ser un sidebar izquierdo */
+  #vNav{flex-direction:column;width:200px;border-top:none;border-right:1px solid var(--border);padding-top:10px;height:100vh;flex-shrink:0}
+  #vNav .vb{flex-direction:row;justify-content:flex-start;gap:10px;padding:12px 18px;font-size:13px;letter-spacing:0}
+  #vNav .vb svg{width:20px;height:20px}
+  #sVen{flex:1;min-width:0}
+  /* Contenido centrado con mas aire, en vez de ocupar todo el ancho pegado a los bordes */
+  .scr{max-width:1100px;margin:0 auto;width:100%;padding:20px 28px}
+  .filts{padding:14px 28px 4px}
+  #vEF{padding:14px 28px 6px}
+  .tb{padding:14px 28px}
+  /* Tarjetas en grilla en vez de una sola columna larga, salvo el tablero Kanban que ya arma sus propias columnas */
+  #vCB,#vHB{display:block}
+  #vCB{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px;align-content:start}
+  #vCB .cc{margin:0}
+  /* Tablero Kanban del Embudo en escritorio */
+  .kanban{display:grid;grid-auto-flow:column;grid-auto-columns:280px;gap:14px;align-items:start;overflow-x:auto;padding-bottom:10px}
+  .kbCol{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:10px;max-height:calc(100vh - 220px);overflow-y:auto}
+  .kbHead{display:flex;justify-content:space-between;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;padding:0 2px}
+  .kbCol .cc{margin-bottom:8px}
+}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div id="app">
@@ -181,7 +214,7 @@ input:checked+.sl3:before{transform:translateX(18px)}
       <button class="sm g" onclick="nuevoPros()">+ Nuevo</button>
     </div>
     <div id="vCActivos" style="padding:6px 14px;border-bottom:1px solid var(--border);display:none;overflow-x:auto;white-space:nowrap"></div>
-    <div class="srch"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="vCQ" placeholder="Buscar nombre o direccion..." oninput="renderVC()"></div>
+    <div class="srch"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="vCQ" placeholder="Buscar por local, cliente o direccion..." oninput="renderVC()"></div>
     <div class="scr" id="vCB"></div>
   </div>
   <!-- EMBUDO -->
@@ -556,21 +589,7 @@ function fsSetConfig(cfg){
 }
 
 // ── MIGRACION UNICA: subir datos que hoy estan solo en localStorage (de pruebas previas) ──
-function fsMigrarLocalAFirestore(){
-  var cliLoc=lg('jc',[]),visLoc=lg('jv',[]),comLoc=lg('jo',[]),giraLoc=lg('jg',[]);
-  if(!cliLoc.length&&!visLoc.length&&!comLoc.length&&!giraLoc.length){
-    toast('No hay datos locales para migrar','err');return;
-  }
-  if(!confirm('Se van a subir '+cliLoc.length+' contactos, '+visLoc.length+' visitas, '+comLoc.length+' comodatos y '+giraLoc.length+' entradas de gira que estan guardadas solo en este dispositivo. Continuar?'))return;
-  var batch=fsDB.batch();
-  cliLoc.forEach(function(c){if(!c.prods)c.prods=[];batch.set(fsDB.collection('contactos').doc(c.id),c);});
-  visLoc.forEach(function(v){batch.set(fsDB.collection('visitas').doc(v.id),v);});
-  comLoc.forEach(function(co){batch.set(fsDB.collection('comodatos').doc(co.id),co);});
-  giraLoc.forEach(function(g){var gid=g.cid+'_'+g.fecha;batch.set(fsDB.collection('gira').doc(gid),g);});
-  batch.commit().then(function(){
-    toast('Migracion completa: '+cliLoc.length+' contactos subidos','ok');
-  }).catch(function(e){toast('Error en la migracion: '+e.message,'err');});
-}
+
 // ════════════════════════════════════════════════════════════════════
 
 // UTILS
@@ -579,16 +598,65 @@ function ls(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 function lg(k,d){try{var v=localStorage.getItem(k);return v!=null?JSON.parse(v):d;}catch(e){return d;}}
 function fmt(d){if(!d||d==='')return '--';try{var p=String(d).split('-');if(p.length!==3)return d;return parseInt(p[2])+'/'+parseInt(p[1])+'/'+p[0].slice(2);}catch(e){return d;}}
 function dias(d){if(!d)return null;return Math.floor((Date.now()-new Date(d+'T12:00:00'))/86400000);}
+// ── Deteccion de inaccion ────────────────────────────────────────────
+// Dias de tolerancia sin gestion antes de considerar un contacto "inactivo", por etapa
+var UMBRAL_INACCION={'Nuevo Prospecto':5,'Contactado':7,'Propuesta Enviada':7,'Negociacion':7,'Cliente Activo':30};
+function umbralEtapa(eta){return UMBRAL_INACCION[eta]||14;}
+// Sugiere una fecha de proxima visita segun la etapa, para que ningun contacto quede sin seguimiento agendado
+function sugerirProxima(eta){
+  var dd={'Nuevo Prospecto':3,'Contactado':5,'Propuesta Enviada':5,'Negociacion':5,'Cliente Activo':21};
+  var n=dd[eta]||7;
+  var d=new Date();d.setDate(d.getDate()+n);
+  return d.toISOString().split('T')[0];
+}
+// Devuelve la lista de contactos del vendedor en inaccion, ordenada de mas a menos urgente
+function calcInaccion(){
+  var mc=misContactos();
+  var out=[];
+  mc.forEach(function(c){
+    var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
+    if(eta==='No Le Interesa'||eta==='Perdido')return;
+    var ref=c.ul||c.ing;
+    var d=ref?dias(ref):9999;
+    var umb=umbralEtapa(eta);
+    if(d>=umb)out.push({c:c,dias:d===9999?null:d,etapa:eta,umbral:umb});
+  });
+  out.sort(function(a,b){return(b.dias===null?9999:b.dias)-(a.dias===null?9999:a.dias);});
+  return out;
+}
 function es(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function h2r(h){return parseInt(h.slice(1,3),16)+','+parseInt(h.slice(3,5),16)+','+parseInt(h.slice(5,7),16);}
 function toast(m,t){var el=document.getElementById('toast');el.textContent=m;el.className='on';el.style.background=t==='err'?'rgba(248,113,113,.2)':t==='ok'?'rgba(74,222,128,.2)':'rgba(34,211,238,.15)';el.style.color=t==='err'?'var(--red)':t==='ok'?'var(--green)':'var(--cyan)';setTimeout(function(){el.className='';},2500);}
+// Exporta filas (array de arrays, primera fila = encabezados) a un .xlsx real.
+// Reemplaza el CSV manual: el CSV con comas quedaba todo amontonado en Excel
+// configurado en español/Argentina (que usa ; como separador de listas).
+function descargarXLSX(filas,nombreArchivo){
+  try{
+    if(typeof XLSX==='undefined')throw new Error('XLSX no cargó');
+    var ws=XLSX.utils.aoa_to_sheet(filas);
+    // Autoajustar ancho de columnas segun el contenido mas largo de cada una
+    var anchos=filas[0].map(function(_,ci){
+      var max=10;
+      filas.forEach(function(fila){var v=fila[ci];var l=v==null?0:String(v).length;if(l>max)max=l;});
+      return {wch:Math.min(max+2,45)};
+    });
+    ws['!cols']=anchos;
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Datos');
+    XLSX.writeFile(wb,nombreArchivo.replace(/\.csv$/i,'')+'.xlsx');
+  }catch(e){
+    // Fallback: si la libreria no cargo (sin conexion), exportar CSV con ; como separador
+    var rows=filas.map(function(fila){return fila.map(function(f){return '"'+String(f==null?'':f).replace(/"/g,'""')+'"';}).join(';');});
+    var blob=new Blob(['\ufeff'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+    var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=nombreArchivo.replace(/\.xlsx$/i,'')+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  }
+}
 // Normaliza campos por si llegan registros viejos/incompletos desde Firestore
 function normalizarDatos(){
   D.cli.forEach(function(c){if(!c.etapaEmbudo||c.etapaEmbudo==='')c.etapaEmbudo=c.esP?'Nuevo Prospecto':'Cliente Activo';if(!c.uv)c.uv='';if(!c.ex)c.ex={};if(c.deu===undefined)c.deu=false;if(!c.ing)c.ing='';if(!c.vend)c.vend='';if(!c.prods)c.prods=[];if(!c.prov)c.prov='';if(!c.ciu)c.ciu='';if(c.agendado===undefined)c.agendado=false;if(!c.tel2)c.tel2='';if(!c.email)c.email='';});
   D.usrs.forEach(function(u){if(u.activo===undefined)u.activo=true;if(!u.creado)u.creado='';if(!u.ua)u.ua='';});
   if(!D.cfg.msgPedido)D.cfg.msgPedido='Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!';
   if(!D.cfg.msgLinks)D.cfg.msgLinks={};
-  if(!D.cfg.msgLinks)D.cfg.msgLinks={};  if(!D.cfg.msgPedido)D.cfg.msgPedido='Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!';
 }
 function cFoto(file,cb){var r=new FileReader();r.onload=function(){var i=new Image();i.onload=function(){var cv=document.createElement('canvas');var mx=900;var rt=Math.min(mx/i.width,mx/i.height,1);cv.width=Math.round(i.width*rt);cv.height=Math.round(i.height*rt);cv.getContext('2d').drawImage(i,0,0,cv.width,cv.height);cb(cv.toDataURL('image/jpeg',.72));};i.src=r.result;};r.readAsDataURL(file);}
 // CHIPS
@@ -677,63 +745,159 @@ function hideWiz(){
 }
 
 // ── HOY ───────────────────────────────────────────────────────────────
+var vhMesSel='';
+var histVHOpen=false;
 function renderVH(){
   var hoy=today();
   var misCli=misContactos();
-  // Mostrar últimos 3 días de actividad
-  var dias3=[];
-  for(var i=0;i<4;i++){var d=new Date();d.setDate(d.getDate()-i);dias3.push(d.toISOString().split('T')[0]);}
-  var vis3=D.vis.filter(function(v){return dias3.indexOf(v.fecha)>=0&&(!D.user||v.vend===D.user.n);});
+  var misVis=D.vis.filter(function(v){return !D.user||v.vend===D.user.n;});
+  var h='';
+
+  // Alertas de inaccion (prospectos/clientes que se estan pasando por alto)
+  var inac=calcInaccion();
+  if(inac.length){
+    h+='<div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:var(--rsm);padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="verInaccion()">';
+    h+='<div><div style="font-size:13px;font-weight:700;color:var(--red)">&#9888; '+inac.length+' contacto'+(inac.length!==1?'s':'')+' sin gestion</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Toca para ver la lista ordenada por urgencia</div></div>';
+    h+='<span style="color:var(--red);font-size:20px">&rsaquo;</span></div>';
+  }
+
+  // Stat boxes de HOY
+  var visHoy=misVis.filter(function(v){return v.fecha===hoy;});
+  var ventasHoy=visHoy.filter(function(v){return v.vendio===true;});
   var prosHoy=misCli.filter(function(c){return c.ing===hoy;});
-  var ventasHoy=vis3.filter(function(v){return v.fecha===hoy&&v.vendio===true;});
-  // Gira del día para acceso rápido
-  var giraHoy=misGira().filter(function(g){return g.fecha===hoy;});
-  var pendientes=giraHoy.filter(function(g){return !vis3.some(function(v){return v.cid===g.cid&&v.fecha===hoy;});});
-  var h='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">';
-  var visHoy=vis3.filter(function(v){return v.fecha===hoy;});
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">';
   h+='<div class="sb"><div class="sn">'+visHoy.length+'</div><div class="sl2">Visitas hoy</div></div>';
   h+='<div class="sb"><div class="sn" style="color:var(--green)">'+ventasHoy.length+'</div><div class="sl2">Ventas hoy</div></div>';
   h+='<div class="sb"><div class="sn" style="color:var(--orange)">'+prosHoy.length+'</div><div class="sl2">Prospectos hoy</div></div>';
   h+='</div>';
+
   // Pendientes en la gira de hoy
+  var giraHoy=misGira().filter(function(g){return g.fecha===hoy;});
+  var pendientes=giraHoy.filter(function(g){return !visHoy.some(function(v){return v.cid===g.cid;});});
   if(pendientes.length){
     h+='<div style="background:rgba(34,211,238,.07);border:1px solid rgba(34,211,238,.2);border-radius:var(--rsm);padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">';
     h+='<div style="font-size:13px;font-weight:700;color:var(--cyan)">'+pendientes.length+' visita'+(pendientes.length!==1?'s':'')+' pendiente'+(pendientes.length!==1?'s':'')+' hoy</div>';
     h+='<button class="sm g" onclick="vGo(\'G\')">Ver gira</button></div>';
   }
-  // Actividad de los últimos 3-4 días
-  var sinActividad=!vis3.length&&!prosHoy.length;
-  if(sinActividad){
+
+  // Actividad de HOY solamente
+  if(!visHoy.length&&!prosHoy.length){
     h+='<div class="card" style="text-align:center;padding:24px"><div style="font-size:32px;margin-bottom:10px">📅</div>';
-    h+='<div style="font-size:15px;font-weight:700;margin-bottom:6px">Sin actividad reciente</div>';
-    h+='<button class="btn" onclick=\"vGo(\'G\')\" style="margin-bottom:8px">Ir a la Gira</button>';
+    h+='<div style="font-size:15px;font-weight:700;margin-bottom:6px">Sin actividad hoy</div>';
+    h+='<button class="btn" onclick="vGo(\'G\')" style="margin-bottom:8px">Ir a la Gira</button>';
     h+='<button class="btn sec" onclick="nuevoPros()" style="margin:0">Nuevo prospecto</button></div>';
   } else {
-    // Agrupar por día
-    dias3.forEach(function(dia){
-      var vDia=vis3.filter(function(v){return v.fecha===dia;});
-      var pDia=dia===hoy?prosHoy:misCli.filter(function(c){return c.ing===dia&&dia!==hoy;});
-      if(!vDia.length&&!pDia.length)return;
-      var esDia=dia===hoy;
-      var nomDia=esDia?'Hoy':new Date(dia+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'short'});
-      h+='<div style="font-size:11px;font-weight:700;color:'+(esDia?'var(--cyan)':'var(--muted)')+';text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">'+nomDia.toUpperCase()+'</div>';
-      pDia.forEach(function(c){
-        h+='<div class="cc" style="border-left:3px solid var(--orange);margin-bottom:8px"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
-        if(c.fan)h+='<div style="font-size:12px;color:var(--cyan)">'+es(c.fan)+'</div>';
-        h+='<span class="tg o" style="margin-top:4px;display:inline-flex">Nuevo prospecto</span></div>';
-      });
-      vDia.forEach(function(v){
-        var c=D.cli.find(function(x){return x.id===v.cid;});
-        h+='<div class="vh" style="border-left:3px solid '+(v.vendio===true?'var(--green)':'var(--border)')+'">';
-        h+='<div class="vhd">'+es(c?c.nm:'?')+(c&&c.fan?' · '+es(c.fan):'')+'</div>';
-        h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita a prospecto':v.vendio===true?'Venta realizada':'Sin venta')+'</div>';
-        if(v.vendio===false&&v.razones)h+='<div class="vhx" style="color:var(--muted)">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>';
-        if(v.nt)h+='<div class="vhx" style="font-style:italic">'+es(v.nt)+'</div>';
-        h+='</div>';
-      });
+    h+='<div style="font-size:11px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.5px;margin:4px 0 8px">HOY</div>';
+    prosHoy.forEach(function(c){
+      h+='<div class="cc" style="border-left:3px solid var(--orange);margin-bottom:8px"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
+      if(c.fan)h+='<div style="font-size:13px;font-weight:700;color:var(--cyan)">'+es(c.fan)+'</div>';
+      h+='<span class="tg o" style="margin-top:4px;display:inline-flex">Nuevo prospecto</span></div>';
+    });
+    visHoy.forEach(function(v){
+      var c=D.cli.find(function(x){return x.id===v.cid;});
+      h+='<div class="vh" style="border-left:3px solid '+(v.vendio===true?'var(--green)':'var(--border)')+'">';
+      h+='<div class="vhd">'+es(c?c.nm:'?')+(c&&c.fan?' · '+es(c.fan):'')+'</div>';
+      h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita a prospecto':v.vendio===true?'Venta realizada':'Sin venta')+'</div>';
+      if(v.vendio===false&&v.razones)h+='<div class="vhx" style="color:var(--muted)">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>';
+      if(v.nt)h+='<div class="vhx" style="font-style:italic">'+es(v.nt)+'</div>';
+      h+='</div>';
     });
   }
+
+  // Historial desplegable: dias anteriores agrupados por mes
+  h+='<button class="btn sec" onclick="toggleHistorialVH()" style="margin-top:16px" id="btnHistVH">📅 '+(histVHOpen?'Ocultar':'Ver')+' dias anteriores</button>';
+  h+='<div id="histVH" style="display:'+(histVHOpen?'block':'none')+';margin-top:10px"></div>';
+
   var _vhb=document.getElementById('vHB');if(_vhb)_vhb.innerHTML=h;
+  if(histVHOpen)renderHistorialVH();
+}
+// Panel de contactos en inaccion (abre modal)
+function verInaccion(){
+  var inac=calcInaccion();
+  var h='';
+  if(!inac.length){h='<div class="empty">Sin contactos en inaccion. Buen trabajo!</div>';}
+  else{
+    h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Del mas urgente al menos urgente</div>';
+    inac.forEach(function(it){
+      var c=it.c;
+      h+='<div class="cc" style="margin-bottom:8px">';
+      h+='<div style="margin-bottom:8px"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
+      if(c.fan)h+='<div style="font-size:13px;font-weight:700;color:var(--cyan)">'+es(c.fan)+'</div>';
+      h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">'+es(it.etapa)+' · '+(it.dias===null?'Sin visitas registradas':it.dias+' dias sin gestion (umbral: '+it.umbral+')')+'</div></div>';
+      h+='<div style="display:flex;gap:6px">';
+      h+='<button class="sm g" onclick="cMod();abrirVisita(\''+c.id+'\')">Visita</button>';
+      if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')">WhatsApp</button>';
+      h+='</div></div>';
+    });
+  }
+  oMod('Contactos sin gestion ('+inac.length+')',h);
+}
+// Historial: desplegable por mes -> lista de dias con actividad -> detalle en modal
+function toggleHistorialVH(){
+  histVHOpen=!histVHOpen;
+  var el=document.getElementById('histVH');var btn=document.getElementById('btnHistVH');
+  if(!el||!btn)return;
+  el.style.display=histVHOpen?'block':'none';
+  btn.textContent='📅 '+(histVHOpen?'Ocultar':'Ver')+' dias anteriores';
+  if(histVHOpen)renderHistorialVH();
+}
+function renderHistorialVH(){
+  var el=document.getElementById('histVH');if(!el)return;
+  var misCli=misContactos();
+  var misVis=D.vis.filter(function(v){return !D.user||v.vend===D.user.n;});
+  var hoy=today();
+  var mesesSet={};mesesSet[hoy.slice(0,7)]=true;
+  misVis.forEach(function(v){if(v.fecha)mesesSet[v.fecha.slice(0,7)]=true;});
+  misCli.forEach(function(c){if(c.ing)mesesSet[c.ing.slice(0,7)]=true;});
+  var meses=Object.keys(mesesSet).sort().reverse();
+  var mesSel=vhMesSel||hoy.slice(0,7);
+  var h='<select onchange="vhMesSel=this.value;renderHistorialVH()" style="background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:7px 12px;font-size:12px;font-weight:600;width:100%;margin-bottom:10px">';
+  meses.forEach(function(m){
+    var nm=new Date(m+'-15T12:00:00').toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+    nm=nm.charAt(0).toUpperCase()+nm.slice(1);
+    h+='<option value="'+m+'"'+(m===mesSel?' selected':'')+'>'+nm+'</option>';
+  });
+  h+='</select>';
+  var diasSet={};
+  misVis.forEach(function(v){if(v.fecha&&v.fecha.slice(0,7)===mesSel&&v.fecha!==hoy)diasSet[v.fecha]=true;});
+  misCli.forEach(function(c){if(c.ing&&c.ing.slice(0,7)===mesSel&&c.ing!==hoy)diasSet[c.ing]=true;});
+  var diasList=Object.keys(diasSet).sort().reverse();
+  if(!diasList.length){h+='<div class="empty">Sin actividad registrada ese mes</div>';el.innerHTML=h;return;}
+  diasList.forEach(function(dia){
+    var vDia=misVis.filter(function(v){return v.fecha===dia;});
+    var pDia=misCli.filter(function(c){return c.ing===dia;});
+    var nomDia=new Date(dia+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'short'});
+    nomDia=nomDia.charAt(0).toUpperCase()+nomDia.slice(1);
+    h+='<div class="cc" style="margin-bottom:8px;cursor:pointer" onclick="verDetalleDiaVH(\''+dia+'\')">';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between">';
+    h+='<div style="font-size:13px;font-weight:700">'+nomDia+'</div><span style="color:var(--muted);font-size:18px">&rsaquo;</span></div>';
+    h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">'+vDia.length+' visita'+(vDia.length!==1?'s':'')+(pDia.length?' · '+pDia.length+' prospecto'+(pDia.length!==1?'s':''):'')+'</div></div>';
+  });
+  el.innerHTML=h;
+}
+function verDetalleDiaVH(dia){
+  var misCli=misContactos();
+  var misVis=D.vis.filter(function(v){return v.fecha===dia&&(!D.user||v.vend===D.user.n);});
+  var pDia=misCli.filter(function(c){return c.ing===dia;});
+  var nomDia=new Date(dia+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  nomDia=nomDia.charAt(0).toUpperCase()+nomDia.slice(1);
+  var h='';
+  pDia.forEach(function(c){
+    h+='<div class="cc" style="border-left:3px solid var(--orange);margin-bottom:8px"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
+    if(c.fan)h+='<div style="font-size:13px;font-weight:700;color:var(--cyan)">'+es(c.fan)+'</div>';
+    h+='<span class="tg o" style="margin-top:4px;display:inline-flex">Nuevo prospecto</span></div>';
+  });
+  misVis.forEach(function(v){
+    var c=D.cli.find(function(x){return x.id===v.cid;});
+    h+='<div class="vh" style="border-left:3px solid '+(v.vendio===true?'var(--green)':'var(--border)')+'">';
+    h+='<div class="vhd">'+es(c?c.nm:'?')+(c&&c.fan?' · '+es(c.fan):'')+'</div>';
+    h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita a prospecto':v.vendio===true?'Venta realizada':'Sin venta')+'</div>';
+    if(v.vendio===false&&v.razones)h+='<div class="vhx" style="color:var(--muted)">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>';
+    if(v.nt)h+='<div class="vhx" style="font-style:italic">'+es(v.nt)+'</div>';
+    h+='</div>';
+  });
+  if(!pDia.length&&!misVis.length)h='<div class="empty">Sin actividad</div>';
+  oMod(nomDia,h);
 }
 
 // ── CONTACTOS ─────────────────────────────────────────────────────────
@@ -1041,9 +1205,16 @@ function guardarVisitaProspecto(id){
     if(conv){c.esP=false;c.etapaEmbudo='Cliente Activo';v.eta='Cliente Activo';v.conversion=true;}
   }
   c.ul=hoy;
-  // Próxima visita → agregar automáticamente a la Gira
+  // Próxima visita → agregar automáticamente a la Gira. Si no se cargó una fecha
+  // y el contacto sigue activo en el embudo, se sugiere una automáticamente para
+  // que ningún contacto quede sin seguimiento agendado.
   var proxEl=document.getElementById('vpProx');
   var prox=proxEl?proxEl.value:'';
+  var autoSug=false;
+  if(!prox&&!conv&&vpVendio!==true){
+    var etaRef=eta||c.etapaEmbudo||'Nuevo Prospecto';
+    if(etaRef!=='No Le Interesa'&&etaRef!=='Perdido'){prox=sugerirProxima(etaRef);autoSug=true;}
+  }
   if(prox){
     c.prox=prox;
     v.prox=prox;
@@ -1062,7 +1233,7 @@ function guardarVisitaProspecto(id){
   fsSetVisita(v);
   fsSetContacto(c);
   cMod();
-  toast(prox?'Visita guardada · Gira agendada para '+fmt(prox):vpVendio===true?'Venta registrada!':'Visita guardada','ok');
+  toast(prox?'Visita guardada · Gira agendada para '+fmt(prox)+(autoSug?' (sugerida)':''):vpVendio===true?'Venta registrada!':'Visita guardada','ok');
   vpVendio=null;
   renderVH();
   if(gTab==='ejec')renderVG();
@@ -1079,22 +1250,31 @@ function nuevoPros(){
 
 // ── DASHBOARD GERENTE: INTELIGENCIA COMERCIAL ─────────────────────────
 var gPer='mes';
+var gMesEsp=''; // 'YYYY-MM' cuando gPer==='mesEsp'
+var gDVend=''; // '' = todos los vendedores
 function getPer(){
-  var hoy=today();var d=new Date();var desde;
+  var hoy=today();var d=new Date();var desde,hasta=hoy;
   if(gPer==='hoy')desde=hoy;
   else if(gPer==='sem'){d.setDate(d.getDate()-(d.getDay()===0?6:d.getDay()-1));desde=d.toISOString().split('T')[0];}
   else if(gPer==='mes'){desde=hoy.slice(0,7)+'-01';}
+  else if(gPer==='mesEsp'){
+    var m=gMesEsp||hoy.slice(0,7);
+    desde=m+'-01';
+    var ult=new Date(Number(m.slice(0,4)),Number(m.slice(5,7)),0).getDate();
+    hasta=m+'-'+String(ult).padStart(2,'0');
+  }
   else{desde=hoy.slice(0,4)+'-01-01';}
-  return{desde:desde,hasta:hoy};
+  return{desde:desde,hasta:hasta};
 }
 function getLunesSem(){var d=new Date();var dow=d.getDay()===0?6:d.getDay()-1;d.setDate(d.getDate()-dow);return d.toISOString().split('T')[0];}
-function visEnPer(){var r=getPer();return D.vis.filter(function(v){return v.fecha>=r.desde&&v.fecha<=r.hasta;});}
+function visEnPer(){var r=getPer();var v=D.vis.filter(function(v){return v.fecha>=r.desde&&v.fecha<=r.hasta;});return gDVend?v.filter(function(x){return x.vend===gDVend;}):v;}
 function sG(titulo,cont){return '<div class="card" style="margin-bottom:12px"><div class="ct">'+es(titulo)+'</div>'+cont+'</div>';}
 
 function renderGD(){
   var hoy=today();var per=getPer();var vis=visEnPer();
-  var clientes=D.cli.filter(function(c){return !c.esP;});
-  var prospectos=D.cli.filter(function(c){return c.esP;});
+  var cliBase=gDVend?D.cli.filter(function(c){return c.vend===gDVend;}):D.cli;
+  var clientes=cliBase.filter(function(c){return !c.esP;});
+  var prospectos=cliBase.filter(function(c){return c.esP;});
   var vendedores=D.usrs.filter(function(u){return u.r==='vendedor';});
   // Metricas
   var pros_nuevos=prospectos.filter(function(c){return c.ing>=per.desde&&c.ing<=per.hasta;});
@@ -1119,10 +1299,19 @@ function renderGD(){
   if(csv.length)alertas.push({t:'y',msg:csv.length+' cliente'+(csv.length!==1?'s':'')+' con comodato activo sin visita +30 dias',ids:csv.map(function(co){var c=D.cli.find(function(x){return x.id===co.cid;});return c?c.id:null;}).filter(Boolean)});
   var h='';
   // Filtro periodo
-  h+='<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">';
-  [{k:'hoy',l:'Hoy'},{k:'sem',l:'Esta semana'},{k:'mes',l:'Este mes'},{k:'ano',l:'Este ano'}].forEach(function(p){
+  h+='<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">';
+  [{k:'hoy',l:'Hoy'},{k:'sem',l:'Esta semana'},{k:'mes',l:'Este mes'},{k:'ano',l:'Este ano'},{k:'mesEsp',l:'Elegir mes'}].forEach(function(p){
     h+='<span class="fb'+(gPer===p.k?' on':'')+'" onclick="gPer=\''+p.k+'\';renderGD()">'+p.l+'</span>';
   });
+  h+='</div>';
+  h+='<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">';
+  if(gPer==='mesEsp'){
+    h+='<input type="month" value="'+es(gMesEsp||hoy.slice(0,7))+'" onchange="gMesEsp=this.value;renderGD()" style="background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:7px 12px;font-size:12px;font-weight:600">';
+  }
+  h+='<select onchange="gDVend=this.value;renderGD()" style="background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:7px 12px;font-size:12px;font-weight:600">';
+  h+='<option value=""'+(gDVend===''?' selected':'')+'>Todos los vendedores</option>';
+  vendedores.forEach(function(u){h+='<option value="'+es(u.n)+'"'+(gDVend===u.n?' selected':'')+'>'+es(u.n)+'</option>';});
+  h+='</select>';
   h+='</div>';
   // Alertas
   if(alertas.length){
@@ -1140,7 +1329,7 @@ function renderGD(){
     h+='</div>';
   }
   // KPIs clickeables
-  h+='<div class="ct">PERIODO: '+{hoy:'HOY',sem:'ESTA SEMANA',mes:'ESTE MES',ano:'ESTE ANO'}[gPer]+'</div>';
+  h+='<div class="ct">PERIODO: '+({hoy:'HOY',sem:'ESTA SEMANA',mes:'ESTE MES',ano:'ESTE ANO',mesEsp:(gMesEsp||hoy.slice(0,7))}[gPer])+(gDVend?' · '+es(gDVend).toUpperCase():'')+'</div>';
   h+='<div class="sg" style="margin-bottom:14px">';
   [{n:pros_nuevos.length,l:'Prospectos nuevos',c:'var(--orange)',ids:pros_nuevos.map(function(c){return c.id;})},
    {n:cli_visit.length,l:'Clientes visitados',c:'var(--cyan)',ids:cli_visit.map(function(c){return c.id;})},
@@ -1164,13 +1353,13 @@ function renderGD(){
   }
   // Embudo completo con conversion
   var emh='<div>';
-  var totCli=D.cli.length||1;
+  var totCli=cliBase.length||1;
   ET.forEach(function(et){
-    var n=D.cli.filter(function(c){return c.etapaEmbudo===et;}).length;if(!n)return;
+    var n=cliBase.filter(function(c){return c.etapaEmbudo===et;}).length;if(!n)return;
     var col=EC[et]||'var(--muted)';var pct=Math.round(n/totCli*100);
     emh+='<div class="br" style="cursor:pointer;margin-bottom:4px" onclick="abrirListaEtapa(\''+es(et)+'\')"><div class="bl">'+es(et)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(n/Math.max(totCli,1)*100)+'%;background:'+col+'"></div></div><div class="bv">'+n+'</div><div style="font-size:10px;color:var(--muted);width:30px;text-align:right">'+pct+'%</div></div>';
   });
-  SA.forEach(function(et){var n=D.cli.filter(function(c){return c.etapaEmbudo===et;}).length;if(!n)return;emh+='<div class="br"><div class="bl" style="color:var(--red)">'+es(et)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(n/totCli*100)+'%;background:var(--red);opacity:.4"></div></div><div class="bv">'+n+'</div></div>';});
+  SA.forEach(function(et){var n=cliBase.filter(function(c){return c.etapaEmbudo===et;}).length;if(!n)return;emh+='<div class="br"><div class="bl" style="color:var(--red)">'+es(et)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(n/totCli*100)+'%;background:var(--red);opacity:.4"></div></div><div class="bv">'+n+'</div></div>';});
   emh+='</div>';
   h+=sG('Embudo de ventas (clickeable por etapa)',emh);
   // Clientes sin visitar
@@ -1199,15 +1388,15 @@ function renderGD(){
     h+=sG('Causas de no venta',cvh);
   }
   // Competencia
-  var cmp={};D.cli.forEach(function(c){if(c.comp){c.comp.split(',').forEach(function(cv){var t=cv.trim();if(t&&t!=='Sin competencia')cmp[t]=(cmp[t]||0)+1;});}});
+  var cmp={};cliBase.forEach(function(c){if(c.comp){c.comp.split(',').forEach(function(cv){var t=cv.trim();if(t&&t!=='Sin competencia')cmp[t]=(cmp[t]||0)+1;});}});
   var ca2=Object.keys(cmp).map(function(k){return{k:k,n:cmp[k]};}).sort(function(a,b){return b.n-a.n;});
   if(ca2.length){var mxk2=ca2[0].n;var cph='<div class="bc">';ca2.forEach(function(x){cph+='<div class="br"><div class="bl">'+es(x.k)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(x.n/mxk2*100)+'%;background:var(--orange)"></div></div><div class="bv">'+x.n+'</div></div>';});cph+='</div>';h+=sG('Presencia de competencia',cph);}
   // Tipos de negocio (clickeables)
-  var tp={};D.cli.forEach(function(c){if(c.tipo)tp[c.tipo]=(tp[c.tipo]||0)+1;});
+  var tp={};cliBase.forEach(function(c){if(c.tipo)tp[c.tipo]=(tp[c.tipo]||0)+1;});
   var tpa=Object.keys(tp).map(function(k){return{k:k,n:tp[k]};}).sort(function(a,b){return b.n-a.n;});
-  if(tpa.length){var mxt=tpa[0].n;var tph='<div class="bc">';tpa.forEach(function(x){tph+='<div class="br" style="cursor:pointer" onclick="abrirListaTipo(\''+es(x.k)+'\')"><div class="bl">'+es(x.k)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(x.n/mxt*100)+'%;background:var(--purple)"></div></div><div class="bv">'+x.n+'</div><div style="font-size:10px;color:var(--muted);width:28px;text-align:right">'+Math.round(x.n/Math.max(D.cli.length,1)*100)+'%</div></div>';});tph+='</div>';h+=sG('Tipos de negocio',tph);}
+  if(tpa.length){var mxt=tpa[0].n;var tph='<div class="bc">';tpa.forEach(function(x){tph+='<div class="br" style="cursor:pointer" onclick="abrirListaTipo(\''+es(x.k)+'\')"><div class="bl">'+es(x.k)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(x.n/mxt*100)+'%;background:var(--purple)"></div></div><div class="bv">'+x.n+'</div><div style="font-size:10px;color:var(--muted);width:28px;text-align:right">'+Math.round(x.n/Math.max(cliBase.length,1)*100)+'%</div></div>';});tph+='</div>';h+=sG('Tipos de negocio',tph);}
   // Barrios
-  var bp={};D.cli.forEach(function(c){if(c.bar)bp[c.bar]=(bp[c.bar]||0)+1;});
+  var bp={};cliBase.forEach(function(c){if(c.bar)bp[c.bar]=(bp[c.bar]||0)+1;});
   var bpa=Object.keys(bp).map(function(k){return{k:k,n:bp[k]};}).sort(function(a,b){return b.n-a.n;});
   if(bpa.length){var mxb=bpa[0].n;var bph='<div class="bc">';bpa.slice(0,10).forEach(function(x){bph+='<div class="br"><div class="bl">'+es(x.k)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(x.n/mxb*100)+'%;background:var(--cyan)"></div></div><div class="bv">'+x.n+'</div></div>';});bph+='</div>';h+=sG('Cobertura por barrio',bph);}
   // Tiempo en etapas embudo
@@ -1226,14 +1415,61 @@ function renderGD(){
   teh+='</div>';
   h+=sG('Prospectos por etapa y tiempo promedio',teh);
   // Actividad reciente
-  var rec=D.vis.filter(function(v){return dias(v.fecha)<=2;}).slice().reverse().slice(0,15);
+  var recBase=gDVend?D.vis.filter(function(v){return v.vend===gDVend;}):D.vis;
+  var rec=recBase.filter(function(v){return dias(v.fecha)<=2;}).slice().reverse().slice(0,15);
   if(rec.length){
     var rh='';
     rec.forEach(function(v){var c=D.cli.find(function(x){return x.id===v.cid;});rh+='<div class="vh"><div class="vhd">'+fmt(v.fecha)+(v.vend?' · '+es(v.vend):'')+'</div><div class="vhr">'+es(c?c.nm:'?')+' — '+(v.tipo==='prospecto'?'Visita prospecto':v.vendio===true?'VENTA':'Sin venta')+'</div>'+(v.vendio===false&&v.razones?'<div class="vhx">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>':'')+'</div>';});
     h+=sG('Actividad reciente (48hs)',rh);
   }
-  h+='<button class="btn sec" onclick="expCSVAll()" style="margin-bottom:20px">Exportar todos los datos CSV</button>';
+  // ── GRAFICOS DE TORTA ──────────────────────────────────────────────
+  var paleta=['#22d3ee','#fb923c','#4ade80','#a78bfa','#fbbf24','#f87171','#38bdf8','#f472b6','#94a3b8','#facc15'];
+  // 1. Distribucion por etapa del embudo
+  var pEta=[];
+  ET.concat(SA).forEach(function(et){var n=cliBase.filter(function(c){return (c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo'))===et;}).length;if(n)pEta.push({label:et,value:n,color:EC[et]||'var(--muted)'});});
+  if(pEta.length)h+=sG('Distribucion por etapa del embudo',pieChartHTML(pEta));
+  // 2. Distribucion por tipo de negocio
+  var tpObj={};cliBase.forEach(function(c){if(c.tipo)tpObj[c.tipo]=(tpObj[c.tipo]||0)+1;});
+  var tpArr=Object.keys(tpObj).map(function(k){return{label:k,value:tpObj[k]};}).sort(function(a,b){return b.value-a.value;});
+  if(tpArr.length){
+    var pTipo=tpArr.slice(0,7).map(function(x,i){return{label:x.label,value:x.value,color:paleta[i%paleta.length]};});
+    var restoTipo=tpArr.slice(7).reduce(function(s,x){return s+x.value;},0);
+    if(restoTipo)pTipo.push({label:'Otros',value:restoTipo,color:'var(--muted)'});
+    h+=sG('Distribucion por tipo de negocio',pieChartHTML(pTipo));
+  }
+  // 3. Resultado de visitas en el periodo
+  var vVenta=vis.filter(function(v){return v.vendio===true;}).length;
+  var vSinVenta=vis.filter(function(v){return v.vendio===false;}).length;
+  var vSinDef=vis.length-vVenta-vSinVenta;
+  var pRes=[];
+  if(vVenta)pRes.push({label:'Con venta',value:vVenta,color:'var(--green)'});
+  if(vSinVenta)pRes.push({label:'Sin venta',value:vSinVenta,color:'var(--red)'});
+  if(vSinDef)pRes.push({label:'Sin definir',value:vSinDef,color:'var(--muted)'});
+  if(pRes.length)h+=sG('Resultado de visitas en el periodo',pieChartHTML(pRes));
+  // 4. Actividad por vendedor (solo si no hay un vendedor especifico seleccionado)
+  if(!gDVend&&vendedores.length){
+    var pVend=vendedores.map(function(u,i){return{label:u.n,value:D.vis.filter(function(v){var r=getPer();return v.vend===u.n&&v.fecha>=r.desde&&v.fecha<=r.hasta;}).length,color:paleta[i%paleta.length]};}).filter(function(x){return x.value>0;});
+    if(pVend.length)h+=sG('Visitas por vendedor en el periodo',pieChartHTML(pVend));
+  }
+  h+='<button class="btn sec" onclick="expCSVAll()" style="margin-bottom:20px">Exportar todos los datos (Excel)</button>';
   document.getElementById('gDB').innerHTML=h;
+}
+// Grafico de torta con CSS conic-gradient + leyenda de porcentajes. datos=[{label,value,color}]
+function pieChartHTML(datos){
+  var total=datos.reduce(function(s,d){return s+d.value;},0);
+  if(!total)return '<div class="empty">Sin datos</div>';
+  var acc=0;
+  var stops=datos.map(function(d){
+    var pct=d.value/total*100;var from=acc;acc+=pct;
+    return d.color+' '+from.toFixed(2)+'% '+acc.toFixed(2)+'%';
+  }).join(',');
+  var h='<div class="pieWrap"><div class="pieChart" style="background:conic-gradient('+stops+')"></div><div class="pieLeg">';
+  datos.forEach(function(d){
+    var pct=Math.round(d.value/total*100);
+    h+='<div class="pieLegItem"><span class="pieDot" style="background:'+d.color+'"></span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(d.label)+'</span><span style="color:var(--muted);flex-shrink:0">'+d.value+' ('+pct+'%)</span></div>';
+  });
+  h+='</div></div>';
+  return h;
 }
 function abrirListaDash(ids){
   var cs=D.cli.filter(function(c){return ids.indexOf(c.id)>=0;});
@@ -1259,13 +1495,12 @@ function abrirListaTipo(tipo){
   oMod(tipo,h);
 }
 function expCSVAll(){
-  var rows=['Nombre,Tipo,Barrio,Direccion,Telefono,Es Prospecto,Etapa Embudo,Ultima Visita,Ultima Venta,Competencia,Freezer,Cal Ubic,Transito,Ingreso'];
+  var filas=[['Nombre','Tipo','Barrio','Direccion','Telefono','Es Prospecto','Etapa Embudo','Ultima Visita','Ultima Venta','Competencia','Freezer','Cal Ubic','Transito','Ingreso']];
   D.cli.forEach(function(c){
-    rows.push([c.nm,c.tipo||'',c.bar||'',c.dir||'',c.tel||'',c.esP?'SI':'NO',c.etapaEmbudo||'',c.ul||'',c.uv||'',c.comp||'',c.cFr||'',c.calU||'',c.trans||'',c.ing||''].map(function(f){return '"'+String(f).replace(/"/g,'""')+'"';}).join(','));
+    filas.push([c.nm,c.tipo||'',c.bar||'',c.dir||'',c.tel||'',c.esP?'SI':'NO',c.etapaEmbudo||'',c.ul||'',c.uv||'',c.comp||'',c.cFr||'',c.calU||'',c.trans||'',c.ing||'']);
   });
-  var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});
-  var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='CRM-datos-'+today()+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-  toast('CSV exportado','ok');
+  descargarXLSX(filas,'CRM-datos-'+today()+'.xlsx');
+  toast('Excel exportado','ok');
 }
 // GERENTE CONTACTOS
 var gCF2='Todos';
@@ -1438,7 +1673,7 @@ function renderGV(){
   h+='<div style="display:flex;gap:6px;align-items:center">';
   h+='<div class="srch" style="flex:1;margin:0"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Buscar cliente..." value="'+es(gVF.q)+'" oninput="gVF.q=this.value;renderGV()" style="background:none;border:none;outline:none;color:var(--text);font-size:13px;font-family:inherit;width:100%"></div>';
   h+='<button class="sm" onclick="gVF={per:\'30d\',vend:\'\',res:\'\',tipNeg:\'\',prov:\'\',eta:\'\',q:\'\',desde:\'\',hasta:\'\'};renderGV()" style="font-size:11px">Limpiar</button>';
-  h+='<button class="sm g" onclick="expCSV()">CSV</button>';
+  h+='<button class="sm g" onclick="expCSV()">Excel</button>';
   if(gVF.vend){h+='<button class="sm" onclick="abrirInformeVendedor(\''+es(gVF.vend)+'\')" style="color:var(--cyan)">Informe completo</button>';}
   h+='</div></div>';
   // Aplicar filtros
@@ -1494,15 +1729,14 @@ function renderGV(){
 function sGVF(f){gVF.per=f;renderGV();}
 function expCSV(){
   var vs=D.vis.slice().reverse();
-  var rows=['Fecha,Vendedor,Cliente,Tipo negocio,Ciudad,Barrio,Tipo visita,Venta,Motivo,Etapa embudo,Notas'];
+  var filas=[['Fecha','Vendedor','Cliente','Tipo negocio','Ciudad','Barrio','Tipo visita','Venta','Motivo','Etapa embudo','Notas']];
   vs.forEach(function(v){
     var c=D.cli.find(function(x){return x.id===v.cid;});
     var m=v.razones?(Array.isArray(v.razones)?v.razones.join('; '):v.razones):'';
-    rows.push([v.fecha,v.vend||'',(c?c.nm:'?'),(c?c.tipo||'':''),(c?c.ciu||'':''),(c?c.bar||'':''),v.tipo||'',v.vendio===true?'SI':v.vendio===false?'NO':'',m,v.eta||c&&c.etapaEmbudo||'',v.nt||''].map(function(f){return '"'+String(f).replace(/"/g,'""')+'"';}).join(','));
+    filas.push([v.fecha,v.vend||'',(c?c.nm:'?'),(c?c.tipo||'':''),(c?c.ciu||'':''),(c?c.bar||'':''),v.tipo||'',v.vendio===true?'SI':v.vendio===false?'NO':'',m,v.eta||c&&c.etapaEmbudo||'',v.nt||'']);
   });
-  var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});
-  var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='visitas_'+today()+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-  toast('CSV exportado ('+vs.length+' visitas)','ok');
+  descargarXLSX(filas,'visitas_'+today()+'.xlsx');
+  toast('Excel exportado ('+vs.length+' visitas)','ok');
 }
 
 // ── INFORME INDIVIDUAL POR VENDEDOR ───────────────────────────────────
@@ -1549,7 +1783,7 @@ function _renderInformeVendedor(vend){
   [{k:'sem',l:'Esta semana'},{k:'mes',l:'Este mes'},{k:'ano',l:'Este año'},{k:'todo',l:'Todo'}].forEach(function(p){
     h+='<span class="fb'+(infVendPer===p.k?' on':'')+'" onclick="infVendPer=\''+p.k+'\';_renderInformeVendedor(\''+es(vend)+'\')" style="font-size:11px">'+p.l+'</span>';
   });
-  h+='<button class="sm g" onclick="expCSVVendedor(\''+es(vend)+'\')" style="margin-left:auto;font-size:11px">Exportar CSV</button>';
+  h+='<button class="sm g" onclick="expCSVVendedor(\''+es(vend)+'\')" style="margin-left:auto;font-size:11px">Exportar Excel</button>';
   h+='</div>';
   // KPIs principales
   h+='<div class="ct" style="margin-bottom:8px">RESUMEN DEL PERÍODO</div>';
@@ -1601,15 +1835,14 @@ function _renderInformeVendedor(vend){
 }
 function expCSVVendedor(vend){
   var misVis=D.vis.filter(function(v){return v.vend===vend;});
-  var rows=['Fecha,Cliente,Tipo negocio,Ciudad,Tipo visita,Venta,Motivo,Etapa embudo,Notas'];
+  var filas=[['Fecha','Cliente','Tipo negocio','Ciudad','Tipo visita','Venta','Motivo','Etapa embudo','Notas']];
   misVis.forEach(function(v){
     var c=D.cli.find(function(x){return x.id===v.cid;});
     var m=v.razones?(Array.isArray(v.razones)?v.razones.join('; '):v.razones):'';
-    rows.push([v.fecha,(c?c.nm:'?'),(c?c.tipo||'':''),(c?c.ciu||'':''),v.tipo||'',v.vendio===true?'SI':v.vendio===false?'NO':'',m,v.eta||c&&c.etapaEmbudo||'',v.nt||''].map(function(f){return '"'+String(f).replace(/"/g,'""')+'"';}).join(','));
+    filas.push([v.fecha,(c?c.nm:'?'),(c?c.tipo||'':''),(c?c.ciu||'':''),v.tipo||'',v.vendio===true?'SI':v.vendio===false?'NO':'',m,v.eta||c&&c.etapaEmbudo||'',v.nt||'']);
   });
-  var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});
-  var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='informe_'+vend+'_'+today()+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-  toast('CSV de '+vend+' exportado','ok');
+  descargarXLSX(filas,'informe_'+vend+'_'+today()+'.xlsx');
+  toast('Excel de '+vend+' exportado','ok');
 }
 
 // GERENTE COMODATOS
@@ -1659,14 +1892,21 @@ function delCo(id){
 }
 // ── MODULO INFORMES (INDEPENDIENTE DEL DASHBOARD) ──────────────────────
 var infPer='mes';
+var infMesEsp='';
 function getPerInf(){
-  var hoy=today();var d=new Date();var desde;
+  var hoy=today();var d=new Date();var desde,hasta=hoy;
   if(infPer==='hoy')desde=hoy;
   else if(infPer==='sem'){d.setDate(d.getDate()-(d.getDay()===0?6:d.getDay()-1));desde=d.toISOString().split('T')[0];}
   else if(infPer==='mes'){desde=hoy.slice(0,7)+'-01';}
   else if(infPer==='ano'){desde=hoy.slice(0,4)+'-01-01';}
+  else if(infPer==='mesEsp'){
+    var m=infMesEsp||hoy.slice(0,7);
+    desde=m+'-01';
+    var ult=new Date(Number(m.slice(0,4)),Number(m.slice(5,7)),0).getDate();
+    hasta=m+'-'+String(ult).padStart(2,'0');
+  }
   else{desde='2000-01-01';}
-  return{desde:desde,hasta:hoy};
+  return{desde:desde,hasta:hasta};
 }
 function renderGI(){
   var per=getPerInf();
@@ -1677,11 +1917,14 @@ function renderGI(){
   var h='';
   h+='<div class="tb"><div class="tb-t">Informes</div></div>';
   h+='<div style="padding:0 14px">';
-  h+='<div style="display:flex;gap:6px;margin:14px 0;flex-wrap:wrap">';
-  [{k:'hoy',l:'Hoy'},{k:'sem',l:'Esta semana'},{k:'mes',l:'Este mes'},{k:'ano',l:'Este ano'},{k:'todo',l:'Todo'}].forEach(function(p){
+  h+='<div style="display:flex;gap:6px;margin:14px 0 6px;flex-wrap:wrap">';
+  [{k:'hoy',l:'Hoy'},{k:'sem',l:'Esta semana'},{k:'mes',l:'Este mes'},{k:'ano',l:'Este ano'},{k:'mesEsp',l:'Elegir mes'},{k:'todo',l:'Todo'}].forEach(function(p){
     h+='<span class="fb'+(infPer===p.k?' on':'')+'" onclick="infPer=\''+p.k+'\';renderGI()">'+p.l+'</span>';
   });
   h+='</div>';
+  if(infPer==='mesEsp'){
+    h+='<div style="margin-bottom:10px"><input type="month" value="'+es(infMesEsp||today().slice(0,7))+'" onchange="infMesEsp=this.value;renderGI()" style="background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:7px 12px;font-size:12px;font-weight:600"></div>';
+  }
 
   // ── PROSPECTOS ──
   h+='<div class="card"><div class="ct">PROSPECTOS</div>';
@@ -1766,7 +2009,7 @@ function renderGI(){
   h+='<div class="br"><div class="bl">Sin visitar hace +30 dias</div><div class="bt"><div class="bf" style="width:'+(clientes.length?Math.round(sv30/clientes.length*100):0)+'%;background:var(--red)"></div></div><div class="bv">'+sv30+'</div></div>';
   h+='</div>';
 
-  h+='<button class="btn sec" onclick="expCSVAll()" style="margin:10px 0 24px">Exportar todos los datos a CSV</button>';
+  h+='<button class="btn sec" onclick="expCSVAll()" style="margin:10px 0 24px">Exportar todos los datos a Excel</button>';
   h+='</div>';
   document.getElementById('gIB').innerHTML=h;
 }
@@ -1811,7 +2054,6 @@ function renderGCfg(){
     {key:'tiposProducto',label:'Tipos de productos'},
     {key:'marcas',label:'Marcas competidoras'},
     {key:'razones',label:'Motivos de no venta'},
-    {key:'barrios',label:'Barrios de Cordoba Capital'},
   ];
   catalogos.forEach(function(cat){
     var items=D.cfg[cat.key]||[];
@@ -1860,8 +2102,7 @@ function renderGCfg(){
 
   // ── ESTADO DE CONEXION ───────────────────────────────────────────
   h+='<div class="card"><div class="ct">SINCRONIZACION</div>';
-  h+='<div style="font-size:13px;color:var(--muted)">Los datos se sincronizan automaticamente y en tiempo real entre todos los dispositivos a traves de Firebase. No requiere configuracion manual.</div>';
-  h+='<button class="btn sec" onclick="fsMigrarLocalAFirestore()" style="margin-top:10px">Migrar datos locales antiguos a Firebase</button></div>';
+  h+='<div style="font-size:13px;color:var(--muted)">Los datos se sincronizan automaticamente y en tiempo real entre todos los dispositivos a traves de Firebase. No requiere configuracion manual.</div></div>';
 
   // ── REPARAR ASIGNACION DE CONTACTOS ────────────────────────────────
   var sinVend=D.cli.filter(function(c){return !c.vend;});
@@ -2248,6 +2489,10 @@ function wFin(){
     if(v.vendio===true)c.uv=v.fecha;
     if(v.eta)c.etapaEmbudo=v.eta;
     if(v.deu!==undefined)c.deu=v.deu;
+    if(!v.prox&&v.vendio!==true){
+      var etaRef=v.eta||c.etapaEmbudo||'Nuevo Prospecto';
+      if(etaRef!=='No Le Interesa'&&etaRef!=='Perdido'){v.prox=sugerirProxima(etaRef);v._proxAuto=true;}
+    }
     if(v.prox){
       c.prox=v.prox;
       // Agregar automaticamente a la Gira en la fecha de proxima visita
@@ -2256,7 +2501,7 @@ function wFin(){
         var ng={cid:W.cid,fecha:v.prox,orden:D.gira.filter(function(x){return x.fecha===v.prox;}).length};
         D.gira.push(ng);
         fsSetGira(ng);
-        toast('Agregado a la Gira para '+fmt(v.prox),'ok');
+        toast('Agregado a la Gira para '+fmt(v.prox)+(v._proxAuto?' (sugerida)':''),'ok');
       }
     }
   }
@@ -2501,7 +2746,7 @@ function renderVG(){
       h+='<div style="width:28px;height:28px;border-radius:50%;background:'+(yaVis?'var(--green)':'var(--s3)')+';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:'+(yaVis?'#000':'var(--text)')+';flex-shrink:0">'+(yaVis?'✓':idx+1)+'</div>';
       h+='<div style="flex:1;min-width:0">';
       h+='<div style="font-size:15px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.nm)+'</div>';
-      if(c.fan)h+='<div style="font-size:12px;color:var(--cyan);font-weight:600">'+es(c.fan)+'</div>';
+      if(c.fan)h+='<div style="font-size:15px;font-weight:700;color:var(--cyan);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.fan)+'</div>';
       h+='<div style="font-size:11px;color:var(--muted)">'+es(c.tipo||'')+(c.ciu?' · '+es(c.ciu):c.bar?' · '+es(c.bar):'')+'</div>';
       h+='</div>';
       h+='<span class="tg '+(c.esP?'o':'g')+'" style="flex-shrink:0">'+(c.esP?'PROS':'CLI')+'</span>';
@@ -2600,35 +2845,31 @@ function renderVE(){
   var eLugares=Object.keys(eSet).sort();
   var eTSet={};mc.forEach(function(c){if(c.tipo)eTSet[c.tipo]=true;});
   var eTipos=Object.keys(eTSet).sort();
-  var fh='<div style="display:flex;flex-direction:column;gap:6px;width:100%">';
-  // Etapas
-  fh+='<div style="display:flex;gap:5px;flex-wrap:wrap">';
-  fh+=all.map(function(e){return '<span class="fb'+(vEFil===e?' on':'')+'" onclick="setVEF(this.getAttribute(\'data-e\'))" data-e="'+es(e)+'" style="font-size:11px;padding:5px 10px">'+es(e)+'</span>';}).join('');
+  var fh='';
+  // Etapas - fila compacta con scroll horizontal
+  fh+='<div class="veRow">';
+  fh+=all.map(function(e){return '<span class="fb'+(vEFil===e?' on':'')+'" onclick="setVEF(this.getAttribute(\'data-e\'))" data-e="'+es(e)+'" style="font-size:11px;padding:6px 12px">'+es(e)+'</span>';}).join('');
   fh+='</div>';
-  // Ordenamiento
-  fh+='<div style="display:flex;gap:4px;flex-wrap:wrap">';
-  [['nm','A-Z'],['bar','Barrio'],['tipo','Tipo']].forEach(function(x){
+  // Zona y Tipo como desplegables (solo opciones cargadas)
+  fh+='<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">';
+  if(eLugares.length){
+    fh+='<select onchange="vEBar=this.value;renderVE()">';
+    fh+='<option value="">Todas las zonas</option>';
+    eLugares.forEach(function(l){fh+='<option value="'+es(l)+'"'+(vEBar===l?' selected':'')+'>'+es(l)+'</option>';});
+    fh+='</select>';
+  }
+  if(eTipos.length){
+    fh+='<select onchange="vETipNeg=this.value;renderVE()">';
+    fh+='<option value="">Todos los tipos</option>';
+    eTipos.forEach(function(t){fh+='<option value="'+es(t)+'"'+(vETipNeg===t?' selected':'')+'>'+es(t)+'</option>';});
+    fh+='</select>';
+  }
+  fh+='</div>';
+  // Orden
+  fh+='<div class="veRow" style="margin-top:6px">';
+  [['nm','A-Z'],['bar','Barrio'],['tipo','Tipo'],['_inac','Urgencia']].forEach(function(x){
     fh+='<span class="fb'+(vEOrd===x[0]?' on':'')+'" onclick="vEOrd=\''+x[0]+'\';renderVE()" style="font-size:10px">'+x[1]+'</span>';
   });
-  fh+='</div>';
-  // Filtro zona
-  if(eLugares.length){
-    fh+='<div style="display:flex;gap:4px;flex-wrap:wrap"><span style="font-size:10px;color:var(--muted);align-self:center">Zona:</span>';
-    eLugares.forEach(function(l){
-      fh+='<span class="fb'+(vEBar===l?' on':'')+'" data-k="bar" data-v="'+es(l)+'" onclick="setVEFiltro(this)" style="font-size:10px">'+es(l)+'</span>';
-    });
-    if(vEBar)fh+='<span class="fb" onclick="vEBar=\'\';renderVE()" style="font-size:10px;color:var(--red)">&#215;</span>';
-    fh+='</div>';
-  }
-  // Filtro tipo
-  if(eTipos.length){
-    fh+='<div style="display:flex;gap:4px;flex-wrap:wrap"><span style="font-size:10px;color:var(--muted);align-self:center">Tipo:</span>';
-    eTipos.forEach(function(t){
-      fh+='<span class="fb'+(vETipNeg===t?' on':'')+'" data-k="tip" data-v="'+es(t)+'" onclick="setVEFiltro(this)" style="font-size:10px">'+es(t)+'</span>';
-    });
-    if(vETipNeg)fh+='<span class="fb" onclick="vETipNeg=\'\';renderVE()" style="font-size:10px;color:var(--red)">&#215;</span>';
-    fh+='</div>';
-  }
   fh+='</div>';
   var _vef=document.getElementById('vEF');if(_vef)_vef.innerHTML=fh;
   // Filtrar
@@ -2638,26 +2879,55 @@ function renderVE(){
   });
   if(vEBar)cs=cs.filter(function(c){return c.bar===vEBar||c.ciu===vEBar;});
   if(vETipNeg)cs=cs.filter(function(c){return c.tipo===vETipNeg;});
-  cs.sort(function(a,b){return(a[vEOrd]||'').localeCompare(b[vEOrd]||'');});
-  if(!cs.length){var _veb0=document.getElementById('vEB');if(_veb0)_veb0.innerHTML='<div class="empty">Sin contactos con los filtros actuales</div>';return;}
+  if(vEOrd==='_inac'){
+    cs.sort(function(a,b){var da=a.ul?dias(a.ul):9999;var db=b.ul?dias(b.ul):9999;return db-da;});
+  } else {
+    cs.sort(function(a,b){return(a[vEOrd]||'').localeCompare(b[vEOrd]||'');});
+  }
+  var _veb=document.getElementById('vEB');if(!_veb)return;
+  // En escritorio con "Todos" seleccionado: tablero Kanban por etapa
+  if(window.innerWidth>=900&&vEFil==='Todos'){
+    var etapasK=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo','No Le Interesa','Perdido'];
+    var kh='<div class="kanban">';
+    etapasK.forEach(function(eta){
+      var colCards=cs.filter(function(c){return(c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo'))===eta;});
+      var colorEta=EC[eta]||'var(--muted)';
+      kh+='<div class="kbCol"><div class="kbHead" style="color:'+colorEta+'"><span>'+eta+'</span><span style="color:var(--muted)">'+colCards.length+'</span></div>';
+      if(!colCards.length)kh+='<div style="font-size:11px;color:var(--muted);padding:8px 0">Sin contactos</div>';
+      colCards.forEach(function(c){kh+=embudoCardHTML(c);});
+      kh+='</div>';
+    });
+    kh+='</div>';
+    _veb.innerHTML=kh;
+    return;
+  }
+  if(!cs.length){_veb.innerHTML='<div class="empty">Sin contactos con los filtros actuales</div>';return;}
   var h='';
-  cs.forEach(function(c){
-    var col=EC[c.etapaEmbudo]||'var(--muted)';
-    h+='<div class="cc">';
-    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">';
-    h+='<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">'+es(c.nm)+'</div>';
-    if(c.fan)h+='<div style="font-size:12px;color:var(--cyan);font-weight:600">'+es(c.fan)+'</div>';
-    h+='<div style="font-size:12px;color:var(--muted)">'+es(c.bar||c.ciu||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div>';
-    h+='<span style="background:rgba('+h2r(col)+',.15);color:'+col+';padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap">'+es(c.etapaEmbudo||'Prospecto')+'</span></div>';
-    h+='<div style="display:flex;gap:6px">';
-    h+='<button class="sm g" onclick="abrirVisita(\''+c.id+'\')">Visita</button>';
-    if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>';
-    h+='<select class="sm" onchange="cambiarEtapa(\''+c.id+'\',this.value);this.value=\'\'" style="border-color:'+col+';color:'+col+';max-width:120px">';
-    h+='<option value="">Mover etapa</option>';
-    ET.concat(SA).forEach(function(et){if(et!==c.etapaEmbudo)h+='<option value="'+es(et)+'">'+es(et)+'</option>';});
-    h+='</select></div></div>';
-  });
-  var _veb=document.getElementById('vEB');if(_veb)_veb.innerHTML=h;
+  cs.forEach(function(c){h+=embudoCardHTML(c);});
+  _veb.innerHTML=h;
+}
+// Tarjeta de contacto del Embudo (reusada en la lista mobile y en el tablero Kanban de escritorio)
+function embudoCardHTML(c){
+  var col=EC[c.etapaEmbudo]||'var(--muted)';
+  var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
+  var dInac=c.ul?dias(c.ul):null;
+  var esInac=eta!=='No Le Interesa'&&eta!=='Perdido'&&(dInac===null||dInac>=umbralEtapa(eta));
+  var h='<div class="cc">';
+  h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">';
+  h+='<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">'+es(c.nm)+'</div>';
+  if(c.fan)h+='<div style="font-size:15px;font-weight:700;color:var(--cyan)">'+es(c.fan)+'</div>';
+  h+='<div style="font-size:12px;color:var(--muted)">'+es(c.bar||c.ciu||'')+(c.tipo?' · '+es(c.tipo):'')+'</div>';
+  if(esInac)h+='<div style="font-size:11px;color:var(--red);font-weight:700;margin-top:2px">&#9888; '+(dInac===null?'Sin visitas registradas':dInac+' dias sin gestion')+'</div>';
+  h+='</div>';
+  h+='<span style="background:rgba('+h2r(col)+',.15);color:'+col+';padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap">'+es(c.etapaEmbudo||'Prospecto')+'</span></div>';
+  h+='<div style="display:flex;gap:6px">';
+  h+='<button class="sm g" onclick="abrirVisita(\''+c.id+'\')">Visita</button>';
+  if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>';
+  h+='<select class="sm" onchange="cambiarEtapa(\''+c.id+'\',this.value);this.value=\'\'" style="border-color:'+col+';color:'+col+';max-width:120px">';
+  h+='<option value="">Mover etapa</option>';
+  ET.concat(SA).forEach(function(et){if(et!==c.etapaEmbudo)h+='<option value="'+es(et)+'">'+es(et)+'</option>';});
+  h+='</select></div></div>';
+  return h;
 }
 
 // ── CONTACTOS: tarjetas mejoradas con todos los datos ─────────────────
@@ -2677,7 +2947,7 @@ function renderVC(){
   if(vcF.calU)cs=cs.filter(function(c){return c.calU===vcF.calU;});
   if(vcF.trans)cs=cs.filter(function(c){return c.trans===vcF.trans;});
   if(vcF.prods.length)cs=cs.filter(function(c){return vcF.prods.some(function(p){return c.prods&&c.prods.indexOf(p)>=0;});});
-  if(q)cs=cs.filter(function(c){return (c.nm||'').toLowerCase().includes(q)||(c.dir||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q);});
+  if(q)cs=cs.filter(function(c){return (c.nm||'').toLowerCase().includes(q)||(c.fan||'').toLowerCase().includes(q)||(c.dir||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q);});
   cs.sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   var chips='';
   if(vcF.tipo_ctx){chips+='<span class="ch on" onclick="vcF.tipo_ctx=\'\';renderVC()" style="font-size:11px;padding:5px 10px">'+vcF.tipo_ctx+' &#215;</span>';}
@@ -2700,9 +2970,9 @@ function renderVC(){
     h+='<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">';
     h+='<div style="flex:1;min-width:0">';
     h+='<div style="font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.nm)+'</div>';
+    if(c.fan)h+='<div style="font-size:15px;font-weight:700;color:var(--cyan)">'+es(c.fan)+'</div>';
     h+=(c.tipo?'<div style="font-size:12px;color:var(--muted)">'+es(c.tipo)+(c.bar?' · '+es(c.bar):'')+'</div>':'');
     h+='<div style="font-size:12px;color:var(--muted)">'+es(c.dir||'')+'</div>';
-    if(c.fan)h+='<div style="font-size:11px;color:var(--cyan);font-weight:600">'+es(c.fan)+'</div>';
     h+='</div>';
     h+='<span class="tg '+(c.esP?'o':'g')+'">'+(c.esP?'PROS':'CLI')+'</span></div>';
     // Datos clave
@@ -2719,6 +2989,16 @@ function renderVC(){
 }
 
 // INIT
+// Al cambiar el ancho de la ventana (ej: pasar de mobile a escritorio), re-renderizar el Embudo
+// para que alterne entre lista y tablero Kanban segun corresponda.
+var _resizeT=null;
+window.addEventListener('resize',function(){
+  clearTimeout(_resizeT);
+  _resizeT=setTimeout(function(){
+    var s=document.getElementById('sVE');
+    if(s&&s.classList.contains('on'))renderVE();
+  },250);
+});
 window.addEventListener('load',function(){
   // PWA: registrar service worker
   if('serviceWorker' in navigator){
