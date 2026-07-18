@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='3.1 - 18/07/2026';
+var VERSION='3.2 - 18/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -767,6 +767,7 @@ function abrirFichaV(id){
   if(c.tel){
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
     h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin:0">Enviar WhatsApp</button>';
+    h+='<button class="btn sec" onclick="marcarUbicacion(\''+id+'\')" style="margin:0 0 8px">'+(c.lat?'&#128205; Actualizar ubicacion (marcada '+fmt(c.gpsF||'')+')':'&#128205; Marcar ubicacion GPS')+'</button>';
     h+='<button class="btn sec" onclick="exportarVCard(\''+id+'\')" style="margin:0">📋 Agregar a agenda</button>';
     h+='</div>';
   }
@@ -904,7 +905,18 @@ function agregarAGira(cid,fecha){
     toast('Agregado a la gira','ok');
   }
 }
+// Reglas de integridad de la gira:
+// 1. Los dias pasados son historial: los vendedores no pueden modificarlos (el admin si).
+// 2. Si el contacto ya tiene una visita registrada ese dia, la parada es un hecho, no un plan: no se borra.
+function giraBloqueada(cid,fecha){
+  var esAdmin=D.user&&D.user.r==='admin';
+  if(fecha<today()&&!esAdmin){toast('Los dias pasados no se pueden modificar','err');return true;}
+  var visitado=D.vis.some(function(v){return v.cid===cid&&v.fecha===fecha;});
+  if(visitado&&!esAdmin){toast('Ya se registro la visita: no se puede quitar de la gira','err');return true;}
+  return false;
+}
 function quitarDeGira(cid,fecha){
+  if(giraBloqueada(cid,fecha))return;
   D.gira=D.gira.filter(function(g){return !(g.cid===cid&&g.fecha===fecha);});
   fsDelGira(cid,fecha);
   renderVG();toast('Quitado de la gira','ok');
@@ -994,7 +1006,29 @@ function guardarVisitaProspecto(id){
   renderVH();
   if(gTab==='ejec')renderVG();
 }
+// ── UBICACION GPS DE LOS CONTACTOS (base para el futuro mapa) ─────────
+// La captura es silenciosa y no bloquea: si el celular no da la ubicacion, no pasa nada.
+var gpsPend=null;
+function capturarGPS(cb){
+  if(!navigator.geolocation){if(cb)cb(null);return;}
+  navigator.geolocation.getCurrentPosition(function(pos){
+    if(cb)cb({lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy||0),f:today()});
+  },function(){if(cb)cb(null);},{enableHighAccuracy:true,timeout:8000,maximumAge:60000});
+}
+// Boton "Marcar ubicacion" de las fichas: captura y guarda en el contacto
+function marcarUbicacion(id){
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  toast('Obteniendo ubicacion...','ok');
+  capturarGPS(function(g){
+    if(!g){toast('No se pudo obtener la ubicacion. Verifica el GPS del celular','err');return;}
+    c.lat=g.lat;c.lng=g.lng;c.gpsAcc=g.acc;c.gpsF=g.f;
+    fsSetContacto(c);
+    logEvento('edicion',c.id,c.nm,'Ubicacion GPS marcada','','');
+    toast('Ubicacion guardada ('+(g.acc?'precision '+g.acc+'m':'ok')+')','ok');
+  });
+}
 function nuevoPros(){
+  gpsPend=null;capturarGPS(function(g){gpsPend=g;}); // el vendedor esta parado en el local: momento perfecto para el GPS
   var tid=uid();
   var vend=D.user?D.user.n:'';
   var nuevo={id:tid,nm:'',fan:'',tel:'',dir:'',bar:'',tipo:'',prov:'',ciu:'',esP:true,etapaEmbudo:'Nuevo Prospecto',calU:'',trans:'',comp:'',cFr:'',cEx:'',obs:'',uv:'',ul:'',prox:'',ing:today(),ex:{},deu:false,vend:vend,prods:[]};
@@ -1388,6 +1422,7 @@ function aFicha(id){
   if(c.tel){
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">';
     h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin:0">Enviar WhatsApp</button>';
+    h+='<button class="btn sec" onclick="marcarUbicacion(\''+id+'\')" style="margin:0 0 8px">'+(c.lat?'&#128205; Actualizar ubicacion (marcada '+fmt(c.gpsF||'')+')':'&#128205; Marcar ubicacion GPS')+'</button>';
     h+='<button class="btn sec" onclick="exportarVCard(\''+id+'\')" style="margin:0">📋 Agregar a agenda</button>';
     h+='</div>';
   }
@@ -1457,6 +1492,83 @@ function sGEF(f){gEF2=f;renderGE();}
 // GERENTE VISITAS
 // ── VISITAS CON FILTROS COMPLETOS ─────────────────────────────────────
 var gVF={per:'30d',vend:'',res:'',tipNeg:'',prov:'',eta:'',bar:'',comp:'',q:'',desde:'',hasta:''};
+// ── PANEL DE CONTROL DE VENDEDORES (pestaña Visitas del admin) ────────
+// KPIs, grilla dia-por-dia y comparativa semanal para controlar el trabajo de cada vendedor.
+function kpisVendedor(vend,desde,hasta){
+  var vs=D.vis.filter(function(v){return v.vend===vend&&v.fecha>=desde&&v.fecha<=hasta;});
+  var ventas=vs.filter(function(v){return v.vendio===true;}).length;
+  var diasTrab={};vs.forEach(function(v){diasTrab[v.fecha]=true;});
+  var nDias=Object.keys(diasTrab).length;
+  // Dias habiles del periodo sin ninguna actividad
+  var sinAct=0;var d=new Date(desde+'T12:00:00');var fin=new Date(hasta+'T12:00:00');var hoyS=today();
+  while(d<=fin){
+    var ds=fechaLocal(d);
+    if(d.getDay()>=1&&d.getDay()<=5&&ds<=hoyS&&!diasTrab[ds])sinAct++;
+    d.setDate(d.getDate()+1);
+  }
+  return{visitas:vs.length,ventas:ventas,efect:vs.length?Math.round(ventas/vs.length*100):0,prom:nDias?(vs.length/nDias).toFixed(1):'0',diasTrab:nDias,sinAct:sinAct};
+}
+function panelControlHTML(vend,desde,hasta){
+  var k=kpisVendedor(vend,desde,hasta);
+  var h='<div class="card" style="margin:10px 14px">';
+  h+='<div class="ct">CONTROL: '+es(vend).toUpperCase()+'</div>';
+  // KPIs
+  h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">';
+  h+='<div class="sb"><div class="sn">'+k.visitas+'</div><div class="sl2">Visitas</div></div>';
+  h+='<div class="sb"><div class="sn" style="color:'+(k.efect>=30?'var(--green)':k.efect>=15?'var(--orange)':'var(--red)')+'">'+k.efect+'%</div><div class="sl2">Efectividad</div></div>';
+  h+='<div class="sb"><div class="sn">'+k.prom+'</div><div class="sl2">Visitas/dia trab.</div></div>';
+  h+='<div class="sb"><div class="sn" style="color:'+(k.sinAct===0?'var(--green)':k.sinAct<=2?'var(--orange)':'var(--red)')+'">'+k.sinAct+'</div><div class="sl2">Dias habiles sin actividad</div></div>';
+  h+='</div>';
+  // Comparativa semana actual vs anterior
+  var lun=new Date();var dow=lun.getDay()===0?6:lun.getDay()-1;lun.setDate(lun.getDate()-dow);
+  var lunS=fechaLocal(lun);
+  var lunAnt=new Date(lun);lunAnt.setDate(lunAnt.getDate()-7);var lunAntS=fechaLocal(lunAnt);
+  var domAnt=new Date(lun);domAnt.setDate(domAnt.getDate()-1);var domAntS=fechaLocal(domAnt);
+  var kAct=kpisVendedor(vend,lunS,today());
+  var kAnt=kpisVendedor(vend,lunAntS,domAntS);
+  function flecha(a,b){if(a>b)return '<span style="color:var(--green)">&#9650; +'+(a-b)+'</span>';if(a<b)return '<span style="color:var(--red)">&#9660; '+(a-b)+'</span>';return '<span style="color:var(--muted)">=</span>';}
+  h+='<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">ESTA SEMANA VS. LA ANTERIOR</div>';
+  h+='<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-bottom:14px">';
+  h+='<div>Visitas: <b>'+kAct.visitas+'</b> '+flecha(kAct.visitas,kAnt.visitas)+' <span style="color:var(--muted);font-size:11px">(ant: '+kAnt.visitas+')</span></div>';
+  h+='<div>Ventas: <b>'+kAct.ventas+'</b> '+flecha(kAct.ventas,kAnt.ventas)+' <span style="color:var(--muted);font-size:11px">(ant: '+kAnt.ventas+')</span></div>';
+  h+='<div>Efectividad: <b>'+kAct.efect+'%</b> '+flecha(kAct.efect,kAnt.efect)+' <span style="color:var(--muted);font-size:11px">(ant: '+kAnt.efect+'%)</span></div>';
+  h+='</div>';
+  // Grilla dia por dia del periodo (ultimos 14 dias habiles como maximo visual)
+  h+='<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">DIA POR DIA</div>';
+  h+='<div style="display:flex;gap:4px;flex-wrap:wrap">';
+  var dd=new Date(hasta+'T12:00:00');var celdas=[];var hoyS2=today();
+  while(celdas.length<14&&fechaLocal(dd)>=desde){
+    var ds2=fechaLocal(dd);
+    if(dd.getDay()>=1&&dd.getDay()<=5&&ds2<=hoyS2){
+      var vsD=D.vis.filter(function(v){return v.vend===vend&&v.fecha===ds2;});
+      var venD=vsD.filter(function(v){return v.vendio===true;}).length;
+      var col=vsD.length===0?'var(--red)':venD>0?'var(--green)':'var(--orange)';
+      var nom=dd.toLocaleDateString('es-AR',{weekday:'short',day:'numeric'});
+      celdas.push('<div onclick="verDiaVendedor(\''+es(vend)+'\',\''+ds2+'\')" style="cursor:pointer;background:var(--s2);border:1px solid '+col+';border-radius:8px;padding:6px 8px;text-align:center;min-width:52px"><div style="font-size:9px;color:var(--muted)">'+nom+'</div><div style="font-size:13px;font-weight:800;color:'+col+'">'+vsD.length+'</div><div style="font-size:9px;color:var(--muted)">'+venD+' vta'+(venD!==1?'s':'')+'</div></div>');
+    }
+    dd.setDate(dd.getDate()-1);
+  }
+  h+=celdas.reverse().join('');
+  h+='</div>';
+  h+='<div style="font-size:10px;color:var(--muted);margin-top:6px">Verde: con venta &middot; Naranja: visitas sin venta &middot; Rojo: sin actividad &middot; Toca un dia para ver el detalle</div>';
+  h+='</div>';
+  return h;
+}
+function verDiaVendedor(vend,fecha){
+  var vs=D.vis.filter(function(v){return v.vend===vend&&v.fecha===fecha;});
+  var nom=new Date(fecha+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  var h='';
+  if(!vs.length)h='<div class="empty">Sin visitas registradas ese dia</div>';
+  vs.forEach(function(v){
+    var c=D.cli.find(function(x){return x.id===v.cid;});
+    h+='<div class="vh" style="border-left:3px solid '+(v.vendio===true?'var(--green)':'var(--border)')+'">';
+    h+='<div class="vhd">'+es(c?c.nm:'?')+'</div>';
+    h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita a prospecto':v.vendio===true?'Venta realizada':'Sin venta')+'</div>';
+    if(v.nt)h+='<div class="vhx" style="font-style:italic">'+es(v.nt)+'</div>';
+    h+='</div>';
+  });
+  oMod(es(vend)+' - '+nom.charAt(0).toUpperCase()+nom.slice(1),h);
+}
 function renderGV(){
   var vendedores=D.usrs.filter(function(u){return u.r==='vendedor';});
   var hoy=today();
@@ -1496,6 +1608,31 @@ function renderGV(){
   h+='<button class="sm g" onclick="expCSV()">Excel</button>';
   if(gVF.vend){h+='<button class="sm" onclick="abrirInformeVendedor(\''+es(gVF.vend)+'\')" style="color:var(--cyan)">Informe completo</button>';}
   h+='</div></div>';
+  // Panel de control: del vendedor elegido (global o local), o comparativa de todos
+  var perCtl=(function(){var hoy2=today();var d30=new Date();d30.setDate(d30.getDate()-30);
+    if(gVF.per==='h')return{desde:hoy2,hasta:hoy2};
+    if(gVF.per==='7d'){var d7=new Date();d7.setDate(d7.getDate()-7);return{desde:fechaLocal(d7),hasta:hoy2};}
+    if(gVF.per==='mes')return{desde:hoy2.slice(0,7)+'-01',hasta:hoy2};
+    if(gVF.per==='rng'&&gVF.desde)return{desde:gVF.desde,hasta:gVF.hasta||hoy2};
+    return{desde:fechaLocal(d30),hasta:hoy2};})();
+  var vendCtl=gVendSel||gVF.vend;
+  if(vendCtl){
+    h+=panelControlHTML(vendCtl,perCtl.desde,perCtl.hasta);
+  } else {
+    // Comparativa rapida de todos los vendedores (clickeable para ver el panel completo)
+    h+='<div class="card" style="margin:10px 14px"><div class="ct">CONTROL RAPIDO (toca un vendedor)</div>';
+    vendedores.forEach(function(u){
+      var k=kpisVendedor(u.n,perCtl.desde,perCtl.hasta);
+      h+='<div class="sr" style="cursor:pointer" onclick="setVendGlobal(\''+es(u.n)+'\')">';
+      h+='<div style="flex:1;font-size:13px;font-weight:700">'+es(u.n)+'</div>';
+      h+='<div style="display:flex;gap:14px;font-size:12px">';
+      h+='<span>'+k.visitas+' vis.</span><span style="color:var(--green)">'+k.ventas+' vtas.</span>';
+      h+='<span style="color:'+(k.efect>=30?'var(--green)':k.efect>=15?'var(--orange)':'var(--red)')+'">'+k.efect+'%</span>';
+      h+='<span style="color:'+(k.sinAct===0?'var(--green)':'var(--red)')+'">'+k.sinAct+' sin act.</span>';
+      h+='</div></div>';
+    });
+    h+='</div>';
+  }
   // Aplicar filtros (el filtro global de vendedor prevalece sobre todo)
   var vs=visGlobal().slice().reverse();
   var desde,hasta=hoy;
@@ -1837,6 +1974,52 @@ function renderGI(){
 
   h+='<button class="btn sec" onclick="expCSVAll()" style="margin:10px 0 24px">Exportar todos los datos a Excel</button>';
   h+='</div>';
+
+  // ── EVOLUCION GRAFICA ──────────────────────────────────────────────
+  // Barras verticales simples: visitas (cyan) y ventas (verde) por periodo
+  function barrasDobles(datos,titulo){
+    if(!datos.length)return '';
+    var mx=Math.max.apply(null,datos.map(function(d){return d.v;}).concat([1]));
+    var g='<div class="card"><div class="ct">'+titulo+'</div>';
+    g+='<div style="display:flex;align-items:flex-end;gap:8px;height:130px;padding:0 4px;overflow-x:auto">';
+    datos.forEach(function(d){
+      g+='<div style="flex:1;min-width:44px;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end">';
+      g+='<div style="font-size:10px;font-weight:700">'+d.v+'</div>';
+      g+='<div style="display:flex;gap:2px;align-items:flex-end;width:100%;height:'+Math.max(Math.round(d.v/mx*80),2)+'%">';
+      g+='<div style="flex:1;background:var(--cyan);border-radius:3px 3px 0 0;height:100%"></div>';
+      g+='<div style="flex:1;background:var(--green);border-radius:3px 3px 0 0;height:'+(d.v?Math.round(d.s/d.v*100):0)+'%"></div>';
+      g+='</div>';
+      g+='<div style="font-size:9px;color:var(--muted);white-space:nowrap">'+d.l+'</div>';
+      g+='<div style="font-size:9px;color:var(--green)">'+d.s+' vta'+(d.s!==1?'s':'')+'</div>';
+      g+='</div>';
+    });
+    g+='</div><div style="font-size:10px;color:var(--muted);margin-top:8px">Barra cyan: visitas &middot; Barra verde: ventas</div></div>';
+    return g;
+  }
+  var visBase=visGlobal();
+  // Evolucion mensual (todos los meses con datos, hasta 12)
+  var mm=mesesConDatos().slice(0,12).reverse();
+  h+=barrasDobles(mm.map(function(m){
+    var vsM=visBase.filter(function(v){return v.fecha&&v.fecha.slice(0,7)===m;});
+    return{l:nombreMes(m).slice(0,3)+' '+m.slice(2,4),v:vsM.length,s:vsM.filter(function(v){return v.vendio===true;}).length};
+  }),'EVOLUCION MENSUAL'+(gVendSel?' - '+es(gVendSel).toUpperCase():''));
+  // Evolucion semanal (ultimas 8 semanas)
+  var sems=[];
+  for(var si=7;si>=0;si--){
+    var lunW=new Date();var dowW=lunW.getDay()===0?6:lunW.getDay()-1;lunW.setDate(lunW.getDate()-dowW-si*7);
+    var finW=new Date(lunW);finW.setDate(finW.getDate()+6);
+    var dW=fechaLocal(lunW),hW=fechaLocal(finW);
+    var vsW=visBase.filter(function(v){return v.fecha>=dW&&v.fecha<=hW;});
+    sems.push({l:lunW.getDate()+'/'+(lunW.getMonth()+1),v:vsW.length,s:vsW.filter(function(v){return v.vendio===true;}).length});
+  }
+  h+=barrasDobles(sems,'EVOLUCION SEMANAL (ULTIMAS 8 SEMANAS)'+(gVendSel?' - '+es(gVendSel).toUpperCase():''));
+  // Comparativa entre vendedores en el periodo elegido (solo si se ven todos)
+  if(!gVendSel){
+    h+=barrasDobles(vendedores.map(function(u){
+      var vsU=D.vis.filter(function(v){return v.vend===u.n&&v.fecha>=per.desde&&v.fecha<=per.hasta;});
+      return{l:u.n,v:vsU.length,s:vsU.filter(function(v){return v.vendio===true;}).length};
+    }),'COMPARATIVA DE VENDEDORES EN EL PERIODO');
+  }
   document.getElementById('gIB').innerHTML=h;
 }
 
@@ -2370,6 +2553,7 @@ function wFin(){
   var c=D.cli.find(function(x){return x.id===W.cid;});
   if(c){
     c.ul=v.fecha;
+    if(W.nu&&gpsPend&&!c.lat){c.lat=gpsPend.lat;c.lng=gpsPend.lng;c.gpsAcc=gpsPend.acc;c.gpsF=gpsPend.f;gpsPend=null;}
     if(v.vendio===true)c.uv=v.fecha;
     if(v.eta)c.etapaEmbudo=v.eta;
     if(v.deu!==undefined)c.deu=v.deu;
@@ -2388,6 +2572,16 @@ function wFin(){
         fsSetGira(ng);
         toast('Agregado a la Gira para '+fmt(v.prox)+(v._proxAuto?' (sugerida)':''),'ok');
       }
+    }
+  }
+  // Alta de prospecto: la creacion cuenta como visita del dia, asi que la parada
+  // queda reflejada tambien en la gira de HOY (y no se puede borrar: ya esta visitada).
+  if(W.nu){
+    var yaHoyG=D.gira.some(function(g){return g.cid===W.cid&&g.fecha===v.fecha;});
+    if(!yaHoyG){
+      var ngHoy={cid:W.cid,fecha:v.fecha,orden:D.gira.filter(function(x){return x.fecha===v.fecha;}).length};
+      D.gira.push(ngHoy);
+      fsSetGira(ngHoy);
     }
   }
   // Trazabilidad
@@ -2686,6 +2880,7 @@ function enviarPedidoWA(id){
 
 // ── GIRA SEMANAL ─────────────────────────────────────────────────────
 function moverEnGira(cid,fecha,dir){
+  if(arguments[1]<today()&&!(D.user&&D.user.r==='admin')){toast('Los dias pasados no se pueden modificar','err');return;}
   var dd=D.gira.filter(function(g){return g.fecha===fecha;}).sort(function(a,b){return(a.orden||0)-(b.orden||0);});
   var idx=dd.findIndex(function(g){return g.cid===cid;});
   var idx2=idx+dir;if(idx2<0||idx2>=dd.length)return;
