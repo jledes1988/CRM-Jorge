@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='3.0 - 16/07/2026';
+var VERSION='3.1 - 18/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -218,6 +218,17 @@ function refrescarVistaActual(){
   }
 }
 
+// ── PERFIL GERENTE: SOLO LECTURA ──────────────────────────────────────
+// Ve todos los datos pero no puede modificar nada. La guarda esta en el punto
+// central de escritura: aunque algun boton quede visible, el dato nunca se guarda.
+function soloLectura(){
+  if(D.user&&D.user.r==='gerente'){
+    toast('Perfil Gerente: solo lectura, no se guardan cambios','err');
+    return true;
+  }
+  return false;
+}
+
 // ── ESCRITURAS A FIRESTORE (cada una devuelve una promesa real, a diferencia del no-cors anterior) ──
 // MODO LOCAL: si fsDB es null (el CDN de Firebase no cargo), las escrituras NO deben crashear.
 // Se guarda todo el estado en localStorage y se avisa que quedo pendiente de sincronizar.
@@ -228,6 +239,7 @@ function fsGuardaLocal(){
   return Promise.resolve();
 }
 function fsSetContacto(c){
+  if(soloLectura())return Promise.resolve();
   if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   return fsDB.collection('contactos').doc(c.id).set(c)
@@ -235,6 +247,7 @@ function fsSetContacto(c){
     .catch(function(e){setSyncDot('error');debugLog('error','contactos write: '+e.message);toast('No se pudo guardar: '+e.message,'err');});
 }
 function fsDelContacto(id){
+  if(soloLectura())return Promise.resolve();
   if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   return fsDB.collection('contactos').doc(id).delete()
@@ -242,6 +255,7 @@ function fsDelContacto(id){
     .catch(function(e){setSyncDot('error');debugLog('error','contactos delete: '+e.message);toast('Error al eliminar','err');});
 }
 function fsSetVisita(v){
+  if(soloLectura())return Promise.resolve();
   if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   return fsDB.collection('visitas').doc(v.id).set(v)
@@ -249,6 +263,7 @@ function fsSetVisita(v){
     .catch(function(e){setSyncDot('error');debugLog('error','visitas write: '+e.message);toast('No se pudo guardar la visita','err');});
 }
 function fsSetComodato(co){
+  if(soloLectura())return Promise.resolve();
   if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   return fsDB.collection('comodatos').doc(co.id).set(co)
@@ -256,6 +271,7 @@ function fsSetComodato(co){
     .catch(function(e){setSyncDot('error');debugLog('error','comodatos write: '+e.message);toast('No se pudo guardar el comodato','err');});
 }
 function fsDelComodato(id){
+  if(soloLectura())return Promise.resolve();
   if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   return fsDB.collection('comodatos').doc(id).delete()
@@ -263,6 +279,7 @@ function fsDelComodato(id){
     .catch(function(e){setSyncDot('error');});
 }
 function fsSetGira(g){
+  if(soloLectura())return Promise.resolve();
   if(!fsDB)return fsGuardaLocal();
   // id sintetico: cid + fecha (un contacto solo puede estar una vez por dia)
   var gid=g.cid+'_'+g.fecha;
@@ -272,6 +289,7 @@ function fsSetGira(g){
     .catch(function(e){setSyncDot('error');});
 }
 function fsDelGira(cid,fecha){
+  if(soloLectura())return Promise.resolve();
   if(!fsDB)return fsGuardaLocal();
   var gid=cid+'_'+fecha;
   setSyncDot('pending');
@@ -284,6 +302,7 @@ function fsAddLog(entry){
   return fsDB.collection('log').doc(entry.id).set(entry).catch(function(e){console.error('log',e);});
 }
 function fsSetUsuario(u){
+  if(soloLectura())return Promise.resolve();
   if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   return fsDB.collection('usuarios').doc(String(u.id)).set(u)
@@ -291,6 +310,7 @@ function fsSetUsuario(u){
     .catch(function(e){setSyncDot('error');debugLog('error','usuarios write: '+e.message);toast('No se pudo guardar el usuario','err');});
 }
 function fsSetConfig(cfg){
+  if(soloLectura())return Promise.resolve();
   if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   return fsDB.collection('config').doc('main').set(cfg,{merge:true})
@@ -414,7 +434,10 @@ function startApp(){
     document.getElementById('sGerente').classList.add('on');
     document.getElementById('vNav').style.display='none';
     var mu=document.getElementById('gMobUser');if(mu)mu.textContent=D.user.n;
-    var su=document.getElementById('gSideUserNm');if(su)su.textContent=D.user.n+' · Admin';
+    var su=document.getElementById('gSideUserNm');if(su)su.textContent=D.user.n+' · '+(D.user.r==='gerente'?'Gerente (solo lectura)':'Admin');
+    var bCfg=document.getElementById('gbCfg');if(bCfg)bCfg.style.display=(D.user.r==='gerente'?'none':'flex');
+    renderVendBtns();
+    gSecActual='D';
     renderGD();
   } else {
     document.getElementById('sVen').classList.add('on');
@@ -652,48 +675,49 @@ function abrirFiltros(){
   var barrSet={};mc.forEach(function(c){if(c.bar)barrSet[c.bar]=true;});
   var ciuSet={};mc.forEach(function(c){if(c.ciu)ciuSet[c.ciu]=true;});
   var tipoSet={};mc.forEach(function(c){if(c.tipo)tipoSet[c.tipo]=true;});
+  var compSet={};mc.forEach(function(c){if(c.comp)c.comp.split(',').forEach(function(x){x=x.trim();if(x)compSet[x]=true;});});
   var lugares=Object.keys(Object.assign({},barrSet,ciuSet)).sort();
   var tipos=Object.keys(tipoSet).sort();
-  var compOpts=['Frigor','Arcor','Grido','Glups','Sin competencia','Otra'];
-  function fchip(k,v,lbl){
-    var active=(k==='comp'||k==='prods')?(vcF[k].indexOf(v)>=0):(vcF[k]===v);
+  var comps=Object.keys(compSet).sort();
+  // Cada filtro simple es un desplegable con solo las opciones que existen en los contactos.
+  function fsel(k,lbl,opciones){
+    var h='<div class="fg"><div class="fl">'+lbl+'</div>';
+    h+='<select class="fi" style="margin:0" onchange="vcF.'+k+'=this.value;renderVC()">';
+    h+='<option value="">Todos</option>';
+    opciones.forEach(function(o){
+      var v=Array.isArray(o)?o[0]:o;var l=Array.isArray(o)?o[1]:o;
+      h+='<option value="'+es(v)+'"'+(vcF[k]===v?' selected':'')+'>'+es(l)+'</option>';
+    });
+    h+='</select></div>';
+    return h;
+  }
+  function fchipMulti(k,v,lbl){
+    var active=vcF[k].indexOf(v)>=0;
     return '<span class="ch'+(active?' on':'')+'" data-fk="'+k+'" data-fv="'+es(v)+'" onclick="setFiltro(this.dataset.fk,this.dataset.fv)" style="font-size:12px;padding:6px 11px">'+es(lbl||v)+'</span>';
   }
   var h='';
-  h+='<div class="fg"><div class="fl">Tipo de contacto</div><div class="chips">';
-  h+=fchip('tipo_ctx','prospecto','Prospecto')+fchip('tipo_ctx','cliente','Cliente activo');
-  h+='</div></div>';
-  h+='<div class="fg"><div class="fl">Visita</div><div class="chips">';
-  h+=fchip('vis','v','Visitados')+fchip('vis','sv','Sin visitar');
-  h+='</div></div>';
-  h+='<div class="fg"><div class="fl">Freezer</div><div class="chips">';
-  h+=fchip('frez','sin','Sin freezer')+fchip('frez','pro','Freezer propio')+fchip('frez','comp','De competencia');
-  h+='</div></div>';
-  h+='<div class="fg"><div class="fl">Competencia</div><div class="chips">';
-  compOpts.forEach(function(cp){h+=fchip('comp',cp,cp);});
-  h+='</div></div>';
-  if(lugares.length){
-    h+='<div class="fg"><div class="fl">Barrio / Ciudad</div><div class="chips">';
-    lugares.forEach(function(l){h+=fchip('bar',l,l);});
+  h+=fsel('tipo_ctx','Tipo de contacto',[['prospecto','Prospecto'],['cliente','Cliente activo']]);
+  h+=fsel('vis','Visita',[['v','Visitados'],['sv','Sin visitar']]);
+  h+=fsel('frez','Freezer',[['sin','Sin freezer'],['pro','Freezer propio'],['comp','De competencia']]);
+  if(lugares.length)h+=fsel('bar','Barrio / Ciudad',lugares);
+  if(tipos.length)h+=fsel('tipOneg','Tipo de negocio',tipos);
+  h+=fsel('calU','Calificacion ubicacion',['A','B','C','D']);
+  h+=fsel('trans','Transito',['Alto','Medio','Bajo']);
+  // Multiples: siguen como chips porque se pueden elegir varias a la vez
+  if(comps.length){
+    h+='<div class="fg"><div class="fl">Competencia (podes elegir varias)</div><div class="chips">';
+    comps.forEach(function(cp){h+=fchipMulti('comp',cp,cp);});
     h+='</div></div>';
   }
-  if(tipos.length){
-    h+='<div class="fg"><div class="fl">Tipo de negocio</div><div class="chips">';
-    tipos.forEach(function(t){h+=fchip('tipOneg',t,t);});
-    h+='</div></div>';
-  }
-  h+='<div class="fg"><div class="fl">Calificacion ubicacion</div><div class="chips">';
-  ['A','B','C','D'].forEach(function(v){h+=fchip('calU',v,v);});
-  h+='</div></div>';
-  h+='<div class="fg"><div class="fl">Transito</div><div class="chips">';
-  ['Alto','Medio','Bajo'].forEach(function(v){h+=fchip('trans',v,v);});
-  h+='</div></div>';
   if((D.cfg.tiposProducto||[]).length){
-    h+='<div class="fg"><div class="fl">Productos que vende</div><div class="chips">';
-    (D.cfg.tiposProducto||[]).forEach(function(p){h+=fchip('prods',p,p);});
+    h+='<div class="fg"><div class="fl">Productos que vende (podes elegir varios)</div><div class="chips">';
+    (D.cfg.tiposProducto||[]).forEach(function(p){h+=fchipMulti('prods',p,p);});
     h+='</div></div>';
   }
-  h+='<button class="btn sec" onclick="vcF={tipo_ctx:\'\',tipo:\'\',bar:\'\',tipOneg:\'\',vis:\'\',frez:\'\',comp:[],calU:\'\',trans:\'\',prods:[]};renderVC();cMod()">Limpiar filtros</button>';
+  h+='<div style="display:flex;gap:8px;margin-top:4px">';
+  h+='<button class="btn sec" style="flex:1;margin:0" onclick="vcF={tipo_ctx:\'\',tipo:\'\',bar:\'\',tipOneg:\'\',vis:\'\',frez:\'\',comp:[],calU:\'\',trans:\'\',prods:[]};renderVC();cMod()">Limpiar</button>';
+  h+='<button class="btn" style="flex:1;margin:0" onclick="renderVC();cMod()">OK</button>';
+  h+='</div>';
   oMod('Filtrar contactos',h);
 }
 
@@ -823,6 +847,7 @@ function guardarEdicionContacto(id){
 
 // ── EMBUDO ────────────────────────────────────────────────────────────
 var vEFil='Todos';
+var vEChartOpen=false;
 function setVEF(v){vEFil=v||'Todos';renderVE();}
 function cambiarEtapa(id,eta){
   if(!eta)return;
@@ -980,9 +1005,20 @@ function nuevoPros(){
 
 
 // ── DASHBOARD GERENTE: INTELIGENCIA COMERCIAL ─────────────────────────
+// Meses (YYYY-MM) que tienen datos cargados (visitas o altas de contactos), de mas nuevo a mas viejo
+function mesesConDatos(){
+  var s={};s[today().slice(0,7)]=true;
+  D.vis.forEach(function(v){if(v.fecha)s[v.fecha.slice(0,7)]=true;});
+  D.cli.forEach(function(c){if(c.ing)s[c.ing.slice(0,7)]=true;});
+  return Object.keys(s).sort().reverse();
+}
+function nombreMes(m){
+  var nm=new Date(m+'-15T12:00:00').toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+  return nm.charAt(0).toUpperCase()+nm.slice(1);
+}
 var gPer='mes';
 var gMesEsp=''; // 'YYYY-MM' cuando gPer==='mesEsp'
-var gDVend=''; // '' = todos los vendedores
+// gDVend eliminado: reemplazado por el filtro global gVendSel (botones del sidebar)
 function getPer(){
   var hoy=today();var d=new Date();var desde,hasta=hoy;
   if(gPer==='hoy')desde=hoy;
@@ -998,12 +1034,12 @@ function getPer(){
   return{desde:desde,hasta:hasta};
 }
 function getLunesSem(){var d=new Date();var dow=d.getDay()===0?6:d.getDay()-1;d.setDate(d.getDate()-dow);return fechaLocal(d);}
-function visEnPer(){var r=getPer();var v=D.vis.filter(function(v){return v.fecha>=r.desde&&v.fecha<=r.hasta;});return gDVend?v.filter(function(x){return x.vend===gDVend;}):v;}
+function visEnPer(){var r=getPer();return visGlobal().filter(function(v){return v.fecha>=r.desde&&v.fecha<=r.hasta;});}
 function sG(titulo,cont){return '<div class="card" style="margin-bottom:12px"><div class="ct">'+es(titulo)+'</div>'+cont+'</div>';}
 
 function renderGD(){
   var hoy=today();var per=getPer();var vis=visEnPer();
-  var cliBase=gDVend?D.cli.filter(function(c){return c.vend===gDVend;}):D.cli;
+  var cliBase=cliGlobal();
   var clientes=cliBase.filter(function(c){return !c.esP;});
   var prospectos=cliBase.filter(function(c){return c.esP;});
   var vendedores=D.usrs.filter(function(u){return u.r==='vendedor';});
@@ -1037,12 +1073,11 @@ function renderGD(){
   h+='</div>';
   h+='<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">';
   if(gPer==='mesEsp'){
-    h+='<input type="month" value="'+es(gMesEsp||hoy.slice(0,7))+'" onchange="gMesEsp=this.value;renderGD()" style="background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:7px 12px;font-size:12px;font-weight:600">';
+    var mSel=gMesEsp||hoy.slice(0,7);
+    h+='<select onchange="gMesEsp=this.value;renderGD()" style="background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:7px 12px;font-size:12px;font-weight:600">';
+    mesesConDatos().forEach(function(m){h+='<option value="'+m+'"'+(m===mSel?' selected':'')+'>'+nombreMes(m)+'</option>';});
+    h+='</select>';
   }
-  h+='<select onchange="gDVend=this.value;renderGD()" style="background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:7px 12px;font-size:12px;font-weight:600">';
-  h+='<option value=""'+(gDVend===''?' selected':'')+'>Todos los vendedores</option>';
-  vendedores.forEach(function(u){h+='<option value="'+es(u.n)+'"'+(gDVend===u.n?' selected':'')+'>'+es(u.n)+'</option>';});
-  h+='</select>';
   h+='</div>';
   // Alertas
   if(alertas.length){
@@ -1060,7 +1095,7 @@ function renderGD(){
     h+='</div>';
   }
   // KPIs clickeables
-  h+='<div class="ct">PERIODO: '+({hoy:'HOY',sem:'ESTA SEMANA',mes:'ESTE MES',ano:'ESTE ANO',mesEsp:(gMesEsp||hoy.slice(0,7))}[gPer])+(gDVend?' · '+es(gDVend).toUpperCase():'')+'</div>';
+  h+='<div class="ct">PERIODO: '+({hoy:'HOY',sem:'ESTA SEMANA',mes:'ESTE MES',ano:'ESTE ANO',mesEsp:(gMesEsp||hoy.slice(0,7))}[gPer])+(gVendSel?' · '+es(gVendSel).toUpperCase():'')+'</div>';
   h+='<div class="sg" style="margin-bottom:14px">';
   [{n:pros_nuevos.length,l:'Prospectos nuevos',c:'var(--orange)',ids:pros_nuevos.map(function(c){return c.id;})},
    {n:cli_visit.length,l:'Clientes visitados',c:'var(--cyan)',ids:cli_visit.map(function(c){return c.id;})},
@@ -1146,13 +1181,16 @@ function renderGD(){
   teh+='</div>';
   h+=sG('Prospectos por etapa y tiempo promedio',teh);
   // Actividad reciente
-  var recBase=gDVend?D.vis.filter(function(v){return v.vend===gDVend;}):D.vis;
+  var recBase=visGlobal();
   var rec=recBase.filter(function(v){return dias(v.fecha)<=2;}).slice().reverse().slice(0,15);
   if(rec.length){
     var rh='';
     rec.forEach(function(v){var c=D.cli.find(function(x){return x.id===v.cid;});rh+='<div class="vh"><div class="vhd">'+fmt(v.fecha)+(v.vend?' · '+es(v.vend):'')+'</div><div class="vhr">'+es(c?c.nm:'?')+' — '+(v.tipo==='prospecto'?'Visita prospecto':v.vendio===true?'VENTA':'Sin venta')+'</div>'+(v.vendio===false&&v.razones?'<div class="vhx">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>':'')+'</div>';});
     h+=sG('Actividad reciente (48hs)',rh);
   }
+  // ── EMBUDO EN BARRAS DE PORCENTAJE ─────────────────────────────────
+  h+=sG('Embudo de ventas - % por etapa'+(gVendSel?' ('+es(gVendSel)+')':''),embudoBarrasHTML(cliBase));
+
   // ── GRAFICOS DE TORTA ──────────────────────────────────────────────
   var paleta=['#22d3ee','#fb923c','#4ade80','#a78bfa','#fbbf24','#f87171','#38bdf8','#f472b6','#94a3b8','#facc15'];
   // 1. Distribucion por etapa del embudo
@@ -1178,7 +1216,7 @@ function renderGD(){
   if(vSinDef)pRes.push({label:'Sin definir',value:vSinDef,color:'var(--muted)'});
   if(pRes.length)h+=sG('Resultado de visitas en el periodo',pieChartHTML(pRes));
   // 4. Actividad por vendedor (solo si no hay un vendedor especifico seleccionado)
-  if(!gDVend&&vendedores.length){
+  if(!gVendSel&&vendedores.length){
     var pVend=vendedores.map(function(u,i){return{label:u.n,value:D.vis.filter(function(v){var r=getPer();return v.vend===u.n&&v.fecha>=r.desde&&v.fecha<=r.hasta;}).length,color:paleta[i%paleta.length]};}).filter(function(x){return x.value>0;});
     if(pVend.length)h+=sG('Visitas por vendedor en el periodo',pieChartHTML(pVend));
   }
@@ -1186,6 +1224,29 @@ function renderGD(){
   document.getElementById('gDB').innerHTML=h;
 }
 // Grafico de torta con CSS conic-gradient + leyenda de porcentajes. datos=[{label,value,color}]
+// Grafico de barras del embudo: % de contactos en cada etapa sobre el total.
+// Usado en el Dashboard del admin (con filtro global) y en el EMBUDO del vendedor (sus datos).
+function embudoBarrasHTML(lista){
+  var total=lista.filter(function(c){
+    var e=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
+    return e!=='No Le Interesa'&&e!=='Perdido';
+  }).length;
+  if(!total)return '<div class="empty">Sin contactos en el embudo</div>';
+  var h='<div>';
+  ET.forEach(function(et){
+    var n=lista.filter(function(c){return(c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo'))===et;}).length;
+    var pct=Math.round(n/total*100);
+    var col=EC[et]||'var(--muted)';
+    h+='<div style="margin-bottom:10px">';
+    h+='<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:700">'+es(et)+'</span><span style="color:'+col+';font-weight:800">'+n+' · '+pct+'%</span></div>';
+    h+='<div style="height:16px;background:var(--s2);border-radius:8px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:8px;transition:width .3s"></div></div>';
+    h+='</div>';
+  });
+  var salidas=lista.filter(function(c){return c.etapaEmbudo==='No Le Interesa'||c.etapaEmbudo==='Perdido';}).length;
+  if(salidas)h+='<div style="font-size:11px;color:var(--muted);margin-top:4px">+ '+salidas+' fuera del embudo (No Le Interesa / Perdido)</div>';
+  h+='</div>';
+  return h;
+}
 function pieChartHTML(datos){
   var total=datos.reduce(function(s,d){return s+d.value;},0);
   if(!total)return '<div class="empty">Sin datos</div>';
@@ -1237,17 +1298,42 @@ function expCSVAll(){
 var gCF2='Todos';
 function renderGC(){
   var fs=['Todos','Clientes','Prospectos','Sin visitar','Con freezer','Deudores'];
-  // Agregar filtro por vendedor en admin
-  D.usrs.filter(function(u){return u.r==='vendedor';}).forEach(function(u){if(!fs.includes('V:'+u.n))fs.push('V:'+u.n);});
-  document.getElementById('gCF').innerHTML=fs.map(function(f){return '<span class="fb'+(gCF2===f?' on':'')+'" onclick="sGCF(\''+f+'\')">'+f+'</span>';}).join('');
+  var fh=fs.map(function(f){return '<span class="fb'+(gCF2===f?' on':'')+'" onclick="sGCF(\''+f+'\')">'+f+'</span>';}).join('');
+  // Filtros avanzados en desplegables (solo valores que existen en los datos)
+  var base0=cliGlobal();
+  function selOpts(campo,vacio){
+    var s={};base0.forEach(function(c){var v=c[campo];if(campo==='comp'&&v){v.split(',').forEach(function(x){x=x.trim();if(x)s[x]=true;});}else if(v)s[v]=true;});
+    var keys=Object.keys(s).sort();
+    var o='<option value="">'+vacio+'</option>';
+    keys.forEach(function(k){o+='<option value="'+es(k)+'"'+(gCFo[campo==='tipo'?'tipNeg':campo==='etapaEmbudo'?'eta':campo]===k?' selected':'')+'>'+es(k)+'</option>';});
+    return o;
+  }
+  var estilo='background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;font-size:12px;cursor:pointer;max-width:160px';
+  fh+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;width:100%">';
+  fh+='<select onchange="gCFo.bar=this.value;renderGC()" style="'+estilo+'">'+selOpts('bar','Barrio: todos')+'</select>';
+  fh+='<select onchange="gCFo.tipNeg=this.value;renderGC()" style="'+estilo+'">'+selOpts('tipo','Tipo negocio: todos')+'</select>';
+  fh+='<select onchange="gCFo.comp=this.value;renderGC()" style="'+estilo+'">'+selOpts('comp','Competencia: toda')+'</select>';
+  fh+='<select onchange="gCFo.frez=this.value;renderGC()" style="'+estilo+'">'+selOpts('cFr','Freezer: todos')+'</select>';
+  fh+='<select onchange="gCFo.eta=this.value;renderGC()" style="'+estilo+'">'+selOpts('etapaEmbudo','Etapa: todas')+'</select>';
+  fh+='<select onchange="gCFo.calU=this.value;renderGC()" style="'+estilo+'">'+selOpts('calU','Ubicacion: todas')+'</select>';
+  var hayF=Object.keys(gCFo).some(function(k){return gCFo[k];});
+  if(hayF)fh+='<button class="sm" onclick="limpiarGCFo()" style="font-size:11px;color:var(--red)">Limpiar</button>';
+  fh+='<button class="sm g" onclick="document.getElementById(\'gCF\').scrollIntoView();renderGC()" style="font-size:11px">OK</button>';
+  fh+='</div>';
+  document.getElementById('gCF').innerHTML=fh;
   var q=(document.getElementById('gCS')&&document.getElementById('gCS').value||'').toLowerCase();
-  var cs=D.cli.slice();
+  var cs=base0.slice();
+  if(gCFo.bar)cs=cs.filter(function(c){return c.bar===gCFo.bar;});
+  if(gCFo.tipNeg)cs=cs.filter(function(c){return c.tipo===gCFo.tipNeg;});
+  if(gCFo.comp)cs=cs.filter(function(c){return c.comp&&c.comp.includes(gCFo.comp);});
+  if(gCFo.frez)cs=cs.filter(function(c){return c.cFr===gCFo.frez;});
+  if(gCFo.eta)cs=cs.filter(function(c){return c.etapaEmbudo===gCFo.eta;});
+  if(gCFo.calU)cs=cs.filter(function(c){return c.calU===gCFo.calU;});
   if(gCF2==='Clientes')cs=cs.filter(function(c){return !c.esP;});
   else if(gCF2==='Prospectos')cs=cs.filter(function(c){return c.esP;});
   else if(gCF2==='Sin visitar')cs=cs.filter(function(c){return !c.ul;});
   else if(gCF2==='Con freezer')cs=cs.filter(function(c){return c.cFr==='Propio';});
   else if(gCF2==='Deudores')cs=cs.filter(function(c){return c.deu;});
-  else if(gCF2.startsWith('V:'))cs=cs.filter(function(c){return c.vend===gCF2.slice(2);});
   if(q)cs=cs.filter(function(c){return c.nm.toLowerCase().includes(q)||(c.dir||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q);});
   cs.sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   var h='<div style="padding:8px 14px;font-size:11px;color:var(--muted);font-weight:700">'+cs.length+' REGISTROS</div>';
@@ -1267,6 +1353,8 @@ function renderGC(){
   document.getElementById('gCB').innerHTML=h;
 }
 function sGCF(f){gCF2=f;renderGC();}
+var gCFo={bar:'',comp:'',frez:'',tipNeg:'',eta:'',calU:''};
+function limpiarGCFo(){gCFo={bar:'',comp:'',frez:'',tipNeg:'',eta:'',calU:''};renderGC();}
 function aFicha(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
   var vs=D.vis.filter(function(v){return v.cid===id;}).slice().reverse();
@@ -1355,7 +1443,8 @@ var gEF2='Todos';
 function renderGE(){
   var all=['Todos'].concat(ET,SA);
   document.getElementById('gEF').innerHTML=all.map(function(e){return '<span class="fb'+(gEF2===e?' on':'')+'" onclick="sGEF(\''+es(e)+'\')">'+es(e)+'</span>';}).join('');
-  var cs=gEF2==='Todos'?D.cli.slice():D.cli.filter(function(c){return c.etapaEmbudo===gEF2;});
+  var base=cliGlobal();
+  var cs=gEF2==='Todos'?base.slice():base.filter(function(c){return c.etapaEmbudo===gEF2;});
   var h='<div style="padding:8px 14px;font-size:11px;color:var(--muted);font-weight:700">'+cs.length+' REGISTROS</div>';
   if(!cs.length){h+='<div class="empty">Sin contactos</div>';document.getElementById('gEB').innerHTML=h;return;}
   cs.forEach(function(c){
@@ -1367,7 +1456,7 @@ function renderGE(){
 function sGEF(f){gEF2=f;renderGE();}
 // GERENTE VISITAS
 // ── VISITAS CON FILTROS COMPLETOS ─────────────────────────────────────
-var gVF={per:'30d',vend:'',res:'',tipNeg:'',prov:'',eta:'',q:'',desde:'',hasta:''};
+var gVF={per:'30d',vend:'',res:'',tipNeg:'',prov:'',eta:'',bar:'',comp:'',q:'',desde:'',hasta:''};
 function renderGV(){
   var vendedores=D.usrs.filter(function(u){return u.r==='vendedor';});
   var hoy=today();
@@ -1407,8 +1496,8 @@ function renderGV(){
   h+='<button class="sm g" onclick="expCSV()">Excel</button>';
   if(gVF.vend){h+='<button class="sm" onclick="abrirInformeVendedor(\''+es(gVF.vend)+'\')" style="color:var(--cyan)">Informe completo</button>';}
   h+='</div></div>';
-  // Aplicar filtros
-  var vs=D.vis.slice().reverse();
+  // Aplicar filtros (el filtro global de vendedor prevalece sobre todo)
+  var vs=visGlobal().slice().reverse();
   var desde,hasta=hoy;
   if(gVF.per==='h'){desde=hoy;}
   else if(gVF.per==='7d'){var d7=new Date();d7.setDate(d7.getDate()-7);desde=fechaLocal(d7);}
@@ -1420,13 +1509,15 @@ function renderGV(){
   if(gVF.res==='venta')vs=vs.filter(function(v){return v.vendio===true;});
   else if(gVF.res==='sinventa')vs=vs.filter(function(v){return v.vendio===false;});
   else if(gVF.res==='prospecto')vs=vs.filter(function(v){return v.tipo==='prospecto';});
-  if(gVF.tipNeg||gVF.prov||gVF.eta){
+  if(gVF.tipNeg||gVF.prov||gVF.eta||gVF.bar||gVF.comp){
     vs=vs.filter(function(v){
       var c=D.cli.find(function(x){return x.id===v.cid;});
       if(!c)return false;
       if(gVF.tipNeg&&c.tipo!==gVF.tipNeg)return false;
       if(gVF.prov&&c.prov!==gVF.prov)return false;
       if(gVF.eta&&c.etapaEmbudo!==gVF.eta)return false;
+      if(gVF.bar&&c.bar!==gVF.bar)return false;
+      if(gVF.comp&&!(c.comp&&c.comp.includes(gVF.comp)))return false;
       return true;
     });
   }
@@ -1581,6 +1672,7 @@ var gCoF2='act';
 function renderGCo(){
   document.getElementById('gCoF').innerHTML=['act','ret','all'].map(function(f){return '<span class="fb'+(gCoF2===f?' on':'')+'" onclick="sGCoF(\''+f+'\')">'+(f==='act'?'Activos':f==='ret'?'Retirados':'Todos')+'</span>';}).join('');
   var cs=D.com.slice();
+  if(gVendSel){var idsV={};cliGlobal().forEach(function(c){idsV[c.id]=true;});cs=cs.filter(function(co){return idsV[co.cid];});}
   if(gCoF2==='act')cs=cs.filter(function(c){return !c.ret;});
   else if(gCoF2==='ret')cs=cs.filter(function(c){return c.ret;});
   var h='<div style="padding:8px 14px;font-size:11px;color:var(--muted);font-weight:700">'+cs.length+' COMODATOS</div>';
@@ -1641,9 +1733,9 @@ function getPerInf(){
 }
 function renderGI(){
   var per=getPerInf();
-  var visP=D.vis.filter(function(v){return v.fecha>=per.desde&&v.fecha<=per.hasta;});
-  var clientes=D.cli.filter(function(c){return !c.esP;});
-  var prospectos=D.cli.filter(function(c){return c.esP;});
+  var visP=visGlobal().filter(function(v){return v.fecha>=per.desde&&v.fecha<=per.hasta;});
+  var clientes=cliGlobal().filter(function(c){return !c.esP;});
+  var prospectos=cliGlobal().filter(function(c){return c.esP;});
   var vendedores=D.usrs.filter(function(u){return u.r==='vendedor';});
   var h='';
   h+='<div class="tb"><div class="tb-t">Informes</div></div>';
@@ -1654,7 +1746,10 @@ function renderGI(){
   });
   h+='</div>';
   if(infPer==='mesEsp'){
-    h+='<div style="margin-bottom:10px"><input type="month" value="'+es(infMesEsp||today().slice(0,7))+'" onchange="infMesEsp=this.value;renderGI()" style="background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:7px 12px;font-size:12px;font-weight:600"></div>';
+    var mSelI=infMesEsp||today().slice(0,7);
+    h+='<div style="margin-bottom:10px"><select onchange="infMesEsp=this.value;renderGI()" style="background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:7px 12px;font-size:12px;font-weight:600">';
+    mesesConDatos().forEach(function(m){h+='<option value="'+m+'"'+(m===mSelI?' selected':'')+'>'+nombreMes(m)+'</option>';});
+    h+='</select></div>';
   }
 
   // ── PROSPECTOS ──
@@ -1708,7 +1803,7 @@ function renderGI(){
   // ── EMBUDO ──
   h+='<div class="card"><div class="ct">EMBUDO COMERCIAL</div>';
   ET.forEach(function(et){
-    var n=D.cli.filter(function(c){return c.etapaEmbudo===et;}).length;if(!n)return;
+    var n=cliGlobal().filter(function(c){return c.etapaEmbudo===et;}).length;if(!n)return;
     var col=EC[et]||'var(--muted)';
     h+='<div class="br" style="cursor:pointer" onclick="abrirListaEtapa(\''+es(et)+'\')"><div class="bl">'+es(et)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(n/Math.max(D.cli.length,1)*100)+'%;background:'+col+'"></div></div><div class="bv">'+n+'</div></div>';
   });
@@ -1716,7 +1811,7 @@ function renderGI(){
 
   // ── TIPO DE NEGOCIO ──
   h+='<div class="card"><div class="ct">RELEVAMIENTO POR TIPO DE NEGOCIO</div>';
-  var porTipo={};D.cli.forEach(function(c){if(c.tipo)porTipo[c.tipo]=(porTipo[c.tipo]||0)+1;});
+  var porTipo={};cliGlobal().forEach(function(c){if(c.tipo)porTipo[c.tipo]=(porTipo[c.tipo]||0)+1;});
   var tipoArr=Object.keys(porTipo).map(function(k){return{k:k,n:porTipo[k]};}).sort(function(a,b){return b.n-a.n;});
   if(tipoArr.length){var mxt=tipoArr[0].n;tipoArr.forEach(function(x){h+='<div class="br" style="cursor:pointer" onclick="abrirListaTipo(\''+es(x.k)+'\')"><div class="bl">'+es(x.k)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(x.n/mxt*100)+'%;background:var(--purple)"></div></div><div class="bv">'+x.n+'</div></div>';});}
   h+='</div>';
@@ -1774,6 +1869,16 @@ function renderGCfg(){
     h+='<button class="sm" onclick="togActivo('+u.id+')" style="font-size:11px;color:'+(u.activo===false?'var(--green)':'var(--muted)')+'">'+(u.activo===false?'Activar':'Desact.')+'</button>';
     h+='<button class="sm" onclick="cambPass('+u.id+')" style="font-size:11px">Pass</button></div></div>';
   });
+  h+='<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">';
+  h+='<div style="font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:8px">CREAR NUEVO USUARIO</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
+  h+='<input class="fi" id="nuNom" placeholder="Nombre (ej: Martin)" style="margin:0">';
+  h+='<input class="fi" id="nuUsr" placeholder="Usuario (ej: martin)" autocapitalize="none" style="margin:0">';
+  h+='<input class="fi" id="nuPass" placeholder="Contrasena" style="margin:0">';
+  h+='<select class="fi" id="nuRol" style="margin:0"><option value="vendedor">Vendedor</option><option value="gerente">Gerente (solo lectura)</option><option value="admin">Administrador</option></select>';
+  h+='</div>';
+  h+='<button class="btn sec" onclick="crearUsuario()" style="margin:0">+ Crear usuario</button>';
+  h+='</div>';
   h+='</div>';
 
   // ── CATÁLOGO MANAGER ─────────────────────────────────────────────
@@ -1963,6 +2068,26 @@ function togActivo(uid2){
   u.activo=u.activo===false?true:false;
   fsSetUsuario(u);
   renderGCfg();toast(u.n+(u.activo?' activado':' desactivado'),'ok');
+}
+function crearUsuario(){
+  if(soloLectura())return;
+  var n=(document.getElementById('nuNom').value||'').trim();
+  var u=(document.getElementById('nuUsr').value||'').trim().toLowerCase();
+  var p=(document.getElementById('nuPass').value||'').trim();
+  var r=document.getElementById('nuRol').value;
+  if(!n||!u||!p){toast('Completa nombre, usuario y contrasena','err');return;}
+  if(p.length<4){toast('La contrasena debe tener al menos 4 caracteres','err');return;}
+  if(/\s/.test(u)){toast('El usuario no puede tener espacios','err');return;}
+  if(D.usrs.some(function(x){return x.u===u;})){toast('Ya existe un usuario "'+u+'"','err');return;}
+  if(D.usrs.some(function(x){return x.n.toLowerCase()===n.toLowerCase();})){toast('Ya existe un usuario con el nombre "'+n+'"','err');return;}
+  var maxId=D.usrs.reduce(function(m,x){return Math.max(m,x.id||0);},0);
+  var nu={id:maxId+1,n:n,u:u,p:p,r:r,activo:true,creado:today(),ua:''};
+  D.usrs.push(nu);
+  fsSetUsuario(nu);
+  logEvento('usuario','','','Usuario creado: '+n+' ('+r+')','','');
+  toast('Usuario '+n+' creado como '+r,'ok');
+  renderVendBtns(); // si es vendedor, aparece en los botones del filtro global
+  renderGCfg();
 }
 function cambPass(uid2){oMod('Cambiar contrasena','<div class="fg"><label class="fl">Nueva contrasena</label><input class="fi" type="password" id="np" placeholder="Min 4 caracteres"></div><button class="btn" onclick="confPass(\''+uid2+'\')">Cambiar</button>');}
 function confPass(uid2){
@@ -2158,7 +2283,34 @@ function toggleGSide(){
   s.classList.toggle('open');
   if(o)o.style.display=open?'none':'block';
 }
+// ── FILTRO GLOBAL DE VENDEDOR ─────────────────────────────────────────
+// Prevalece sobre todos los demas filtros, en todas las pestañas del admin.
+var gVendSel='';      // '' = Todos
+var gSecActual='D';   // seccion admin activa (para re-renderizar al cambiar el filtro)
+function renderVendBtns(){
+  var el=document.getElementById('gVendBtns');if(!el)return;
+  var vendedores=D.usrs.filter(function(u){return u.r==='vendedor'&&u.activo!==false;});
+  var h='<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin-bottom:6px">VIENDO DATOS DE</div>';
+  h+='<div style="display:flex;flex-wrap:wrap;gap:5px">';
+  h+='<span class="fb'+(gVendSel===''?' on':'')+'" onclick="setVendGlobal(\'\')" style="font-size:11px;padding:5px 11px">Todos</span>';
+  vendedores.forEach(function(u){
+    h+='<span class="fb'+(gVendSel===u.n?' on':'')+'" onclick="setVendGlobal(this.getAttribute(\'data-v\'))" data-v="'+es(u.n)+'" style="font-size:11px;padding:5px 11px">'+es(u.n)+'</span>';
+  });
+  h+='</div>';
+  el.innerHTML=h;
+}
+function setVendGlobal(v){
+  gVendSel=v||'';
+  renderVendBtns();
+  gGo(gSecActual); // re-renderiza la seccion activa con el filtro aplicado
+}
+// Contactos visibles segun el filtro global (para todas las vistas del admin)
+function cliGlobal(){return gVendSel?D.cli.filter(function(c){return c.vend===gVendSel;}):D.cli;}
+function visGlobal(){return gVendSel?D.vis.filter(function(v){return v.vend===gVendSel;}):D.vis;}
+
 function gGo(sec){
+  if(sec==='Cfg'&&D.user&&D.user.r==='gerente'){toast('El perfil Gerente no tiene acceso a Configuracion','err');return;}
+  gSecActual=sec;
   document.querySelectorAll('#gCont .sc').forEach(function(s){s.classList.remove('on');});
   document.querySelectorAll('.gb').forEach(function(b){b.classList.remove('on');});
   var ids={D:'sGD',C:'sGC',E:'sGE',V:'sGV',Co:'sGCo',I:'sGI',Cfg:'sGCfg'};
@@ -2590,6 +2742,11 @@ function renderVE(){
   var eTSet={};mc.forEach(function(c){if(c.tipo)eTSet[c.tipo]=true;});
   var eTipos=Object.keys(eTSet).sort();
   var fh='';
+  // Mi embudo: grafico colapsable con % por etapa (solo datos del vendedor)
+  fh+='<div style="margin-bottom:8px">';
+  fh+='<span class="fb'+(vEChartOpen?' on':'')+'" onclick="vEChartOpen=!vEChartOpen;renderVE()" style="font-size:11px;padding:5px 11px">&#128202; Mi embudo '+(vEChartOpen?'&#9650;':'&#9660;')+'</span>';
+  if(vEChartOpen)fh+='<div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--rsm);padding:12px;margin-top:8px">'+embudoBarrasHTML(mc)+'</div>';
+  fh+='</div>';
   // Etapas - fila compacta con scroll horizontal
   fh+='<div class="veRow">';
   fh+=all.map(function(e){return '<span class="fb'+(vEFil===e?' on':'')+'" onclick="setVEF(this.getAttribute(\'data-e\'))" data-e="'+es(e)+'" style="font-size:11px;padding:6px 12px">'+es(e)+'</span>';}).join('');
