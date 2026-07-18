@@ -157,3 +157,13 @@ input:checked+.sl3:before{transform:translateX(18px)}
   .kbHead{display:flex;justify-content:space-between;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;padding:0 2px}
   .kbCol .cc{margin-bottom:8px}
 }
+
+/* ═══ MAPA (Leaflet) ═══ */
+#sVM,#sGM{display:none}
+#sVM.on,#sGM.on{display:flex;flex-direction:column}
+#vMapa,#gMapa{width:100%;background:var(--s1)}
+.leaflet-container{background:#0b1220;font-family:inherit}
+.leaflet-popup-content-wrapper{border-radius:12px}
+.leaflet-popup-content{margin:12px 14px}
+.leaflet-control-attribution{background:rgba(0,0,0,.5)!important;color:#888!important;font-size:9px!important}
+.leaflet-control-attribution a{color:#aaa!important}

@@ -2,7 +2,7 @@
 // Estrategia: Network First con fallback a cache
 // Cada vez que hay internet, carga la version mas reciente automaticamente
 
-const CACHE = 'crm-jorge-v3'; // subir el numero en cada cambio de este archivo
+const CACHE = 'crm-jorge-v4'; // subir el numero en cada cambio de este archivo
 const ARCHIVOS = [
   '/CRM-Jorge/',
   '/CRM-Jorge/index.html',
@@ -35,6 +35,10 @@ self.addEventListener('fetch', function(e) {
   // Firebase (Firestore/Auth) maneja su propio offline: no interceptar ni cachear
   if (e.request.url.includes('googleapis.com') || e.request.url.includes('gstatic.com')) {
     return; // el navegador lo resuelve directo
+  }
+  // Mosaicos del mapa: no cachear (son miles de imagenes chicas, llenarian el cache)
+  if (e.request.url.includes('basemaps.cartocdn.com')) {
+    return;
   }
 
   // Todo lo demas: Network First

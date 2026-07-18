@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='3.2 - 18/07/2026';
+var VERSION='3.3 - 18/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -465,7 +465,7 @@ function today(){return fechaLocal();}
 function vGo(t){
   document.querySelectorAll('#sVen .sc').forEach(function(s){s.classList.remove('on');});
   document.querySelectorAll('.vb').forEach(function(b){b.classList.remove('on');});
-  var m={H:['sVH','vbH',renderVH],C:['sVC','vbC',renderVC],E:['sVE','vbE',renderVE],G:['sVG','vbG',renderVG]};
+  var m={H:['sVH','vbH',renderVH],C:['sVC','vbC',renderVC],E:['sVE','vbE',renderVE],G:['sVG','vbG',renderVG],M:['sVM','vbM',renderVM]};
   if(m[t]){
     var el0=document.getElementById(m[t][0]);
     var el1=document.getElementById(m[t][1]);
@@ -1006,7 +1006,96 @@ function guardarVisitaProspecto(id){
   renderVH();
   if(gTab==='ejec')renderVG();
 }
-// ── UBICACION GPS DE LOS CONTACTOS (base para el futuro mapa) ─────────
+// ── MAPA DE CONTACTOS (Leaflet + OpenStreetMap, sin API key) ──────────
+// Objetivo: ver donde estan los clientes y donde falta entrar (desarrollo de zona).
+var vMapaObj=null,vMapaCapa=null;   // mapa del vendedor
+var gMapaObj=null,gMapaCapa=null;   // mapa del admin
+var vMFiltroEtapa='';               // filtro por etapa en el mapa del vendedor
+var gMFiltroEtapa='';
+
+function crearMapa(contId){
+  var mapa=L.map(contId,{zoomControl:true,attributionControl:true}).setView([-31.4201,-64.1888],12); // Cordoba Capital
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19
+  }).addTo(mapa);
+  return mapa;
+}
+function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin){
+  if(capaVieja)mapa.removeLayer(capaVieja);
+  var capa=L.layerGroup();
+  var bounds=[];
+  lista.forEach(function(c){
+    if(!c.lat||!c.lng)return;
+    var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
+    if(filtroEtapa&&eta!==filtroEtapa)return;
+    var col=EC[eta]||'#94a3b8';
+    var m=L.circleMarker([c.lat,c.lng],{radius:9,fillColor:col,color:'#0b1220',weight:2,fillOpacity:.92});
+    var pop='<div style="font-family:inherit;min-width:170px">';
+    pop+='<div style="font-weight:800;font-size:14px;margin-bottom:2px">'+es(c.nm)+'</div>';
+    if(c.fan)pop+='<div style="font-size:12px;font-weight:700;color:#0891b2">'+es(c.fan)+'</div>';
+    pop+='<div style="font-size:11px;color:#666">'+es(c.bar||c.ciu||'')+(c.tipo?' · '+es(c.tipo):'')+'</div>';
+    pop+='<div style="font-size:11px;margin-top:3px"><span style="background:'+col+';color:#fff;padding:2px 8px;border-radius:10px;font-weight:700">'+es(eta)+'</span></div>';
+    pop+='<button onclick="'+(esAdmin?'aFicha':'abrirFichaV')+'(\''+c.id+'\')" style="margin-top:8px;background:#0891b2;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">Ver ficha</button>';
+    pop+='</div>';
+    m.bindPopup(pop);
+    capa.addLayer(m);
+    bounds.push([c.lat,c.lng]);
+  });
+  capa.addTo(mapa);
+  if(bounds.length)mapa.fitBounds(bounds,{padding:[35,35],maxZoom:15});
+  return capa;
+}
+function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro){
+  var conGPS=lista.filter(function(c){return c.lat&&c.lng;}).length;
+  var sinGPS=lista.length-conGPS;
+  var h='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">';
+  h+='<select onchange="'+fnFiltro+'(this.value)" style="background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;font-size:12px;cursor:pointer">';
+  h+='<option value="">Todas las etapas</option>';
+  ET.concat(SA).forEach(function(e){h+='<option value="'+es(e)+'"'+(filtroActual===e?' selected':'')+'>'+es(e)+'</option>';});
+  h+='</select>';
+  h+='<button class="sm g" onclick="'+fnCentro+'()" style="font-size:11px">&#128205; Mi ubicacion</button>';
+  h+='<span style="font-size:11px;color:var(--muted);margin-left:auto">'+conGPS+' en el mapa'+(sinGPS?' &middot; <span style="color:var(--orange)">'+sinGPS+' sin ubicacion</span>':'')+'</span>';
+  h+='</div>';
+  // Leyenda de colores
+  h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">';
+  ET.forEach(function(e){h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:'+(EC[e]||'#94a3b8')+';display:inline-block"></span>'+es(e)+'</span>';});
+  h+='</div>';
+  if(sinGPS&&sinGPS===lista.length)h+='<div style="font-size:11px;color:var(--orange);margin-top:6px">Todavia no hay contactos con ubicacion. Se captura sola al crear prospectos nuevos, o con el boton "Marcar ubicacion GPS" en la ficha de cada contacto.</div>';
+  return h;
+}
+function setVMFiltroEtapa(v){vMFiltroEtapa=v;renderVM();}
+function setGMFiltroEtapa(v){gMFiltroEtapa=v;renderGM();}
+function centrarMiUbicacion(mapa){
+  capturarGPS(function(g){
+    if(!g){toast('No se pudo obtener tu ubicacion','err');return;}
+    mapa.setView([g.lat,g.lng],15);
+    L.circleMarker([g.lat,g.lng],{radius:7,fillColor:'#fff',color:'#0891b2',weight:3,fillOpacity:1}).addTo(mapa).bindPopup('Estas aca').openPopup();
+  });
+}
+function centrarVM(){if(vMapaObj)centrarMiUbicacion(vMapaObj);}
+function centrarGM(){if(gMapaObj)centrarMiUbicacion(gMapaObj);}
+function renderVM(){
+  var top=document.getElementById('vMTop');var cont=document.getElementById('vMapa');
+  if(!top||!cont)return;
+  var mc=misContactos();
+  top.innerHTML=barraMapaHTML(mc,vMFiltroEtapa,'setVMFiltroEtapa','centrarVM');
+  if(typeof L==='undefined'){cont.innerHTML='<div class="empty" style="padding-top:40px">El mapa necesita conexion a internet la primera vez que se abre.</div>';return;}
+  if(!vMapaObj){cont.innerHTML='';vMapaObj=crearMapa('vMapa');}
+  vMapaCapa=pintarMarcadores(vMapaObj,vMapaCapa,mc,vMFiltroEtapa,false);
+  setTimeout(function(){vMapaObj.invalidateSize();},120); // la pestaña recien se hizo visible
+}
+function renderGM(){
+  var top=document.getElementById('gMTop');var cont=document.getElementById('gMapa');
+  if(!top||!cont)return;
+  var base=cliGlobal();
+  top.innerHTML=barraMapaHTML(base,gMFiltroEtapa,'setGMFiltroEtapa','centrarGM');
+  if(typeof L==='undefined'){cont.innerHTML='<div class="empty" style="padding-top:40px">El mapa necesita conexion a internet la primera vez que se abre.</div>';return;}
+  if(!gMapaObj){cont.innerHTML='';gMapaObj=crearMapa('gMapa');}
+  gMapaCapa=pintarMarcadores(gMapaObj,gMapaCapa,base,gMFiltroEtapa,true);
+  setTimeout(function(){gMapaObj.invalidateSize();},120);
+}
+
+// ── UBICACION GPS DE LOS CONTACTOS ────────────────────────────────────
 // La captura es silenciosa y no bloquea: si el celular no da la ubicacion, no pasa nada.
 var gpsPend=null;
 function capturarGPS(cb){
@@ -2496,9 +2585,9 @@ function gGo(sec){
   gSecActual=sec;
   document.querySelectorAll('#gCont .sc').forEach(function(s){s.classList.remove('on');});
   document.querySelectorAll('.gb').forEach(function(b){b.classList.remove('on');});
-  var ids={D:'sGD',C:'sGC',E:'sGE',V:'sGV',Co:'sGCo',I:'sGI',Cfg:'sGCfg'};
-  var bids={D:'gbD',C:'gbC',E:'gbE',V:'gbV',Co:'gbCo',I:'gbI',Cfg:'gbCfg'};
-  var rend={D:renderGD,C:renderGC,E:renderGE,V:renderGV,Co:renderGCo,I:renderGI,Cfg:renderGCfg};
+  var ids={D:'sGD',C:'sGC',E:'sGE',V:'sGV',Co:'sGCo',M:'sGM',I:'sGI',Cfg:'sGCfg'};
+  var bids={D:'gbD',C:'gbC',E:'gbE',V:'gbV',Co:'gbCo',M:'gbM',I:'gbI',Cfg:'gbCfg'};
+  var rend={D:renderGD,C:renderGC,E:renderGE,V:renderGV,Co:renderGCo,M:renderGM,I:renderGI,Cfg:renderGCfg};
   if(ids[sec]){document.getElementById(ids[sec]).classList.add('on');}
   if(bids[sec]){document.getElementById(bids[sec]).classList.add('on');}
   if(rend[sec])rend[sec]();
