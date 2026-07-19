@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='3.4 - 18/07/2026';
+var VERSION='3.5 - 18/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -13,7 +13,7 @@ var MD={'Nuevo Prospecto':'Hola! Soy de Sei Tu Helados, pase por tu local y me g
 var ARG_PROV=['Buenos Aires','Catamarca','Chaco','Chubut','Cordoba','Corrientes','Entre Rios','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquen','Rio Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucuman'];
 var ARG_CIU={
   'Buenos Aires':['Buenos Aires (CABA)','La Plata','Mar del Plata','Bah\u00eda Blanca','Quilmes','La Matanza','Lomas de Zamora','Mor\u00f3n','San Isidro','Tigre','Pilar','Moreno','San Fernando','Lanús','Avellaneda','Berazategui','Florencio Varela','Tres de Febrero','Merlo','Ezeiza','Tandil','Pergamino','Zárate','Campana','Luján','Chivilcoy','Olavarría','San Nicolás'],
-  'Cordoba':['Córdoba Capital','Río Cuarto','Villa María','San Francisco','Villa Carlos Paz','Alta Gracia','Jesús María','Río Tercero','Bell Ville','La Calera','Marcos Juárez','Cruz del Eje','Villa Dolores','Arroyito','Oliva','Monte Cristo','Unquillo','Malagueño','Colonia Caroya','Las Varillas','Leones','General Cabrera','La Carlota','Hernando','Cosquín','Capilla del Monte','Villa Nueva','Almafuerte','Dean Funes'],
+  'Cordoba':['Córdoba Capital','Río Cuarto','Villa María','San Francisco','Villa Carlos Paz','Alta Gracia','Jesús María','Río Tercero','Bell Ville','La Calera','Marcos Juárez','Cruz del Eje','Villa Dolores','Arroyito','Oliva','Monte Cristo','Unquillo','Malagueño','Colonia Caroya','Las Varillas','Leones','General Cabrera','La Carlota','Hernando','Cosquín','Capilla del Monte','Villa Nueva','Almafuerte','Dean Funes','Villa Allende','Río Ceballos','Mendiolaza','Saldán','Salsipuedes','Agua de Oro','La Granja','Estación Juárez Celman','Toledo','Villa del Rosario','Laguna Larga','Pilar','Río Segundo','Río Primero','Villa General Belgrano','Santa Rosa de Calamuchita','Embalse','La Falda','Valle Hermoso','Huerta Grande','Villa Giardino','La Cumbre','Tanti','Bialet Massé','Santa María de Punilla','Icho Cruz','Mina Clavero','Villa Cura Brochero','General Deheza','Laboulaye','Corral de Bustos','Morteros','Brinkmann','Devoto','Freyre','Balnearia','Villa del Totoral','Sinsacate'],
   'Santa Fe':['Rosario','Santa Fe','Rafaela','Villa Constitución','San Lorenzo','Venado Tuerto','Reconquista','Esperanza','Casilda','Gálvez','Ceres','Las Rosas','Firmat','Sunchales','Cañada de Gómez'],
   'Mendoza':['Mendoza','San Rafael','Godoy Cruz','Guaymallén','Las Heras','Maipú','Luján de Cuyo','Junín','Rivadavia','Tunuyán','Malargüe'],
   'Tucuman':['San Miguel de Tucumán','Yerba Buena','Tafí Viejo','Banda del Río Salí','Alderetes','Concepción','Monteros','Aguilares'],
@@ -1019,7 +1019,7 @@ function geocodificarContactos(){
   var pend=D.cli.filter(function(c){return !c.lat&&(c.dir||'').trim().length>3;});
   var sinDir=D.cli.filter(function(c){return !c.lat&&(c.dir||'').trim().length<=3;}).length;
   if(!pend.length){toast('No hay contactos con direccion pendientes de ubicar'+(sinDir?' ('+sinDir+' sin direccion cargada)':''),'ok');return;}
-  var mins=Math.max(1,Math.ceil(pend.length*1.3/60));
+  var mins=Math.max(1,Math.ceil(pend.length*2.2/60)); // contempla los reintentos por contacto
   if(!confirm('Se van a buscar las coordenadas de '+pend.length+' contactos usando su direccion. Tarda aproximadamente '+mins+' minuto'+(mins>1?'s':'')+'. Deja esta pantalla abierta hasta que termine. Continuar?'))return;
   geoEnCurso=true;
   var i=0,ok=0,fallos=[];
@@ -1037,25 +1037,50 @@ function geocodificarContactos(){
     oMod('Geocodificacion terminada',h);
     logEvento('edicion','','','Geocodificacion masiva: '+ok+' ubicados, '+fallos.length+' sin resultado','','');
   }
+  // Normalizaciones: "Cordoba Capital" no existe en el mapa, la ciudad se llama "Cordoba".
+  function ciudadReal(c){
+    var ciu=(c.ciu||'').trim();
+    if(!ciu||/c[oó]rdoba capital/i.test(ciu))return 'Córdoba';
+    return ciu;
+  }
+  function dirLimpia(c){
+    return (c.dir||'').replace(/\bB[o°]\.?\s/gi,'').replace(/\s+/g,' ').replace(/,+/g,',').trim();
+  }
+  function consultar(q){
+    return fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q='+encodeURIComponent(q))
+      .then(function(r){return r.json();})
+      .then(function(res){
+        if(res&&res[0]){
+          var la=parseFloat(res[0].lat),lo=parseFloat(res[0].lon);
+          if(la<-20&&la>-56&&lo<-53&&lo>-74)return{lat:la,lng:lo}; // sanidad: dentro de Argentina
+        }
+        return null;
+      }).catch(function(){return null;});
+  }
   function uno(){
     if(i>=pend.length){terminar();return;}
     var c=pend[i];i++;actualizar();
-    var partes=[c.dir];
-    if(c.bar)partes.push(c.bar);
-    partes.push(c.ciu||'Cordoba');
-    partes.push('Argentina');
-    var url='https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q='+encodeURIComponent(partes.join(', '));
-    fetch(url).then(function(r){return r.json();}).then(function(res){
-      if(res&&res[0]){
-        var la=parseFloat(res[0].lat),lo=parseFloat(res[0].lon);
-        // Sanidad: dentro de Argentina; si no, se descarta como resultado erroneo
-        if(la<-20&&la>-56&&lo<-53&&lo>-74){
-          c.lat=la;c.lng=lo;c.gpsAprox=true;c.gpsF=today();
+    var dir=dirLimpia(c),ciu=ciudadReal(c);
+    // Cascada de intentos, del mas simple al mas especifico:
+    // 1) direccion + ciudad  2) direccion + barrio + ciudad  3) direccion + provincia
+    var intentos=[dir+', '+ciu+', Argentina'];
+    if(c.bar)intentos.push(dir+', '+c.bar+', '+ciu+', Argentina');
+    if(c.prov)intentos.push(dir+', '+c.prov+', Argentina');
+    var t=0;
+    function probar(){
+      if(t>=intentos.length){fallos.push(c.nm);setTimeout(uno,1200);return;}
+      consultar(intentos[t]).then(function(g){
+        t++;
+        if(g){
+          c.lat=g.lat;c.lng=g.lng;c.gpsAprox=true;c.gpsF=today();
           fsSetContacto(c);ok++;
-        } else fallos.push(c.nm);
-      } else fallos.push(c.nm);
-    }).catch(function(){fallos.push(c.nm);})
-    .finally(function(){setTimeout(uno,1200);}); // limite del servicio: 1 consulta/segundo
+          setTimeout(uno,1200);
+        } else {
+          setTimeout(probar,1200); // siguiente intento, respetando el limite de 1/seg
+        }
+      });
+    }
+    probar();
   }
   uno();
 }
