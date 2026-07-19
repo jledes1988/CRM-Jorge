@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='3.3 - 18/07/2026';
+var VERSION='3.4 - 18/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -1006,6 +1006,59 @@ function guardarVisitaProspecto(id){
   renderVH();
   if(gTab==='ejec')renderVG();
 }
+// ── GEOCODIFICACION MASIVA (Config del admin) ─────────────────────────
+// Busca las coordenadas de todos los contactos sin ubicacion usando su direccion,
+// con el servicio gratuito de OpenStreetMap (Nominatim, max 1 consulta/segundo).
+// Las ubicaciones quedan marcadas como "aproximadas": el boton GPS de la ficha
+// las reemplaza por la posicion exacta cuando el vendedor visita el local.
+var geoEnCurso=false;
+function geocodificarContactos(){
+  if(soloLectura())return;
+  if(geoEnCurso){toast('Ya hay una busqueda en curso','err');return;}
+  if(typeof fetch==='undefined'){toast('Este navegador no soporta la funcion','err');return;}
+  var pend=D.cli.filter(function(c){return !c.lat&&(c.dir||'').trim().length>3;});
+  var sinDir=D.cli.filter(function(c){return !c.lat&&(c.dir||'').trim().length<=3;}).length;
+  if(!pend.length){toast('No hay contactos con direccion pendientes de ubicar'+(sinDir?' ('+sinDir+' sin direccion cargada)':''),'ok');return;}
+  var mins=Math.max(1,Math.ceil(pend.length*1.3/60));
+  if(!confirm('Se van a buscar las coordenadas de '+pend.length+' contactos usando su direccion. Tarda aproximadamente '+mins+' minuto'+(mins>1?'s':'')+'. Deja esta pantalla abierta hasta que termine. Continuar?'))return;
+  geoEnCurso=true;
+  var i=0,ok=0,fallos=[];
+  var prog=document.getElementById('geoProg');
+  function actualizar(){if(prog)prog.textContent='Buscando '+(i)+' de '+pend.length+'... ('+ok+' ubicados)';}
+  function terminar(){
+    geoEnCurso=false;
+    if(prog)prog.textContent='';
+    var h='<div style="font-size:14px;margin-bottom:10px"><b style="color:var(--green)">'+ok+' contactos ubicados en el mapa.</b></div>';
+    if(fallos.length){
+      h+='<div style="font-size:12px;color:var(--muted);margin-bottom:6px">No se encontro la direccion de estos '+fallos.length+' (usar el boton "Marcar ubicacion GPS" en su ficha durante la proxima visita):</div>';
+      h+='<div style="font-size:12px;max-height:200px;overflow-y:auto">'+fallos.map(function(n){return '&middot; '+es(n);}).join('<br>')+'</div>';
+    }
+    if(sinDir)h+='<div style="font-size:12px;color:var(--orange);margin-top:8px">'+sinDir+' contactos no tienen direccion cargada, quedaron afuera.</div>';
+    oMod('Geocodificacion terminada',h);
+    logEvento('edicion','','','Geocodificacion masiva: '+ok+' ubicados, '+fallos.length+' sin resultado','','');
+  }
+  function uno(){
+    if(i>=pend.length){terminar();return;}
+    var c=pend[i];i++;actualizar();
+    var partes=[c.dir];
+    if(c.bar)partes.push(c.bar);
+    partes.push(c.ciu||'Cordoba');
+    partes.push('Argentina');
+    var url='https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q='+encodeURIComponent(partes.join(', '));
+    fetch(url).then(function(r){return r.json();}).then(function(res){
+      if(res&&res[0]){
+        var la=parseFloat(res[0].lat),lo=parseFloat(res[0].lon);
+        // Sanidad: dentro de Argentina; si no, se descarta como resultado erroneo
+        if(la<-20&&la>-56&&lo<-53&&lo>-74){
+          c.lat=la;c.lng=lo;c.gpsAprox=true;c.gpsF=today();
+          fsSetContacto(c);ok++;
+        } else fallos.push(c.nm);
+      } else fallos.push(c.nm);
+    }).catch(function(){fallos.push(c.nm);})
+    .finally(function(){setTimeout(uno,1200);}); // limite del servicio: 1 consulta/segundo
+  }
+  uno();
+}
 // ── MAPA DE CONTACTOS (Leaflet + OpenStreetMap, sin API key) ──────────
 // Objetivo: ver donde estan los clientes y donde falta entrar (desarrollo de zona).
 var vMapaObj=null,vMapaCapa=null;   // mapa del vendedor
@@ -1034,7 +1087,7 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin){
     pop+='<div style="font-weight:800;font-size:14px;margin-bottom:2px">'+es(c.nm)+'</div>';
     if(c.fan)pop+='<div style="font-size:12px;font-weight:700;color:#0891b2">'+es(c.fan)+'</div>';
     pop+='<div style="font-size:11px;color:#666">'+es(c.bar||c.ciu||'')+(c.tipo?' · '+es(c.tipo):'')+'</div>';
-    pop+='<div style="font-size:11px;margin-top:3px"><span style="background:'+col+';color:#fff;padding:2px 8px;border-radius:10px;font-weight:700">'+es(eta)+'</span></div>';
+    pop+='<div style="font-size:11px;margin-top:3px"><span style="background:'+col+';color:#fff;padding:2px 8px;border-radius:10px;font-weight:700">'+es(eta)+'</span>'+(c.gpsAprox?' <span style="color:#999;font-size:10px">(ubicacion aprox. por direccion)</span>':'')+'</div>';
     pop+='<button onclick="'+(esAdmin?'aFicha':'abrirFichaV')+'(\''+c.id+'\')" style="margin-top:8px;background:#0891b2;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">Ver ficha</button>';
     pop+='</div>';
     m.bindPopup(pop);
@@ -1110,7 +1163,7 @@ function marcarUbicacion(id){
   toast('Obteniendo ubicacion...','ok');
   capturarGPS(function(g){
     if(!g){toast('No se pudo obtener la ubicacion. Verifica el GPS del celular','err');return;}
-    c.lat=g.lat;c.lng=g.lng;c.gpsAcc=g.acc;c.gpsF=g.f;
+    c.lat=g.lat;c.lng=g.lng;c.gpsAcc=g.acc;c.gpsF=g.f;delete c.gpsAprox;
     fsSetContacto(c);
     logEvento('edicion',c.id,c.nm,'Ubicacion GPS marcada','','');
     toast('Ubicacion guardada ('+(g.acc?'precision '+g.acc+'m':'ok')+')','ok');
@@ -2131,6 +2184,12 @@ function confirmarNuevoProsAdmin(){
 function renderGCfg(){
   var h='';
   // ── USUARIOS ──────────────────────────────────────────────────────
+  h+='<div class="card"><div class="ct">MAPA Y UBICACIONES</div>';
+  var _sinUbi=D.cli.filter(function(c){return !c.lat;}).length;
+  h+='<div style="font-size:13px;color:var(--muted);margin-bottom:10px">'+(_sinUbi?_sinUbi+' contactos todavia no aparecen en el mapa. Este boton busca sus coordenadas usando la direccion cargada (aproximada). El boton GPS de cada ficha la reemplaza por la exacta al visitar el local.':'Todos los contactos tienen ubicacion.')+'</div>';
+  if(_sinUbi)h+='<button class="btn sec" onclick="geocodificarContactos()" style="margin:0">&#128205; Ubicar contactos por direccion</button>';
+  h+='<div id="geoProg" style="font-size:12px;color:var(--cyan);margin-top:8px;font-weight:700"></div>';
+  h+='</div>';
   h+='<div class="card"><div class="ct">USUARIOS DEL SISTEMA</div>';
   D.usrs.forEach(function(u){
     h+='<div class="sr"><div style="flex:1">';
