@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='3.7 - 20/07/2026';
+var VERSION='3.8 - 20/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -769,8 +769,8 @@ function abrirFichaV(id){
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
     h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin:0">Enviar WhatsApp</button>';
     // Ubicacion: dos caminos distintos y claros
-    if(c.lat){
-      h+='<div style="font-size:12px;color:var(--muted);margin:0 0 6px">&#128205; '+(c.gpsAprox?'Ubicado por direccion (aproximado)':'Ubicado por GPS (exacto)')+' &middot; '+fmt(c.gpsF||'')+'</div>';
+    if(c.lat||c.gpsOk){
+      h+='<div style="font-size:12px;margin:0 0 6px">'+(c.gpsOk?'<span style="color:var(--green)">&#128205; Ubicacion confirmada (en el mapa)</span>':'<span style="color:var(--orange)">&#128205; Ubicacion sin confirmar (no aparece en el mapa)</span>')+' &middot; <span style="color:var(--muted)">'+fmt(c.gpsF||'')+'</span></div>';
     }
     h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px">';
     h+='<button class="btn sec" onclick="marcarUbicacion(\''+id+'\')" style="margin:0;flex:1;min-width:130px;font-size:12px">&#128205; GPS (en el local)</button>';
@@ -1017,84 +1017,8 @@ function guardarVisitaProspecto(id){
   vpVendio=null;
   renderVH();
   if(gTab==='ejec')renderVG();
-}
-// ── GEOCODIFICACION MASIVA (Config del admin) ─────────────────────────
-// Busca las coordenadas de todos los contactos sin ubicacion usando su direccion,
-// con el servicio gratuito de OpenStreetMap (Nominatim, max 1 consulta/segundo).
-// Las ubicaciones quedan marcadas como "aproximadas": el boton GPS de la ficha
-// las reemplaza por la posicion exacta cuando el vendedor visita el local.
-var geoEnCurso=false;
-function geocodificarContactos(){
-  if(soloLectura())return;
-  if(geoEnCurso){toast('Ya hay una busqueda en curso','err');return;}
-  if(typeof fetch==='undefined'){toast('Este navegador no soporta la funcion','err');return;}
-  var pend=D.cli.filter(function(c){return !c.lat&&(c.dir||'').trim().length>3;});
-  var sinDir=D.cli.filter(function(c){return !c.lat&&(c.dir||'').trim().length<=3;}).length;
-  if(!pend.length){toast('No hay contactos con direccion pendientes de ubicar'+(sinDir?' ('+sinDir+' sin direccion cargada)':''),'ok');return;}
-  var mins=Math.max(1,Math.ceil(pend.length*2.2/60)); // contempla los reintentos por contacto
-  if(!confirm('Se van a buscar las coordenadas de '+pend.length+' contactos usando su direccion. Tarda aproximadamente '+mins+' minuto'+(mins>1?'s':'')+'. Deja esta pantalla abierta hasta que termine. Continuar?'))return;
-  geoEnCurso=true;
-  var i=0,ok=0,fallos=[];
-  var prog=document.getElementById('geoProg');
-  function actualizar(){if(prog)prog.textContent='Buscando '+(i)+' de '+pend.length+'... ('+ok+' ubicados)';}
-  function terminar(){
-    geoEnCurso=false;
-    if(prog)prog.textContent='';
-    var h='<div style="font-size:14px;margin-bottom:10px"><b style="color:var(--green)">'+ok+' contactos ubicados en el mapa.</b></div>';
-    if(fallos.length){
-      h+='<div style="font-size:12px;color:var(--muted);margin-bottom:6px">No se encontro la direccion de estos '+fallos.length+' (usar el boton "Marcar ubicacion GPS" en su ficha durante la proxima visita):</div>';
-      h+='<div style="font-size:12px;max-height:200px;overflow-y:auto">'+fallos.map(function(n){return '&middot; '+es(n);}).join('<br>')+'</div>';
-    }
-    if(sinDir)h+='<div style="font-size:12px;color:var(--orange);margin-top:8px">'+sinDir+' contactos no tienen direccion cargada, quedaron afuera.</div>';
-    oMod('Geocodificacion terminada',h);
-    logEvento('edicion','','','Geocodificacion masiva: '+ok+' ubicados, '+fallos.length+' sin resultado','','');
-  }
-  // Normalizaciones: "Cordoba Capital" no existe en el mapa, la ciudad se llama "Cordoba".
-  function ciudadReal(c){
-    var ciu=(c.ciu||'').trim();
-    if(!ciu||/c[oó]rdoba capital/i.test(ciu))return 'Córdoba';
-    return ciu;
-  }
-  function dirLimpia(c){
-    return (c.dir||'').replace(/\bB[o°]\.?\s/gi,'').replace(/\s+/g,' ').replace(/,+/g,',').trim();
-  }
-  function consultar(q){
-    return fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q='+encodeURIComponent(q))
-      .then(function(r){return r.json();})
-      .then(function(res){
-        if(res&&res[0]){
-          var la=parseFloat(res[0].lat),lo=parseFloat(res[0].lon);
-          if(la<-20&&la>-56&&lo<-53&&lo>-74)return{lat:la,lng:lo}; // sanidad: dentro de Argentina
-        }
-        return null;
-      }).catch(function(){return null;});
-  }
-  function uno(){
-    if(i>=pend.length){terminar();return;}
-    var c=pend[i];i++;actualizar();
-    var dir=dirLimpia(c),ciu=ciudadReal(c);
-    // Cascada de intentos, del mas simple al mas especifico:
-    // 1) direccion + ciudad  2) direccion + barrio + ciudad  3) direccion + provincia
-    var intentos=[dir+', '+ciu+', Argentina'];
-    if(c.bar)intentos.push(dir+', '+c.bar+', '+ciu+', Argentina');
-    if(c.prov)intentos.push(dir+', '+c.prov+', Argentina');
-    var t=0;
-    function probar(){
-      if(t>=intentos.length){fallos.push(c.nm);setTimeout(uno,1200);return;}
-      consultar(intentos[t]).then(function(g){
-        t++;
-        if(g){
-          c.lat=g.lat;c.lng=g.lng;c.gpsAprox=true;c.gpsF=today();
-          fsSetContacto(c);ok++;
-          setTimeout(uno,1200);
-        } else {
-          setTimeout(probar,1200); // siguiente intento, respetando el limite de 1/seg
-        }
-      });
-    }
-    probar();
-  }
-  uno();
+  // Confirmar ubicacion la primera vez, si el vendedor esta en el local
+  if(!c.gpsOk&&(!D.user||D.user.r==='vendedor')){setTimeout(function(){confirmarUbicacion(c.id);},400);}
 }
 // ── MAPA DE CONTACTOS (Leaflet + OpenStreetMap, sin API key) ──────────
 // Objetivo: ver donde estan los clientes y donde falta entrar (desarrollo de zona).
@@ -1115,16 +1039,17 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin){
   var capa=L.layerGroup();
   var bounds=[];
   lista.forEach(function(c){
-    if(!c.lat||!c.lng)return;
+    // Opcion B: solo se muestran contactos con ubicacion CONFIRMADA por GPS.
+    if(!c.gpsOk||!c.lat||!c.lng)return;
     var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
     if(filtroEtapa&&eta!==filtroEtapa)return;
     var col=EC[eta]||'#94a3b8';
     var m=L.circleMarker([c.lat,c.lng],{radius:9,fillColor:col,color:'#0b1220',weight:2,fillOpacity:.92});
     var pop='<div style="font-family:inherit;min-width:170px">';
     pop+='<div style="font-weight:800;font-size:14px;margin-bottom:2px">'+es(c.nm)+'</div>';
-    if(c.fan)pop+='<div style="font-size:12px;font-weight:700;color:#0891b2">'+es(c.fan)+'</div>';
+    if(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase())pop+='<div style="font-size:12px;font-weight:700;color:#0891b2">'+es(c.fan)+'</div>';
     pop+='<div style="font-size:11px;color:#666">'+es(c.bar||c.ciu||'')+(c.tipo?' · '+es(c.tipo):'')+'</div>';
-    pop+='<div style="font-size:11px;margin-top:3px"><span style="background:'+col+';color:#fff;padding:2px 8px;border-radius:10px;font-weight:700">'+es(eta)+'</span>'+(c.gpsAprox?' <span style="color:#999;font-size:10px">(ubicacion aprox. por direccion)</span>':'')+'</div>';
+    pop+='<div style="font-size:11px;margin-top:3px"><span style="background:'+col+';color:#fff;padding:2px 8px;border-radius:10px;font-weight:700">'+es(eta)+'</span></div>';
     pop+='<button onclick="'+(esAdmin?'aFicha':'abrirFichaV')+'(\''+c.id+'\')" style="margin-top:8px;background:#0891b2;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">Ver ficha</button>';
     pop+='</div>';
     m.bindPopup(pop);
@@ -1136,21 +1061,21 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin){
   return capa;
 }
 function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro){
-  var conGPS=lista.filter(function(c){return c.lat&&c.lng;}).length;
-  var sinGPS=lista.length-conGPS;
+  var conf=lista.filter(function(c){return c.gpsOk&&c.lat&&c.lng;}).length;
+  var sinConf=lista.length-conf;
   var h='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">';
   h+='<select onchange="'+fnFiltro+'(this.value)" style="background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;font-size:12px;cursor:pointer">';
   h+='<option value="">Todas las etapas</option>';
   ET.concat(SA).forEach(function(e){h+='<option value="'+es(e)+'"'+(filtroActual===e?' selected':'')+'>'+es(e)+'</option>';});
   h+='</select>';
   h+='<button class="sm g" onclick="'+fnCentro+'()" style="font-size:11px">&#128205; Mi ubicacion</button>';
-  h+='<span style="font-size:11px;color:var(--muted);margin-left:auto">'+conGPS+' en el mapa'+(sinGPS?' &middot; <span style="color:var(--orange)">'+sinGPS+' sin ubicacion</span>':'')+'</span>';
+  h+='<span style="font-size:11px;color:var(--muted);margin-left:auto">'+conf+' en el mapa'+(sinConf?' &middot; <span style="color:var(--orange)">'+sinConf+' por confirmar</span>':'')+'</span>';
   h+='</div>';
   // Leyenda de colores
   h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">';
   ET.forEach(function(e){h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:'+(EC[e]||'#94a3b8')+';display:inline-block"></span>'+es(e)+'</span>';});
   h+='</div>';
-  if(sinGPS&&sinGPS===lista.length)h+='<div style="font-size:11px;color:var(--orange);margin-top:6px">Todavia no hay contactos con ubicacion. Se captura sola al crear prospectos nuevos, o con el boton "Marcar ubicacion GPS" en la ficha de cada contacto.</div>';
+  if(!conf)h+='<div style="font-size:11px;color:var(--orange);margin-top:6px">Todavia no hay contactos confirmados en el mapa. La ubicacion se confirma con GPS al crear un prospecto o en la primera visita a un cliente, parado en el local.</div>';
   return h;
 }
 function setVMFiltroEtapa(v){vMFiltroEtapa=v;renderVM();}
@@ -1194,16 +1119,17 @@ function capturarGPS(cb){
     if(cb)cb({lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy||0),f:today()});
   },function(){if(cb)cb(null);},{enableHighAccuracy:true,timeout:8000,maximumAge:60000});
 }
-// Boton "Marcar ubicacion" de las fichas: captura y guarda en el contacto
+// Boton "Marcar ubicacion" de las fichas: captura GPS y CONFIRMA la ubicacion (gpsOk=true)
 function marcarUbicacion(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
   toast('Obteniendo ubicacion...','ok');
   capturarGPS(function(g){
     if(!g){toast('No se pudo obtener la ubicacion. Verifica el GPS del celular','err');return;}
-    c.lat=g.lat;c.lng=g.lng;c.gpsAcc=g.acc;c.gpsF=g.f;delete c.gpsAprox;
+    c.lat=g.lat;c.lng=g.lng;c.gpsAcc=g.acc;c.gpsF=g.f;c.gpsOk=true;delete c.gpsAprox;
     fsSetContacto(c);
-    logEvento('edicion',c.id,c.nm,'Ubicacion GPS marcada','','');
-    toast('Ubicacion guardada ('+(g.acc?'precision '+g.acc+'m':'ok')+')','ok');
+    logEvento('edicion',c.id,c.nm,'Ubicacion GPS confirmada','','');
+    toast('Ubicacion confirmada, ya aparece en el mapa','ok');
+    cMod();
   });
 }
 // Ubica UN contacto usando su direccion de texto (para corregir desde el escritorio,
@@ -1600,6 +1526,7 @@ function renderGC(){
     var d7=dias(c.ul);var col=d7===null?'var(--red)':d7>14?'var(--red)':d7>7?'var(--orange)':'var(--green)';
     h+='<div class="cc" onclick="aFicha(\''+c.id+'\')">';
     h+='<div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
+    if(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase())h+='<div style="font-size:13px;font-weight:700;color:var(--cyan)">'+es(c.fan)+'</div>';
     h+='<div style="font-size:12px;color:var(--muted)">'+es(c.dir||'')+(c.bar?' · '+es(c.bar):'')+'</div>';
     h+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">';
     h+=(c.esP?'<span class="tg o">'+es(c.etapaEmbudo||'PROSPECTO')+'</span>':'<span class="tg g">CLIENTE</span>');
@@ -1647,8 +1574,8 @@ function aFicha(id){
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">';
     h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin:0">Enviar WhatsApp</button>';
     // Ubicacion: dos caminos distintos y claros
-    if(c.lat){
-      h+='<div style="font-size:12px;color:var(--muted);margin:0 0 6px">&#128205; '+(c.gpsAprox?'Ubicado por direccion (aproximado)':'Ubicado por GPS (exacto)')+' &middot; '+fmt(c.gpsF||'')+'</div>';
+    if(c.lat||c.gpsOk){
+      h+='<div style="font-size:12px;margin:0 0 6px">'+(c.gpsOk?'<span style="color:var(--green)">&#128205; Ubicacion confirmada (en el mapa)</span>':'<span style="color:var(--orange)">&#128205; Ubicacion sin confirmar (no aparece en el mapa)</span>')+' &middot; <span style="color:var(--muted)">'+fmt(c.gpsF||'')+'</span></div>';
     }
     h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px">';
     h+='<button class="btn sec" onclick="marcarUbicacion(\''+id+'\')" style="margin:0;flex:1;min-width:130px;font-size:12px">&#128205; GPS (en el local)</button>';
@@ -1760,7 +1687,7 @@ function renderGE(){
   if(!cs.length){h+='<div class="empty">Sin contactos</div>';document.getElementById('gEB').innerHTML=h;return;}
   cs.forEach(function(c){
     var col=EC[c.etapaEmbudo]||'var(--muted)';var nv=D.vis.filter(function(v){return v.cid===c.id;}).length;
-    h+='<div class="cc" onclick="aFicha(\''+c.id+'\')" style="cursor:pointer"><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div><div style="font-size:12px;color:var(--muted)">'+es(c.bar||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div><div style="text-align:right"><span style="background:rgba('+h2r(col)+',.15);color:'+col+';padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">'+es(c.etapaEmbudo||'')+'</span><div style="font-size:10px;color:var(--muted);margin-top:3px">'+nv+' visita'+(nv!==1?'s':'')+'</div></div></div></div>';
+    h+='<div class="cc" onclick="aFicha(\''+c.id+'\')" style="cursor:pointer"><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>'+(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase()?'<div style="font-size:13px;font-weight:700;color:var(--cyan)">'+es(c.fan)+'</div>':'')+'<div style="font-size:12px;color:var(--muted)">'+es(c.bar||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div><div style="text-align:right"><span style="background:rgba('+h2r(col)+',.15);color:'+col+';padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">'+es(c.etapaEmbudo||'')+'</span><div style="font-size:10px;color:var(--muted);margin-top:3px">'+nv+' visita'+(nv!==1?'s':'')+'</div></div></div></div>';
   });
   document.getElementById('gEB').innerHTML=h;
 }
@@ -1934,7 +1861,7 @@ function renderGV(){
       return true;
     });
   }
-  if(gVF.q){var q=gVF.q.toLowerCase();vs=vs.filter(function(v){var c=D.cli.find(function(x){return x.id===v.cid;});return c&&(c.nm||'').toLowerCase().includes(q);});}
+  if(gVF.q){var q=gVF.q.toLowerCase();vs=vs.filter(function(v){var c=D.cli.find(function(x){return x.id===v.cid;});return c&&((c.nm||'').toLowerCase().includes(q)||(c.fan||'').toLowerCase().includes(q));});}
   // Resultado
   var ventas=vs.filter(function(v){return v.vendio===true;}).length;
   var sinventa=vs.filter(function(v){return v.vendio===false;}).length;
@@ -1953,7 +1880,7 @@ function renderGV(){
     h+='<div style="display:flex;justify-content:space-between;align-items:center">';
     h+='<div class="vhd">'+fmt(v.fecha)+(v.vend?' · <span style="color:var(--cyan)">'+es(v.vend)+'</span>':'')+'</div>';
     h+='<span style="font-size:10px;font-weight:700;color:'+col+'">'+res+'</span></div>';
-    h+='<div class="vhr">'+es(c?c.nm:'?')+(c&&c.tipo?' · '+es(c.tipo):'')+'</div>';
+    h+='<div class="vhr">'+es(c?c.nm:'?')+(c&&c.fan&&c.fan.trim().toLowerCase()!==(c.nm||'').trim().toLowerCase()?' · <span style="color:var(--cyan);font-weight:700">'+es(c.fan)+'</span>':'')+(c&&c.tipo?' · '+es(c.tipo):'')+'</div>';
     if(c&&c.ciu)h+='<div class="vhx">'+es(c.ciu)+(c.bar?' · '+es(c.bar):'')+'</div>';
     if(v.vendio===false&&v.razones)h+='<div class="vhx" style="color:var(--red)">Motivo: '+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>';
     if(v.nt)h+='<div class="vhx" style="font-style:italic">'+es(v.nt)+'</div>';
@@ -2326,10 +2253,12 @@ function renderGCfg(){
   h+='<div id="reasLista"></div>';
   h+='</div>';
   h+='<div class="card"><div class="ct">MAPA Y UBICACIONES</div>';
-  var _sinUbi=D.cli.filter(function(c){return !c.lat;}).length;
-  h+='<div style="font-size:13px;color:var(--muted);margin-bottom:10px">'+(_sinUbi?_sinUbi+' contactos todavia no aparecen en el mapa. Este boton busca sus coordenadas usando la direccion cargada (aproximada). El boton GPS de cada ficha la reemplaza por la exacta al visitar el local.':'Todos los contactos tienen ubicacion.')+'</div>';
-  if(_sinUbi)h+='<button class="btn sec" onclick="geocodificarContactos()" style="margin:0">&#128205; Ubicar contactos por direccion</button>';
-  h+='<div id="geoProg" style="font-size:12px;color:var(--cyan);margin-top:8px;font-weight:700"></div>';
+  var _conf=D.cli.filter(function(c){return c.gpsOk;}).length;
+  var _sinConf=D.cli.length-_conf;
+  h+='<div style="font-size:13px;color:var(--muted);margin-bottom:6px">En el mapa solo aparecen los contactos con ubicacion <b style="color:var(--green)">confirmada por GPS</b>, para que sea 100% confiable.</div>';
+  h+='<div style="display:flex;gap:16px;margin-bottom:4px"><div><div style="font-size:22px;font-weight:800;color:var(--green)">'+_conf+'</div><div style="font-size:11px;color:var(--muted)">confirmados</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:var(--orange)">'+_sinConf+'</div><div style="font-size:11px;color:var(--muted)">por confirmar</div></div></div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-top:6px">La confirmacion se hace sola: al crear un prospecto, o en la primera visita a cada cliente, el vendedor marca el GPS parado en el local.</div>';
   h+='</div>';
   h+='<div class="card"><div class="ct">USUARIOS DEL SISTEMA</div>';
   D.usrs.forEach(function(u){
@@ -2842,7 +2771,7 @@ function wFin(){
   var c=D.cli.find(function(x){return x.id===W.cid;});
   if(c){
     c.ul=v.fecha;
-    if(W.nu&&gpsPend&&!c.lat){c.lat=gpsPend.lat;c.lng=gpsPend.lng;c.gpsAcc=gpsPend.acc;c.gpsF=gpsPend.f;gpsPend=null;}
+    if(W.nu&&gpsPend&&!c.lat){c.lat=gpsPend.lat;c.lng=gpsPend.lng;c.gpsAcc=gpsPend.acc;c.gpsF=gpsPend.f;c.gpsOk=true;gpsPend=null;}
     if(v.vendio===true)c.uv=v.fecha;
     if(v.eta)c.etapaEmbudo=v.eta;
     if(v.deu!==undefined)c.deu=v.deu;
@@ -2880,6 +2809,12 @@ function wFin(){
   fsSetVisita(v);
   if(c)fsSetContacto(c);
   hideWiz();toast('Guardado!','ok');
+  // Confirmar ubicacion: si el contacto todavia no tiene GPS confirmado, ofrecerlo ahora
+  // (parado en el local). Solo para el vendedor, una unica vez por contacto.
+  if(c&&!c.gpsOk&&!W.origenAdmin){
+    setTimeout(function(){confirmarUbicacion(c.id);},400);
+    return;
+  }
   if(W.origenAdmin){
     gGo('C');
   } else if(W.nu&&W.tipo==='prospecto'){
@@ -2887,6 +2822,51 @@ function wFin(){
   } else {
     renderVH();if(gTab==='ejec')renderVG();
   }
+}
+// Modal de confirmacion de ubicacion: mini-mapa + boton "Estoy en el local" (GPS).
+// Aparece la primera vez que se visita un contacto sin ubicacion confirmada.
+var confMapaObj=null;
+function confirmarUbicacion(id){
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  var h='<div style="font-size:13px;color:var(--muted);margin-bottom:10px">Confirma donde esta ubicado <b style="color:var(--text)">'+es(c.nm)+'</b> para que aparezca en el mapa. Estando parado en el local, toca el boton para marcar el punto exacto.</div>';
+  h+='<div id="confMapa" style="width:100%;height:230px;border-radius:var(--rsm);overflow:hidden;background:var(--s2);margin-bottom:10px"></div>';
+  h+='<div id="confEstado" style="font-size:12px;color:var(--muted);margin-bottom:10px;text-align:center"></div>';
+  h+='<button class="btn" onclick="confMarcarGPS(\''+id+'\')" style="margin:0 0 8px">&#128205; Estoy en el local (marcar GPS)</button>';
+  h+='<button class="btn sec" onclick="cMod();'+(!W.origenAdmin?'vGo(\'C\')':'')+'" style="margin:0">Ahora no, confirmar despues</button>';
+  oMod('Confirmar ubicacion en el mapa',h);
+  // Dibujar el mini-mapa
+  setTimeout(function(){
+    if(typeof L==='undefined'){var cm=document.getElementById('confMapa');if(cm)cm.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">El mapa necesita internet</div>';return;}
+    var centro=(c.lat&&c.lng)?[c.lat,c.lng]:[-31.4201,-64.1888];
+    confMapaObj=L.map('confMapa',{zoomControl:true,attributionControl:false}).setView(centro,c.lat?15:12);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(confMapaObj);
+    if(c.lat&&c.lng){
+      confMarcador=L.circleMarker([c.lat,c.lng],{radius:10,fillColor:'#fb923c',color:'#0b1220',weight:2,fillOpacity:.9}).addTo(confMapaObj);
+      var est=document.getElementById('confEstado');if(est)est.textContent='Ubicacion tentativa por direccion. Marca el GPS para confirmarla.';
+    } else {
+      var est2=document.getElementById('confEstado');if(est2)est2.textContent='Sin ubicacion todavia. Marca el GPS parado en el local.';
+    }
+    confMapaObj.invalidateSize();
+  },250);
+}
+var confMarcador=null;
+function confMarcarGPS(id){
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  var est=document.getElementById('confEstado');if(est)est.textContent='Obteniendo ubicacion...';
+  capturarGPS(function(g){
+    if(!g){if(est)est.innerHTML='<span style="color:var(--red)">No se pudo obtener el GPS. Verifica que este activado.</span>';return;}
+    c.lat=g.lat;c.lng=g.lng;c.gpsAcc=g.acc;c.gpsF=g.f;c.gpsOk=true;delete c.gpsAprox;
+    fsSetContacto(c);
+    logEvento('edicion',c.id,c.nm,'Ubicacion GPS confirmada en visita','','');
+    if(confMapaObj){
+      confMapaObj.setView([g.lat,g.lng],16);
+      if(confMarcador)confMapaObj.removeLayer(confMarcador);
+      confMarcador=L.circleMarker([g.lat,g.lng],{radius:11,fillColor:'#4ade80',color:'#0b1220',weight:2,fillOpacity:.95}).addTo(confMapaObj);
+    }
+    if(est)est.innerHTML='<span style="color:var(--green)">Ubicacion confirmada'+(g.acc?' (precision '+g.acc+'m)':'')+'. Ya aparece en el mapa.</span>';
+    toast('Ubicacion confirmada','ok');
+    setTimeout(function(){cMod();if(!W.origenAdmin)vGo('C');},1400);
+  });
 }
 function wf(inp,fk,lk,pk){
   if(!inp.files||!inp.files[0])return;
