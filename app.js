@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='3.5 - 18/07/2026';
+var VERSION='3.6 - 18/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -726,6 +726,7 @@ function abrirFichaV(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
   var vs=D.vis.filter(function(v){return v.cid===id;}).slice().reverse().slice(0,5);
   var h='<div style="margin-bottom:12px">';
+  if(c.fan)h+='<div style="font-size:17px;font-weight:800;color:var(--cyan);margin-bottom:6px">'+es(c.fan)+'</div>';
   if(c.tel)h+='<a href="tel:'+es(c.tel)+'" style="display:block;font-size:20px;font-weight:900;color:var(--cyan);text-decoration:none">'+es(c.tel)+'</a>';
   if(c.email)h+='<a href="mailto:'+es(c.email)+'" style="display:block;font-size:13px;color:var(--muted);text-decoration:none;margin-top:2px">'+es(c.email)+'</a>';
   if(c.tel2)h+='<a href="tel:'+es(c.tel2)+'" style="display:block;font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;margin-top:2px">'+es(c.tel2)+' <span style="font-size:10px">(alt)</span></a>';
@@ -768,6 +769,7 @@ function abrirFichaV(id){
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
     h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin:0">Enviar WhatsApp</button>';
     h+='<button class="btn sec" onclick="marcarUbicacion(\''+id+'\')" style="margin:0 0 8px">'+(c.lat?'&#128205; Actualizar ubicacion (marcada '+fmt(c.gpsF||'')+')':'&#128205; Marcar ubicacion GPS')+'</button>';
+    if(c.lat&&c.gpsAprox)h+='<button class="btn sec" onclick="borrarUbicacion(\''+id+'\')" style="margin:0 0 8px;font-size:12px;color:var(--orange)">&#9851; Quitar ubicacion aproximada (re-ubicar)</button>';
     h+='<button class="btn sec" onclick="exportarVCard(\''+id+'\')" style="margin:0">📋 Agregar a agenda</button>';
     h+='</div>';
   }
@@ -870,31 +872,34 @@ function cambiarEtapa(id,eta){
 // PLANIFICAR
 function abrirAgregarAGira(fecha){
   var yaEnDia=D.gira.filter(function(g){return g.fecha===fecha;}).map(function(g){return g.cid;});
-  var disp=D.cli.filter(function(c){return yaEnDia.indexOf(c.id)<0;}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  var disp=misContactos().filter(function(c){return yaEnDia.indexOf(c.id)<0;}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   var nomDia=new Date(fecha+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'short'});
-  var h='<div style="margin-bottom:12px"><div style="font-size:12px;color:var(--muted)">Fecha: '+es(nomDia)+'</div></div>';
-  h+='<div class="srch" style="margin:0 0 10px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="gBusq" placeholder="Buscar..." oninput="filtrarAgregarGira(\''+fecha+'\')" style="background:none;border:none;outline:none;color:var(--text);font-size:14px;flex:1;font-family:inherit;width:100%"></div>';
-  h+='<div id="gBusqR">';
-  disp.slice(0,20).forEach(function(c){
-    h+='<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)"><div style="flex:1"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div><div style="font-size:11px;color:var(--muted)">'+es(c.bar||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div>';
+  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Fecha: '+es(nomDia)+'</div>';
+  h+='<div class="srch" style="margin:0 0 10px;position:sticky;top:0;z-index:2"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="gBusq" placeholder="Buscar local, cliente o barrio..." oninput="filtrarAgregarGira(\''+fecha+'\')" style="background:none;border:none;outline:none;color:var(--text);font-size:14px;flex:1;font-family:inherit;width:100%"></div>';
+  // Area de resultados con altura acotada: scrollea sola aunque este el teclado abierto
+  h+='<div id="gBusqR" style="max-height:40vh;overflow-y:auto;-webkit-overflow-scrolling:touch">';
+  h+=giraResultadosHTML(disp,fecha);
+  h+='</div>';
+  oMod('Agregar a la gira',h);
+}
+// Filas de resultados del buscador de gira (reutilizado en la carga inicial y en el filtrado)
+function giraResultadosHTML(lista,fecha){
+  if(!lista.length)return '<div style="color:var(--muted);font-size:13px;padding:10px 0">Sin resultados</div>';
+  var h='';
+  lista.slice(0,30).forEach(function(c){
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div>';
+    if(c.fan)h+='<div style="font-size:12px;font-weight:600;color:var(--cyan)">'+es(c.fan)+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted)">'+es(c.bar||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div>';
     h+='<span class="tg '+(c.esP?'o':'g')+'">'+(c.esP?'PROS':'CLI')+'</span>';
     h+='<button class="sm g" onclick="agregarAGira(\''+c.id+'\',\''+fecha+'\');this.textContent=\'OK\';this.disabled=true">+ Agregar</button></div>';
   });
-  h+='</div>';
-  oMod('Agregar a la gira',h);
+  return h;
 }
 function filtrarAgregarGira(fecha){
   var q=(document.getElementById('gBusq').value||'').toLowerCase();
   var yaEnDia=D.gira.filter(function(g){return g.fecha===fecha;}).map(function(g){return g.cid;});
-  var disp=D.cli.filter(function(c){return yaEnDia.indexOf(c.id)<0&&(c.nm.toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q));}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
-  var h='';
-  disp.slice(0,20).forEach(function(c){
-    h+='<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)"><div style="flex:1"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div><div style="font-size:11px;color:var(--muted)">'+es(c.bar||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div>';
-    h+='<span class="tg '+(c.esP?'o':'g')+'">'+(c.esP?'PROS':'CLI')+'</span>';
-    h+='<button class="sm g" onclick="agregarAGira(\''+c.id+'\',\''+fecha+'\');this.textContent=\'OK\';this.disabled=true">+ Agregar</button></div>';
-  });
-  if(!h)h='<div style="color:var(--muted);font-size:13px;padding:10px 0">Sin resultados</div>';
-  document.getElementById('gBusqR').innerHTML=h;
+  var disp=misContactos().filter(function(c){return yaEnDia.indexOf(c.id)<0&&(c.nm.toLowerCase().includes(q)||(c.fan||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q));}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  document.getElementById('gBusqR').innerHTML=giraResultadosHTML(disp,fecha);
 }
 function agregarAGira(cid,fecha){
   var yaExiste=D.gira.some(function(g){return g.cid===cid&&g.fecha===fecha;});
@@ -1193,6 +1198,16 @@ function marcarUbicacion(id){
     logEvento('edicion',c.id,c.nm,'Ubicacion GPS marcada','','');
     toast('Ubicacion guardada ('+(g.acc?'precision '+g.acc+'m':'ok')+')','ok');
   });
+}
+// Borra la ubicacion de un contacto para poder re-geocodificarla (util tras corregir la direccion)
+function borrarUbicacion(id){
+  if(soloLectura())return;
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  if(!confirm('Quitar la ubicacion de "'+es(c.nm)+'"? Volvera a aparecer sin marcar en el mapa y podras re-ubicarlo por direccion o GPS.'))return;
+  delete c.lat;delete c.lng;delete c.gpsAcc;delete c.gpsAprox;delete c.gpsF;
+  fsSetContacto(c);
+  toast('Ubicacion borrada','ok');
+  cMod();
 }
 function nuevoPros(){
   gpsPend=null;capturarGPS(function(g){gpsPend=g;}); // el vendedor esta parado en el local: momento perfecto para el GPS
@@ -1560,7 +1575,7 @@ function aFicha(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
   var vs=D.vis.filter(function(v){return v.cid===id;}).slice().reverse();
   var h='<div style="margin-bottom:14px"><div style="font-size:18px;font-weight:900">'+es(c.nm)+'</div>';
-  h+=(c.fan?'<div style="font-size:13px;color:var(--muted)">'+es(c.fan)+'</div>':'');
+  h+=(c.fan?'<div style="font-size:15px;font-weight:700;color:var(--cyan)">'+es(c.fan)+'</div>':'');
   h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">';
   h+=(c.esP?'<span class="tg o">'+es(c.etapaEmbudo||'PROSPECTO')+'</span>':'<span class="tg g">CLIENTE</span>');
   if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900">⚠ DEUDOR</span>';
@@ -1590,6 +1605,7 @@ function aFicha(id){
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">';
     h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin:0">Enviar WhatsApp</button>';
     h+='<button class="btn sec" onclick="marcarUbicacion(\''+id+'\')" style="margin:0 0 8px">'+(c.lat?'&#128205; Actualizar ubicacion (marcada '+fmt(c.gpsF||'')+')':'&#128205; Marcar ubicacion GPS')+'</button>';
+    if(c.lat&&c.gpsAprox)h+='<button class="btn sec" onclick="borrarUbicacion(\''+id+'\')" style="margin:0 0 8px;font-size:12px;color:var(--orange)">&#9851; Quitar ubicacion aproximada (re-ubicar)</button>';
     h+='<button class="btn sec" onclick="exportarVCard(\''+id+'\')" style="margin:0">📋 Agregar a agenda</button>';
     h+='</div>';
   }
@@ -1618,6 +1634,23 @@ function aFicha(id){
   var lh=htmlLog(id,30);
   if(lh){h+='<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">HISTORIAL DE CAMBIOS</div>'+lh;}
   oMod(c.nm,h);
+}
+function reasignarLote(){
+  if(soloLectura())return;
+  var de=document.getElementById('reasDe').value;
+  var a=document.getElementById('reasA').value;
+  if(!de||!a){toast('Elegi desde que vendedor y hacia cual','err');return;}
+  if(de===a){toast('Son el mismo vendedor','err');return;}
+  var afectados=D.cli.filter(function(c){return c.vend===de;});
+  if(!afectados.length){toast('No hay contactos de '+de,'err');return;}
+  if(!confirm('Vas a mover '+afectados.length+' contactos de '+de+' a '+a+'. Continuar?'))return;
+  afectados.forEach(function(c){
+    c.vend=a;c._modBy=D.user?D.user.n:'?';c._modAt=new Date().toISOString();
+    fsSetContacto(c);
+    logEvento('reasignacion',c.id,c.nm,'Reasignado en lote: '+de+' -> '+a,de,a);
+  });
+  toast(afectados.length+' contactos movidos de '+de+' a '+a,'ok');
+  renderVendBtns();renderGCfg();
 }
 function reasignarContacto(id,nuevoVend){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
@@ -2209,6 +2242,17 @@ function confirmarNuevoProsAdmin(){
 function renderGCfg(){
   var h='';
   // ── USUARIOS ──────────────────────────────────────────────────────
+  h+='<div class="card"><div class="ct">REASIGNAR CONTACTOS ENTRE VENDEDORES</div>';
+  h+='<div style="font-size:13px;color:var(--muted);margin-bottom:10px">Mueve de golpe todos los contactos de un vendedor a otro. Util para corregir cargas mal asignadas.</div>';
+  var vOpts='<option value="">Elegir...</option>';
+  D.usrs.filter(function(u){return u.r==='vendedor';}).forEach(function(u){vOpts+='<option value="'+es(u.n)+'">'+es(u.n)+'</option>';});
+  h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
+  h+='<select class="fi" id="reasDe" style="margin:0;flex:1;min-width:110px"><option value="">Desde...</option>'+vOpts.replace('<option value="">Elegir...</option>','')+'</select>';
+  h+='<span style="color:var(--muted)">&rarr;</span>';
+  h+='<select class="fi" id="reasA" style="margin:0;flex:1;min-width:110px">'+vOpts+'</select>';
+  h+='</div>';
+  h+='<button class="btn sec" onclick="reasignarLote()" style="margin:10px 0 0">Reasignar todos</button>';
+  h+='</div>';
   h+='<div class="card"><div class="ct">MAPA Y UBICACIONES</div>';
   var _sinUbi=D.cli.filter(function(c){return !c.lat;}).length;
   h+='<div style="font-size:13px;color:var(--muted);margin-bottom:10px">'+(_sinUbi?_sinUbi+' contactos todavia no aparecen en el mapa. Este boton busca sus coordenadas usando la direccion cargada (aproximada). El boton GPS de cada ficha la reemplaza por la exacta al visitar el local.':'Todos los contactos tienen ubicacion.')+'</div>';
@@ -3148,6 +3192,8 @@ function renderVE(){
   });
   if(vEBar)cs=cs.filter(function(c){return c.bar===vEBar||c.ciu===vEBar;});
   if(vETipNeg)cs=cs.filter(function(c){return c.tipo===vETipNeg;});
+  var vqEl=document.getElementById('vEQ');var vq=vqEl?vqEl.value.toLowerCase().trim():'';
+  if(vq)cs=cs.filter(function(c){return (c.nm||'').toLowerCase().includes(vq)||(c.fan||'').toLowerCase().includes(vq)||(c.bar||'').toLowerCase().includes(vq);});
   if(vEOrd==='_inac'){
     cs.sort(function(a,b){var da=diasSinGestion(a);var db=diasSinGestion(b);return(db===null?9999:db)-(da===null?9999:da);});
   } else {

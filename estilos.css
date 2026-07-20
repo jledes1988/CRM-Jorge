@@ -167,3 +167,9 @@ input:checked+.sl3:before{transform:translateX(18px)}
 .leaflet-popup-content{margin:12px 14px}
 .leaflet-control-attribution{background:rgba(0,0,0,.5)!important;color:#888!important;font-size:9px!important}
 .leaflet-control-attribution a{color:#aaa!important}
+
+/* Los paneles internos de Leaflet usan z-index 400-700, tapaban el modal (200).
+   Se fuerza el modal y el toast por encima del mapa. */
+#modal{z-index:1000!important}
+#toast{z-index:1100!important}
+.leaflet-pane,.leaflet-top,.leaflet-bottom{z-index:400}
