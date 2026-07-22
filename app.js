@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='3.8 - 20/07/2026';
+var VERSION='3.9 - 20/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -400,7 +400,7 @@ function descargarXLSX(filas,nombreArchivo){
 }
 // Normaliza campos por si llegan registros viejos/incompletos desde Firestore
 function normalizarDatos(){
-  D.cli.forEach(function(c){if(!c.etapaEmbudo||c.etapaEmbudo==='')c.etapaEmbudo=c.esP?'Nuevo Prospecto':'Cliente Activo';if(!c.uv)c.uv='';if(!c.ex)c.ex={};if(c.deu===undefined)c.deu=false;if(!c.ing)c.ing='';if(!c.vend)c.vend='';if(!c.prods)c.prods=[];if(!c.prov)c.prov='';if(!c.ciu)c.ciu='';if(c.agendado===undefined)c.agendado=false;if(!c.tel2)c.tel2='';if(!c.email)c.email='';});
+  D.cli.forEach(function(c){if(!c.etapaEmbudo||c.etapaEmbudo==='')c.etapaEmbudo=c.esP?'Nuevo Prospecto':'Cliente Activo';if(!c.uv)c.uv='';if(!c.ex)c.ex={};if(c.deu===undefined)c.deu=false;if(!c.ing)c.ing='';if(!c.vend)c.vend='';if(!c.prods)c.prods=[];if(!c.prov)c.prov='';if(!c.ciu)c.ciu='';if(c.agendado===undefined)c.agendado=false;if(!c.tel2)c.tel2='';if(!c.email)c.email='';if(c.eliminado===undefined)c.eliminado=false;});
   D.usrs.forEach(function(u){if(u.activo===undefined)u.activo=true;if(!u.creado)u.creado='';if(!u.ua)u.ua='';});
   if(!D.cfg.msgPedido)D.cfg.msgPedido='Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!';
   if(!D.cfg.msgLinks)D.cfg.msgLinks={};
@@ -430,6 +430,7 @@ function doLogin(){
 }
 function startApp(){
   document.getElementById('sLogin').classList.remove('on');
+  try{purgarPapeleraVieja();}catch(e){} // limpia lo que lleva +30 dias en la papelera (solo admin)
   if(D.user.r==='gerente'||D.user.r==='admin'){
     document.getElementById('sGerente').classList.add('on');
     document.getElementById('vNav').style.display='none';
@@ -782,6 +783,8 @@ function abrirFichaV(id){
   }
   var logH=htmlLog(id,8);
   if(logH){h+='<div class="div"></div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">HISTORIAL</div>'+logH;}
+  h+='<div class="div"></div><button class="btn red" style="margin-top:6px" onclick="elimC(\''+id+'\')">🗑 Enviar a la papelera</button>';
+  h+='<div style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center">Se puede recuperar desde el administrador durante 30 dias</div>';
   oMod(es(c.nm),h);
 }
 
@@ -1193,7 +1196,7 @@ function nuevoPros(){
 function mesesConDatos(){
   var s={};s[today().slice(0,7)]=true;
   D.vis.forEach(function(v){if(v.fecha)s[v.fecha.slice(0,7)]=true;});
-  D.cli.forEach(function(c){if(c.ing)s[c.ing.slice(0,7)]=true;});
+  D.cli.forEach(function(c){if(c.ing&&!c.eliminado)s[c.ing.slice(0,7)]=true;});
   return Object.keys(s).sort().reverse();
 }
 function nombreMes(m){
@@ -1448,7 +1451,7 @@ function pieChartHTML(datos){
   return h;
 }
 function abrirListaDash(ids){
-  var cs=D.cli.filter(function(c){return ids.indexOf(c.id)>=0;});
+  var cs=D.cli.filter(function(c){return ids.indexOf(c.id)>=0&&!c.eliminado;});
   var h='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">'+cs.length+' contactos</div>';
   cs.forEach(function(c){
     var d7=dias(c.ul);var col=d7===null?'var(--red)':d7>14?'var(--red)':d7>7?'var(--orange)':'var(--green)';
@@ -1459,13 +1462,13 @@ function abrirListaDash(ids){
   oMod('Detalle ('+cs.length+')',h);
 }
 function abrirListaEtapa(eta){
-  var cs=D.cli.filter(function(c){return c.etapaEmbudo===eta;});
+  var cs=D.cli.filter(function(c){return c.etapaEmbudo===eta&&!c.eliminado;});
   var h='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">'+cs.length+' en "'+eta+'"</div>';
   cs.forEach(function(c){h+='<div class="vh"><div class="vhd">'+es(c.nm)+(c.bar?' · '+es(c.bar):'')+'</div><div class="vhr">'+(c.tipo?es(c.tipo):'Sin tipo')+'</div><div class="vhx">Ultima visita: '+fmt(c.ul)+'</div></div>';});
   oMod('Embudo: '+eta,h);
 }
 function abrirListaTipo(tipo){
-  var cs=D.cli.filter(function(c){return c.tipo===tipo;});
+  var cs=D.cli.filter(function(c){return c.tipo===tipo&&!c.eliminado;});
   var h='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">'+cs.length+' contactos de tipo '+tipo+'</div>';
   cs.forEach(function(c){h+='<div class="vh"><div class="vhd">'+es(c.nm)+(c.bar?' · '+es(c.bar):'')+'</div><div class="vhr">'+(c.esP?'Prospecto: '+es(c.etapaEmbudo||''):'Cliente activo')+'</div><div class="vhx">Ultima visita: '+fmt(c.ul)+'</div></div>';});
   oMod(tipo,h);
@@ -1602,7 +1605,7 @@ function aFicha(id){
     if(v.nt)h+='<div class="vhx" style="margin-top:3px;font-style:italic">'+es(v.nt)+'</div>';
     h+='</div>';
   });
-  h+='<div class="div"></div><button class="btn red" style="margin-top:12px" onclick="elimC(\''+id+'\')">Eliminar contacto</button>';
+  h+='<div class="div"></div><button class="btn red" style="margin-top:12px" onclick="elimC(\''+id+'\')">🗑 Enviar a la papelera</button>';
   // Reasignar vendedor
   var vendsH2=D.usrs.filter(function(u){return u.r==='vendedor';}).map(function(u){return '<option value="'+es(u.n)+'"'+(c.vend===u.n?' selected':'')+'>'+es(u.n)+'</option>';}).join('');
   h+='<div class="div"></div><div class="fg"><label class="fl">Vendedor asignado</label><select class="fi" onchange="reasignarContacto(\''+id+'\',this.value)"><option value="">Sin asignar</option>'+vendsH2+'</select></div>';
@@ -1618,7 +1621,7 @@ function renderListaReasignar(){
   var cont=document.getElementById('reasLista');if(!cont)return;
   if(!de){cont.innerHTML='';return;}
   var q=(document.getElementById('reasQ')&&document.getElementById('reasQ').value||'').toLowerCase();
-  var lista=D.cli.filter(function(c){return c.vend===de&&(!q||(c.nm||'').toLowerCase().includes(q)||(c.fan||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q));}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  var lista=D.cli.filter(function(c){return c.vend===de&&!c.eliminado&&(!q||(c.nm||'').toLowerCase().includes(q)||(c.fan||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q));}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   var otros='<option value="">Pasar a...</option>';
   D.usrs.filter(function(u){return u.r==='vendedor'&&u.n!==de;}).forEach(function(u){otros+='<option value="'+es(u.n)+'">'+es(u.n)+'</option>';});
   var h='<div class="srch" style="margin:10px 0"><input type="text" id="reasQ" placeholder="Buscar en la lista..." oninput="renderListaReasignar()" value="'+es(q)+'" style="background:none;border:none;outline:none;color:var(--text);font-size:14px;width:100%;font-family:inherit"></div>';
@@ -1666,15 +1669,69 @@ function reasignarContacto(id,nuevoVend){
   toast('Reasignado a '+( nuevoVend||'ninguno'),'ok');
 }
 function elimC(id){
-  if(!confirm('Eliminar permanentemente este contacto y todas sus visitas?'))return;
-  var visDelContacto=D.vis.filter(function(v){return v.cid===id;});
-  D.cli=D.cli.filter(function(c){return c.id!==id;});
+  if(soloLectura())return;
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  // Papelera (borrado suave): el vendedor puede mandar a la papelera los suyos,
+  // pero la restauracion la controla solo el admin. Nada se borra de verdad todavia.
+  var esAdmin=D.user&&D.user.r==='admin';
+  if(!esAdmin&&D.user&&D.user.r==='vendedor'&&c.vend!==D.user.n){toast('Solo podes eliminar tus propios contactos','err');return;}
+  if(!confirm('Enviar "'+es(c.nm)+'" a la papelera? Se puede recuperar desde Configuracion (lo hace el administrador) durante 30 dias.'))return;
+  c.eliminado=true;
+  c.elimF=today();
+  c.elimPor=D.user?D.user.n:'?';
+  fsSetContacto(c);
+  logEvento('edicion',c.id,c.nm,'Enviado a la papelera','','');
+  cMod();
+  if(D.user&&D.user.r==='vendedor'){renderVC();} else {renderGC();}
+  toast('Enviado a la papelera','ok');
+}
+// Restaurar desde la papelera (solo admin)
+function restaurarContacto(id){
+  if(D.user&&D.user.r!=='admin'){toast('Solo el administrador puede restaurar','err');return;}
+  if(soloLectura())return;
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  delete c.eliminado;delete c.elimF;delete c.elimPor;
+  fsSetContacto(c);
+  logEvento('edicion',c.id,c.nm,'Restaurado de la papelera','','');
+  toast('"'+es(c.nm)+'" restaurado','ok');
+  renderGCfg();
+}
+// Purga definitiva de UN contacto (solo admin) - esto si borra de verdad
+function purgarContacto(id){
+  if(D.user&&D.user.r!=='admin'){toast('Solo el administrador puede eliminar definitivamente','err');return;}
+  if(soloLectura())return;
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  if(!confirm('Eliminar DEFINITIVAMENTE "'+es(c.nm)+'" y todas sus visitas? Esta accion NO se puede deshacer.'))return;
+  var visDel=D.vis.filter(function(v){return v.cid===id;});
+  D.cli=D.cli.filter(function(x){return x.id!==id;});
   D.vis=D.vis.filter(function(v){return v.cid!==id;});
-  var batch=fsDB.batch();
-  batch.delete(fsDB.collection('contactos').doc(id));
-  visDelContacto.forEach(function(v){batch.delete(fsDB.collection('visitas').doc(v.id));});
-  batch.commit().catch(function(e){toast('Error al eliminar en el servidor','err');});
-  cMod();renderGC();toast('Eliminado','ok');
+  if(fsDB){
+    var batch=fsDB.batch();
+    batch.delete(fsDB.collection('contactos').doc(id));
+    visDel.forEach(function(v){batch.delete(fsDB.collection('visitas').doc(v.id));});
+    batch.commit().catch(function(e){toast('Error al eliminar en el servidor','err');});
+  } else {fsGuardaLocal();}
+  logEvento('edicion',id,c.nm,'Eliminado definitivamente','','');
+  toast('Eliminado definitivamente','ok');
+  renderGCfg();
+}
+// Auto-purga: elimina definitivamente lo que lleva mas de 30 dias en la papelera
+function purgarPapeleraVieja(){
+  if(!D.user||D.user.r!=='admin')return; // solo el admin dispara la limpieza
+  var viejos=D.cli.filter(function(c){return c.eliminado&&c.elimF&&dias(c.elimF)>30;});
+  if(!viejos.length)return;
+  viejos.forEach(function(c){
+    var visDel=D.vis.filter(function(v){return v.cid===c.id;});
+    D.vis=D.vis.filter(function(v){return v.cid!==c.id;});
+    if(fsDB){
+      var batch=fsDB.batch();
+      batch.delete(fsDB.collection('contactos').doc(c.id));
+      visDel.forEach(function(v){batch.delete(fsDB.collection('visitas').doc(v.id));});
+      batch.commit().catch(function(){});
+    }
+  });
+  var ids={};viejos.forEach(function(c){ids[c.id]=true;});
+  D.cli=D.cli.filter(function(c){return !ids[c.id];});
 }
 // GERENTE EMBUDO
 var gEF2='Todos';
@@ -1916,7 +1973,7 @@ function _renderInformeVendedor(vend){
   else if(infVendPer==='ano'){desde=hoy.slice(0,4)+'-01-01';}
   else{desde='2000-01-01';}
   // Datos del vendedor
-  var misCli=D.cli.filter(function(c){return c.vend===vend;});
+  var misCli=D.cli.filter(function(c){return c.vend===vend&&!c.eliminado;});
   var misVis=D.vis.filter(function(v){return v.vend===vend;});
   var misVisP=misVis.filter(function(v){return v.fecha>=desde;});
   var misCom=D.com.filter(function(co){
@@ -2026,7 +2083,7 @@ function renderGCo(){
 }
 function sGCoF(f){gCoF2=f;renderGCo();}
 function nuevoComodato(){
-  var cH=D.cli.filter(function(c){return !c.esP;}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');}).map(function(c){return '<option value="'+c.id+'">'+es(c.nm)+'</option>';}).join('');
+  var cH=D.cli.filter(function(c){return !c.esP&&!c.eliminado;}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');}).map(function(c){return '<option value="'+c.id+'">'+es(c.nm)+'</option>';}).join('');
   var mH=(D.cfg.marcas||[]).map(function(m){return '<option>'+es(m)+'</option>';}).join('');
   oMod('Nuevo comodato','<div class="fg"><label class="fl">Cliente</label><select class="fi" id="coC"><option value="">Seleccionar...</option>'+cH+'</select></div><div class="fg"><label class="fl">N° de freezer</label><input class="fi" id="coN" placeholder="Ej: 042"></div><div class="fg"><label class="fl">Marca</label><select class="fi" id="coM"><option value="">Seleccionar...</option>'+mH+'</select></div><div class="fg"><label class="fl">Fecha de entrega</label><input class="fi" type="date" id="coF" value="'+fechaLocal()+'"></div><div class="fg"><label class="fl">Observaciones</label><textarea class="fi fta" id="coO" placeholder="Notas..."></textarea></div><button class="btn" onclick="saveCo()">Guardar</button>');
 }
@@ -2245,16 +2302,39 @@ function confirmarNuevoProsAdmin(){
 function renderGCfg(){
   var h='';
   // ── USUARIOS ──────────────────────────────────────────────────────
+  // ── PAPELERA (solo admin restaura o elimina definitivo) ──
+  var enPapelera=D.cli.filter(function(c){return c.eliminado;}).sort(function(a,b){return(b.elimF||'').localeCompare(a.elimF||'');});
+  h+='<div class="card"><div class="ct">PAPELERA ('+enPapelera.length+')</div>';
+  if(!enPapelera.length){
+    h+='<div style="font-size:13px;color:var(--muted)">No hay contactos en la papelera. Los contactos eliminados aparecen aca y se pueden recuperar durante 30 dias; despues se borran definitivamente solos.</div>';
+  } else {
+    h+='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Se eliminan definitivamente a los 30 dias. El numero indica cuantos dias llevan en la papelera.</div>';
+    h+='<div style="max-height:300px;overflow-y:auto">';
+    enPapelera.forEach(function(c){
+      var d=c.elimF?dias(c.elimF):0;
+      var quedan=Math.max(0,30-d);
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)">';
+      h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div>';
+      if(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase())h+='<div style="font-size:12px;color:var(--cyan)">'+es(c.fan)+'</div>';
+      h+='<div style="font-size:11px;color:'+(quedan<=5?'var(--red)':'var(--muted)')+'">Eliminado por '+es(c.elimPor||'?')+' · quedan '+quedan+' dias</div></div>';
+      h+='<button class="sm g" onclick="restaurarContacto(\''+c.id+'\')" style="font-size:11px">Restaurar</button>';
+      h+='<button class="sm" onclick="purgarContacto(\''+c.id+'\')" style="font-size:11px;color:var(--red)">Borrar ya</button>';
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+  h+='</div>';
   h+='<div class="card"><div class="ct">REASIGNAR CONTACTOS ENTRE VENDEDORES</div>';
   h+='<div style="font-size:13px;color:var(--muted);margin-bottom:10px">Elegi un vendedor para ver su lista de contactos y tildar cuales pasar a otro.</div>';
   var vOptsR='<option value="">Ver contactos de...</option>';
-  D.usrs.filter(function(u){return u.r==='vendedor';}).forEach(function(u){vOptsR+='<option value="'+es(u.n)+'">'+es(u.n)+' ('+D.cli.filter(function(c){return c.vend===u.n;}).length+')</option>';});
+  D.usrs.filter(function(u){return u.r==='vendedor';}).forEach(function(u){vOptsR+='<option value="'+es(u.n)+'">'+es(u.n)+' ('+D.cli.filter(function(c){return c.vend===u.n&&!c.eliminado;}).length+')</option>';});
   h+='<select class="fi" id="reasDe" onchange="renderListaReasignar()" style="margin:0">'+vOptsR+'</select>';
   h+='<div id="reasLista"></div>';
   h+='</div>';
   h+='<div class="card"><div class="ct">MAPA Y UBICACIONES</div>';
-  var _conf=D.cli.filter(function(c){return c.gpsOk;}).length;
-  var _sinConf=D.cli.length-_conf;
+  var _vivos=D.cli.filter(function(c){return !c.eliminado;});
+  var _conf=_vivos.filter(function(c){return c.gpsOk;}).length;
+  var _sinConf=_vivos.length-_conf;
   h+='<div style="font-size:13px;color:var(--muted);margin-bottom:6px">En el mapa solo aparecen los contactos con ubicacion <b style="color:var(--green)">confirmada por GPS</b>, para que sea 100% confiable.</div>';
   h+='<div style="display:flex;gap:16px;margin-bottom:4px"><div><div style="font-size:22px;font-weight:800;color:var(--green)">'+_conf+'</div><div style="font-size:11px;color:var(--muted)">confirmados</div></div>';
   h+='<div><div style="font-size:22px;font-weight:800;color:var(--orange)">'+_sinConf+'</div><div style="font-size:11px;color:var(--muted)">por confirmar</div></div></div>';
@@ -2342,7 +2422,7 @@ function renderGCfg(){
   h+='<div style="font-size:13px;color:var(--muted)">Los datos se sincronizan automaticamente y en tiempo real entre todos los dispositivos a traves de Firebase. No requiere configuracion manual.</div></div>';
 
   // ── REPARAR ASIGNACION DE CONTACTOS ────────────────────────────────
-  var sinVend=D.cli.filter(function(c){return !c.vend;});
+  var sinVend=D.cli.filter(function(c){return !c.vend&&!c.eliminado;});
   if(sinVend.length){
     h+='<div class="card" style="border:1px solid var(--orange)">';
     h+='<div class="ct" style="color:var(--orange)">&#9888; CONTACTOS SIN VENDEDOR ASIGNADO ('+sinVend.length+')</div>';
@@ -2378,7 +2458,7 @@ function abrirDebug(){
   h+='<div class="div"></div>';
   h+='<div class="fl" style="margin-bottom:8px">REGISTROS CARGADOS</div>';
   h+='<div class="sg" style="margin-bottom:14px">';
-  h+='<div class="sb"><div class="sn">'+D.cli.length+'</div><div class="sl2">Contactos</div></div>';
+  h+='<div class="sb"><div class="sn">'+D.cli.filter(function(c){return !c.eliminado;}).length+'</div><div class="sl2">Contactos</div></div>';
   h+='<div class="sb"><div class="sn">'+D.vis.length+'</div><div class="sl2">Visitas</div></div>';
   h+='<div class="sb"><div class="sn">'+D.com.length+'</div><div class="sl2">Comodatos</div></div>';
   h+='<div class="sb"><div class="sn">'+D.usrs.length+'</div><div class="sl2">Usuarios</div></div>';
@@ -2633,10 +2713,10 @@ function fmtTs(ts){
 function misContactos(incluirPerdidos){
   var base;
   if(!D.user||D.user.r==='admin'||D.user.r==='gerente'){
-    base=D.cli;
+    base=D.cli.filter(function(c){return !c.eliminado;});
   } else {
     // Cada vendedor solo ve sus propios contactos. Sin excepciones.
-    base=D.cli.filter(function(c){return c.vend===D.user.n;});
+    base=D.cli.filter(function(c){return c.vend===D.user.n&&!c.eliminado;});
   }
   if(!incluirPerdidos){
     base=base.filter(function(c){return c.etapaEmbudo!=='No Le Interesa'&&c.etapaEmbudo!=='Perdido';});
@@ -2706,7 +2786,7 @@ function setVendGlobal(v){
   gGo(gSecActual); // re-renderiza la seccion activa con el filtro aplicado
 }
 // Contactos visibles segun el filtro global (para todas las vistas del admin)
-function cliGlobal(){return gVendSel?D.cli.filter(function(c){return c.vend===gVendSel;}):D.cli;}
+function cliGlobal(){var b=D.cli.filter(function(c){return !c.eliminado;});return gVendSel?b.filter(function(c){return c.vend===gVendSel;}):b;}
 function visGlobal(){return gVendSel?D.vis.filter(function(v){return v.vend===gVendSel;}):D.vis;}
 
 function gGo(sec){
