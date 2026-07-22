@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='3.9 - 20/07/2026';
+var VERSION='4.0 - 20/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -1179,6 +1179,45 @@ function borrarUbicacion(id){
   fsSetContacto(c);
   toast('Ubicacion borrada','ok');
   cMod();
+}
+// ── DETECCION DE DUPLICADOS ───────────────────────────────────────────
+// Normaliza texto para comparar (sin acentos, minusculas, sin puntuacion)
+function normTxt(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');}
+// Busca posibles duplicados de un contacto que se esta creando/editando.
+// Devuelve array de {c, motivo}. Incluye los de la papelera (avisa que esta eliminado).
+function buscarDuplicados(nm,tel,bar,excluirId){
+  var tn=(tel||'').replace(/\D/g,'');
+  var nmN=normTxt(nm);
+  var res=[];
+  D.cli.forEach(function(c){
+    if(c.id===excluirId)return;
+    var motivo='';
+    if(tn&&tn.length>=6&&c.tel&&c.tel.replace(/\D/g,'')===tn)motivo='mismo telefono';
+    else if(tn&&tn.length>=6&&c.tel2&&c.tel2.replace(/\D/g,'')===tn)motivo='mismo telefono (adicional)';
+    else if(nmN&&nmN.length>=4&&normTxt(c.nm)===nmN)motivo='mismo nombre';
+    else if(nmN&&nmN.length>=5&&bar&&c.bar===bar&&normTxt(c.nm).indexOf(nmN)>=0)motivo='nombre parecido en el mismo barrio';
+    if(motivo)res.push({c:c,motivo:motivo});
+  });
+  return res;
+}
+// Aviso en vivo mientras se escribe (no bloquea). Se llama desde onblur del telefono y el nombre.
+function chequearDupVivo(){
+  var cont=document.getElementById('pDupAviso');if(!cont)return;
+  var nmEl=document.getElementById('pNm'),telEl=document.getElementById('pTel'),barEl=document.getElementById('pBarrio');
+  var nm=nmEl?nmEl.value.trim():'';
+  var tel=telEl?telEl.value.trim():'';
+  var bar=(barEl&&barEl.offsetParent!==null)?barEl.value.trim():'';
+  if(!nm&&!tel){cont.innerHTML='';return;}
+  var dups=buscarDuplicados(nm,tel,bar,W.cid);
+  if(!dups.length){cont.innerHTML='';return;}
+  var h='<div style="background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.3);border-radius:var(--rsm);padding:10px 12px;margin-bottom:4px">';
+  h+='<div style="font-size:12px;font-weight:700;color:var(--orange);margin-bottom:5px">&#9888; Puede que este contacto ya exista</div>';
+  dups.slice(0,3).forEach(function(d){
+    h+='<div style="font-size:12px;margin-bottom:3px"><b>'+es(d.c.nm)+'</b>'+(d.c.fan&&normTxt(d.c.fan)!==normTxt(d.c.nm)?' ('+es(d.c.fan)+')':'')+' — <span style="color:var(--muted)">'+d.motivo+(d.c.vend?', vendedor '+es(d.c.vend):'')+(d.c.eliminado?' · EN PAPELERA':'')+'</span></div>';
+  });
+  h+='<div style="font-size:11px;color:var(--muted);margin-top:4px">Podes seguir igual si es un local distinto.</div>';
+  h+='</div>';
+  cont.innerHTML=h;
 }
 function nuevoPros(){
   gpsPend=null;capturarGPS(function(g){gpsPend=g;}); // el vendedor esta parado en el local: momento perfecto para el GPS
@@ -2975,6 +3014,7 @@ function aVisPros(id,nu){
          '<div class="fg"><label class="fl">Telefono *</label><input class="fi" id="pTel" type="tel" inputmode="numeric" placeholder="Ej: 3511234567" value="'+es(c.tel||'')+'"></div>'+
          '<div class="fg"><label class="fl">Telefono adicional <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="pTel2" type="tel" inputmode="numeric" placeholder="Otro numero" value="'+es(c.tel2||'')+'"></div>'+
          '<div class="fg"><label class="fl">Email <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="pEmail" type="email" inputmode="email" placeholder="mail@ejemplo.com" value="'+es(c.email||'')+'"></div>'+
+         '<div id="pDupAviso"></div>'+
          '<div class="fg"><label class="fl">Direccion</label><input class="fi" id="pDir" placeholder="Calle y numero" value="'+es(c.dir||'')+'"></div>'+
          '<div class="fg" style="position:relative"><label class="fl">Provincia *</label><input class="fi" id="pProv" autocomplete="off" placeholder="Escribi para buscar..." value="'+es(c.prov||'')+'"><div id="pProvSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>'+
          '<div class="fg" style="position:relative"><label class="fl">Ciudad *</label><input class="fi" id="pCiudad" autocomplete="off" placeholder="Escribi para buscar..." value="'+es(c.ciu||'')+'"><div id="pCiudadSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>'+
@@ -2985,6 +3025,9 @@ function aVisPros(id,nu){
      init:function(){
        if(c.tipo)sc('tip',c.tipo);
        if(c.prods&&c.prods.length){c.prods.forEach(function(p){var el=document.querySelector('[data-id="'+p+'"][data-g="prods"]');if(el)el.classList.add('on');});}
+       var nmE=document.getElementById('pNm'),telE=document.getElementById('pTel');
+       if(nmE)nmE.addEventListener('blur',chequearDupVivo);
+       if(telE){telE.addEventListener('blur',chequearDupVivo);telE.addEventListener('input',function(){if(this.value.replace(/\D/g,'').length>=8)chequearDupVivo();});}
        initAuto('pProv','pProvSugg',function(){return ARG_PROV;});
        initAuto('pCiudad','pCiudadSugg',function(){var pv=document.getElementById('pProv').value;return ARG_CIU[pv]||[];});
        initAuto('pBarrio','pBarrioSugg',function(){return ARG_BARRIOS;});
@@ -3004,8 +3047,9 @@ function aVisPros(id,nu){
        if(!prov)return 'Selecciona la provincia';
        if(!ciu)return 'Ingresa la ciudad';
        var tn=tel.replace(/\D/g,'');
-       var dp=D.cli.find(function(x){return x.tel&&x.tel.replace(/\D/g,'')===tn&&x.id!==id;});
-       if(dp)return 'Ya existe un contacto con ese telefono: '+dp.nm;
+       // Telefono exacto = bloqueo (es casi seguro el mismo comercio)
+       var dp=D.cli.find(function(x){return x.tel&&x.tel.replace(/\D/g,'')===tn&&x.id!==W.cid;});
+       if(dp)return 'Ya existe un contacto con ese telefono: '+dp.nm+(dp.eliminado?' (esta en la papelera)':dp.vend?' (vendedor '+dp.vend+')':'');
        return null;
      },
      sv:function(d){
