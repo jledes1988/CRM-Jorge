@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='4.0 - 20/07/2026';
+var VERSION='4.1 - 20/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -330,13 +330,22 @@ function fmt(d){if(!d||d==='')return '--';try{var p=String(d).split('-');if(p.le
 function dias(d){if(!d)return null;return Math.floor((Date.now()-new Date(d+'T12:00:00'))/86400000);}
 // ── Deteccion de inaccion ────────────────────────────────────────────
 // Dias de tolerancia sin gestion antes de considerar un contacto "inactivo", por etapa
-var UMBRAL_INACCION={'Nuevo Prospecto':5,'Contactado':7,'Propuesta Enviada':7,'Negociacion':7,'Cliente Activo':30};
-function umbralEtapa(eta){return UMBRAL_INACCION[eta]||14;}
+// Umbrales de inaccion por etapa (dias sin gestion antes de marcar como "sin gestionar").
+// Editables desde Config; estos son los valores por defecto.
+var UMBRAL_INACCION_DEF={'Nuevo Prospecto':5,'Contactado':7,'Propuesta Enviada':7,'Negociacion':7,'Cliente Activo':30};
+var PROXIMA_DIAS_DEF={'Nuevo Prospecto':3,'Contactado':5,'Propuesta Enviada':5,'Negociacion':5,'Cliente Activo':21};
+function umbralEtapa(eta){
+  if(D.cfg&&D.cfg.umbrales&&D.cfg.umbrales[eta]!=null)return D.cfg.umbrales[eta];
+  return UMBRAL_INACCION_DEF[eta]||14;
+}
+function proximaDias(eta){
+  if(D.cfg&&D.cfg.proxDias&&D.cfg.proxDias[eta]!=null)return D.cfg.proxDias[eta];
+  return PROXIMA_DIAS_DEF[eta]||7;
+}
 // Sugiere una fecha de proxima visita segun la etapa, para que ningun contacto quede sin seguimiento agendado.
 // Si cae sabado o domingo se corre al lunes, porque la Gira solo muestra Lunes a Viernes.
 function sugerirProxima(eta){
-  var dd={'Nuevo Prospecto':3,'Contactado':5,'Propuesta Enviada':5,'Negociacion':5,'Cliente Activo':21};
-  var n=dd[eta]||7;
+  var n=proximaDias(eta);
   var d=new Date();d.setDate(d.getDate()+n);
   if(d.getDay()===6)d.setDate(d.getDate()+2);      // sabado -> lunes
   else if(d.getDay()===0)d.setDate(d.getDate()+1); // domingo -> lunes
@@ -2401,6 +2410,21 @@ function renderGCfg(){
   h+='</div>';
   h+='</div>';
 
+  // ── UMBRALES DE INACCION ──────────────────────────────────────────
+  h+='<div class="card"><div class="ct">ALERTAS DE INACCION POR ETAPA</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Dias sin gestion antes de que un contacto se marque como "sin gestionar" (alerta en HOY y badge en el Embudo). Y cada cuantos dias se sugiere la proxima visita automatica.</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr auto auto;gap:8px 10px;align-items:center">';
+  h+='<div></div><div style="font-size:10px;font-weight:700;color:var(--muted);text-align:center">ALERTA<br>(dias)</div><div style="font-size:10px;font-weight:700;color:var(--muted);text-align:center">PROX. VISITA<br>(dias)</div>';
+  ET.forEach(function(et){
+    var col=EC[et]||'var(--muted)';
+    h+='<div style="font-size:13px;font-weight:700;color:'+col+'">'+es(et)+'</div>';
+    h+='<input class="fi" type="number" min="1" max="120" id="umb_'+es(et).replace(/\s/g,'_')+'" value="'+umbralEtapa(et)+'" style="width:64px;margin:0;padding:6px 8px;text-align:center">';
+    h+='<input class="fi" type="number" min="1" max="120" id="prox_'+es(et).replace(/\s/g,'_')+'" value="'+proximaDias(et)+'" style="width:64px;margin:0;padding:6px 8px;text-align:center">';
+  });
+  h+='</div>';
+  h+='<button class="btn sec" onclick="guardarUmbrales()" style="margin:14px 0 0">Guardar umbrales</button>';
+  h+='</div>';
+
   // ── CATÁLOGO MANAGER ─────────────────────────────────────────────
   h+='<div class="card"><div class="ct">ADMINISTRADOR DE CATALOGOS</div>';
   h+='<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Todas las listas del sistema. Los cambios se aplican inmediatamente en toda la app.</div>';
@@ -2545,6 +2569,25 @@ function impJSON(inp){
     }catch(err){toast('Archivo invalido o corrupto','err');}
   };
   reader.readAsText(inp.files[0]);
+}
+function guardarUmbrales(){
+  if(soloLectura())return;
+  if(!D.cfg.umbrales)D.cfg.umbrales={};
+  if(!D.cfg.proxDias)D.cfg.proxDias={};
+  var err=false;
+  ET.forEach(function(et){
+    var uEl=document.getElementById('umb_'+es(et).replace(/\s/g,'_'));
+    var pEl=document.getElementById('prox_'+es(et).replace(/\s/g,'_'));
+    var u=parseInt(uEl&&uEl.value,10),p=parseInt(pEl&&pEl.value,10);
+    if(isNaN(u)||u<1||u>120||isNaN(p)||p<1||p>120){err=true;return;}
+    D.cfg.umbrales[et]=u;
+    D.cfg.proxDias[et]=p;
+  });
+  if(err){toast('Revisa los valores: deben ser numeros entre 1 y 120','err');return;}
+  fsSetConfig(D.cfg);
+  logEvento('edicion','','','Umbrales de inaccion actualizados','','');
+  toast('Umbrales guardados','ok');
+  renderGCfg();
 }
 function addItemCat(cat){
   var inp=document.getElementById('niCat_'+cat);if(!inp)return;
