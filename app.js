@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='4.1 - 20/07/2026';
+var VERSION='4.2 - 22/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -414,7 +414,7 @@ function normalizarDatos(){
   if(!D.cfg.msgPedido)D.cfg.msgPedido='Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!';
   if(!D.cfg.msgLinks)D.cfg.msgLinks={};
 }
-function cFoto(file,cb){var r=new FileReader();r.onload=function(){var i=new Image();i.onload=function(){var cv=document.createElement('canvas');var mx=900;var rt=Math.min(mx/i.width,mx/i.height,1);cv.width=Math.round(i.width*rt);cv.height=Math.round(i.height*rt);cv.getContext('2d').drawImage(i,0,0,cv.width,cv.height);cb(cv.toDataURL('image/jpeg',.72));};i.src=r.result;};r.readAsDataURL(file);}
+function cFoto(file,cb){var r=new FileReader();r.onload=function(){var i=new Image();i.onload=function(){var cv=document.createElement('canvas');var mx=800;var rt=Math.min(mx/i.width,mx/i.height,1);cv.width=Math.round(i.width*rt);cv.height=Math.round(i.height*rt);cv.getContext('2d').drawImage(i,0,0,cv.width,cv.height);cb(cv.toDataURL('image/jpeg',.68));};i.src=r.result;};r.readAsDataURL(file);}
 // CHIPS
 function ch(id,lbl,grp,multi,cls){return '<span class="ch'+(cls?' '+cls:'')+'" data-id="'+es(id)+'" data-g="'+grp+'" onclick="tc(this,'+(multi?'true':'false')+')" style="cursor:pointer">'+es(lbl)+'</span>';}
 function tc(el,m){if(!m){document.querySelectorAll('[data-g="'+el.getAttribute('data-g')+'"]').forEach(function(e){e.classList.remove('on');});}el.classList.toggle('on');}
@@ -1643,9 +1643,10 @@ function aFicha(id){
     if(v.tipo==='cliente'){
       h+='<div class="vhr">'+(v.vendio===true?'Venta realizada':v.vendio===false?'Sin venta':'Sin dato de venta')+'</div>';
       if(v.vendio===false&&v.razones)h+='<div class="vhx">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>';
-      if(v.iE)h+='<div class="vhx">Ext: '+es(v.iE)+'</div>';
+      if(v.iE)h+='<div class="vhx">Local ext: '+es(v.iE)+(v.iI?' · int: '+es(v.iI):'')+'</div>';
       if(v.frfX&&v.frfX!=='OK')h+='<div class="vhx" style="color:var(--orange)">Freezer ext: '+es(v.frfX)+'</div>';
-      if(v.pop)h+='<div class="vhx">POP: '+es(v.pop)+'</div>';
+      if(v.frfN&&v.frfN!=='OK')h+='<div class="vhx" style="color:var(--orange)">Freezer int: '+es(v.frfN)+'</div>';
+      if(v.fF)h+='<div class="vhx" style="color:var(--cyan);cursor:pointer" onclick="verFotoVisita(\''+v.id+'\')">📷 Ver foto del freezer</div>';
     } else {
       h+='<div class="vhr">Visita a prospecto</div>';
       if(v.eta)h+='<div class="vhx">Etapa: '+es(v.eta)+'</div>';
@@ -3147,35 +3148,43 @@ function sEt(et){
   ET.forEach(function(e){var el=document.getElementById('et_'+e.replace(/\s/g,'_'));if(el){var col=EC[e];el.style.borderColor=e===et?col:'var(--border)';el.style.background=e===et?'rgba('+h2r(col)+',.1)':'var(--s2)';}});
 }
 
-// ── VISITA CLIENTE: wizard 5 pasos ────────────────────────────────────
+// ── VISITA CLIENTE: wizard 3 pasos ────────────────────────────────────
+// Paso freezer (con foto) solo si el cliente tiene un comodato ACTIVO (freezer nuestro).
+function tieneFreezerNuestro(cid){
+  return D.com.some(function(co){return co.cid===cid&&!co.ret;});
+}
+// Muestra la foto del freezer guardada en una visita
+function verFotoVisita(vid){
+  var v=D.vis.find(function(x){return x.id===vid;});if(!v||!v.fF)return;
+  oMod('Foto del freezer','<img src="'+v.fF+'" style="width:100%;border-radius:var(--rsm)"><div style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">'+fmt(v.fecha)+(v.vend?' · '+es(v.vend):'')+'</div>');
+}
 function aVisita(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
   var rz=D.cfg.razones||['Sin plata','Freezer lleno','Otro'];
+  var conFreezer=tieneFreezerNuestro(id);
   var steps=[
-    {sub:'1/5 · Imagen exterior',
-     render:function(){return '<div style="font-size:20px;font-weight:800;margin-bottom:12px">Imagen exterior</div><div style="color:var(--muted);font-size:13px;margin-bottom:14px">Carteleria, limpieza y acceso al local</div><div class="chips">'+ch('OK','OK','ext',false,'gon')+ch('Mejorar','Necesita mejora','ext',false,'oon')+ch('Critico','Critico','ext',false,'ron')+'</div><div class="fg" style="margin-top:14px"><label class="fl">Observaciones</label><textarea class="fi fta" id="oE" placeholder="Detalles..."></textarea></div><label class="pb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span id="lE">Foto exterior</span><input type="file" accept="image/*" capture="environment" style="display:none" onchange="wf(this,\'fE\',\'lE\',\'pE\')"></label><img id="pE" class="pp">';},
-     init:function(){if(W.data.iE)sc('ext',W.data.iE);},
-     sv:function(d){d.iE=gc('ext');d.oE=document.getElementById('oE').value;}},
-    {sub:'2/5 · Imagen interior',
-     render:function(){return '<div style="font-size:20px;font-weight:800;margin-bottom:12px">Imagen interior</div><div style="color:var(--muted);font-size:13px;margin-bottom:14px">Orden, limpieza y presentacion interna</div><div class="chips">'+ch('OK','OK','int',false,'gon')+ch('Mejorar','Necesita mejora','int',false,'oon')+ch('Critico','Critico','int',false,'ron')+'</div><div class="fg" style="margin-top:14px"><label class="fl">Observaciones</label><textarea class="fi fta" id="oI" placeholder="Detalles..."></textarea></div><label class="pb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span id="lI">Foto interior</span><input type="file" accept="image/*" capture="environment" style="display:none" onchange="wf(this,\'fI\',\'lI\',\'pI\')"></label><img id="pI" class="pp">';},
-     init:function(){if(W.data.iI)sc('int',W.data.iI);},
-     sv:function(d){d.iI=gc('int');d.oI=document.getElementById('oI').value;}},
-    {sub:'3/5 · Control del freezer',
-     render:function(){return '<div style="font-size:20px;font-weight:800;margin-bottom:12px">Freezer</div><div class="card"><div class="ct">Ubicacion</div><div class="chips">'+ch('OK','OK','fU',false,'gon')+ch('Mej','Mejorable','fU',false,'oon')+ch('Reu','Reubicar','fU',false,'ron')+'</div></div><div class="card"><div class="ct">Planimetria</div><div class="chips">'+ch('OK','OK','fP',false,'gon')+ch('Mej','Mejorable','fP',false,'oon')+ch('Cri','Critica','fP',false,'ron')+'</div></div><div class="card"><div class="ct">Estado exterior</div><div class="chips">'+ch('OK','OK','fX',false,'gon')+ch('Ate','Necesita atencion','fX',false,'oon')+ch('Rot','Roto/Falla','fX',false,'ron')+'</div></div><div class="card"><div class="ct">Estado interior</div><div class="chips">'+ch('OK','OK','fN',false,'gon')+ch('Esc','Escarchado','fN',false,'oon')+ch('Des','Desorganizado','fN',false,'ron')+'</div></div><label class="pb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span id="lF">Foto freezer</span><input type="file" accept="image/*" capture="environment" style="display:none" onchange="wf(this,\'fF\',\'lF\',\'pF\')"></label><img id="pF" class="pp">';},
-     init:function(){['fU','fP','fX','fN'].forEach(function(g){if(W.data['fr'+g])sc(g,W.data['fr'+g]);});},
+    // PASO 1: Imagen del local (exterior + interior en una sola pantalla, sin foto)
+    {sub:'Imagen del local',
+     render:function(){return '<div style="font-size:20px;font-weight:800;margin-bottom:12px">Imagen del local</div>'+
+       '<div class="card"><div class="ct">Exterior</div><div style="color:var(--muted);font-size:12px;margin-bottom:8px">Carteleria, limpieza y acceso</div><div class="chips">'+ch('OK','OK','ext',false,'gon')+ch('Mejorar','Necesita mejora','ext',false,'oon')+ch('Critico','Critico','ext',false,'ron')+'</div></div>'+
+       '<div class="card"><div class="ct">Interior</div><div style="color:var(--muted);font-size:12px;margin-bottom:8px">Orden, limpieza y presentacion</div><div class="chips">'+ch('OK','OK','int',false,'gon')+ch('Mejorar','Necesita mejora','int',false,'oon')+ch('Critico','Critico','int',false,'ron')+'</div></div>'+
+       '<div class="fg" style="margin-top:6px"><label class="fl">Observaciones</label><textarea class="fi fta" id="oLocal" placeholder="Detalles del local..."></textarea></div>';},
+     init:function(){if(W.data.iE)sc('ext',W.data.iE);if(W.data.iI)sc('int',W.data.iI);var o=document.getElementById('oLocal');if(o&&W.data.oLocal)o.value=W.data.oLocal;},
+     sv:function(d){d.iE=gc('ext');d.iI=gc('int');d.oLocal=document.getElementById('oLocal').value;}},
+    // PASO 2: Control del freezer (mantenimiento) + 1 foto — SOLO si tiene comodato activo
+    {sub:'Control del freezer',skip:!conFreezer,
+     render:function(){return '<div style="font-size:20px;font-weight:800;margin-bottom:4px">Control del freezer</div><div style="color:var(--muted);font-size:12px;margin-bottom:14px">Mantenimiento de la unidad en comodato</div><div class="card"><div class="ct">Ubicacion</div><div class="chips">'+ch('OK','OK','fU',false,'gon')+ch('Mej','Mejorable','fU',false,'oon')+ch('Reu','Reubicar','fU',false,'ron')+'</div></div><div class="card"><div class="ct">Planimetria</div><div class="chips">'+ch('OK','OK','fP',false,'gon')+ch('Mej','Mejorable','fP',false,'oon')+ch('Cri','Critica','fP',false,'ron')+'</div></div><div class="card"><div class="ct">Estado exterior</div><div class="chips">'+ch('OK','OK','fX',false,'gon')+ch('Ate','Necesita atencion','fX',false,'oon')+ch('Rot','Roto/Falla','fX',false,'ron')+'</div></div><div class="card"><div class="ct">Estado interior</div><div class="chips">'+ch('OK','OK','fN',false,'gon')+ch('Esc','Escarchado','fN',false,'oon')+ch('Des','Desorganizado','fN',false,'ron')+'</div></div><label class="pb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span id="lF">Foto del freezer (opcional)</span><input type="file" accept="image/*" capture="environment" style="display:none" onchange="wf(this,\'fF\',\'lF\',\'pF\')"></label><img id="pF" class="pp">';},
+     init:function(){['fU','fP','fX','fN'].forEach(function(g){if(W.data['fr'+g])sc(g,W.data['fr'+g]);});if(W.data.fF){var p=document.getElementById('pF');if(p){p.src=W.data.fF;p.style.display='block';}var l=document.getElementById('lF');if(l)l.textContent='Foto guardada OK';}},
      sv:function(d){['fU','fP','fX','fN'].forEach(function(g){d['fr'+g]=gc(g);});}},
-    {sub:'4/5 · Venta',
+    // PASO 3: Venta
+    {sub:'Venta',
      render:function(){
        var rzH=rz.map(function(r){return ch(r,r,'nv',true,'');}).join('');
        return '<div style="font-size:20px;font-weight:800;margin-bottom:14px">Venta</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px"><div id="bS" onclick="tgV(true)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">SI</div><div id="bN" onclick="tgV(false)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">NO</div></div><div id="nvS" style="display:none"><div class="ct">Motivo (podes elegir varios)</div><div class="chips">'+rzH+'</div><div id="nvO" style="display:none;margin-top:8px"><input class="fi" id="otroT" placeholder="Especifica el motivo..."></div></div><div class="fg" style="margin-top:14px"><label class="fl">Notas de la visita</label><textarea class="fi fta" id="ntV" placeholder="Observaciones, acuerdos..."></textarea></div><div class="fg"><label class="fl">Proxima visita</label><input class="fi" type="date" id="prV"></div><div class="sr"><span style="font-weight:700;color:var(--red)">Marcar como deudor</span><label class="sw"><input type="checkbox" id="chD"><span class="sl3"></span></label></div>';
      },
      init:function(){if(W.data.vendio===true)tgV(true);else if(W.data.vendio===false)tgV(false);},
-     sv:function(d){d.nt=document.getElementById('ntV').value;d.prox=document.getElementById('prV').value;d.deu=document.getElementById('chD').checked;if(d.vendio===false){d.razones=gcs('nv');var ot=document.getElementById('otroT');if(ot&&ot.value)d.otroM=ot.value;}}},
-    {sub:'5/5 · Material POP',
-     render:function(){return '<div style="font-size:20px;font-weight:800;margin-bottom:12px">Material POP</div><div style="color:var(--muted);font-size:13px;margin-bottom:14px">Carteleria, folletos y exhibidores</div><div class="chips">'+ch('OK','OK y actualizado','pop',false,'gon')+ch('Fal','Falta material','pop',false,'oon')+ch('Mal','En mal estado','pop',false,'ron')+ch('Sin','Sin POP','pop',false,'')+'</div><div class="fg" style="margin-top:14px"><label class="fl">Notas finales</label><textarea class="fi fta" id="ntP"></textarea></div>';},
-     init:function(){if(W.data.pop)sc('pop',W.data.pop);},
-     sv:function(d){d.pop=gc('pop');d.ntP=document.getElementById('ntP').value;}}
-  ];
+     sv:function(d){d.nt=document.getElementById('ntV').value;d.prox=document.getElementById('prV').value;d.deu=document.getElementById('chD').checked;if(d.vendio===false){d.razones=gcs('nv');var ot=document.getElementById('otroT');if(ot&&ot.value)d.otroM=ot.value;}}}
+  ].filter(function(s){return !s.skip;}); // saca el paso freezer si no corresponde
   wInit(c.nm,steps,id,'cliente',false);
 }
 function tgV(si){
