@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='4.3 - 23/07/2026';
+var VERSION='4.4 - 23/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -24,7 +24,7 @@ var ARG_CIU={
 };
 var ARG_BARRIOS=['Alberdi','Alta Cordoba','Altamira','Altos de la Quintas','Argüello','Barra de Argüello','Bella Vista','Bimaco','Bo.13 de Diciembre','Bo.Ameghino','Bo.Calasanz Norte','Bo.Calasanz Sur','Bo.Centro','Bo.Cerro Chico','Bo.Cofico','Bo.Colinas de Velez Sarsfield','Bo.Don Bosco','Bo.General Paz','Bo.Jardin Espinosa','Bo.Jardin Hipico','Bo.Los Granados','Bo.Maipu','Bo.Muller','Bo.Naciones Unidas','Bo.Nueva Córdoba','Bo.Observatorio','Bo.Primero de Mayo','Bo.Residencial America','Bo.San Ignacio','Bo.San Lorenzo','Bo.San Vicente','Bo.Urca','Bo.Vallescondido','Bo.Velez Sarsfield','Bo.Villa Azalais','Bo.Villa Cornu','Bo.Villa del Parque','Bo.Villa Eucaristica','Bo.Villa Paez','Bo.Villa Progreso','Bo.Villa San Martin','Bo.Yapeyú','Casas Brujas','Centro','Cerro de las Rosas','Ciudad de los Cuartetos','Cofico','Colinas de Villa Allende','Country El Bosque','Country Los Cedros','Country Los Manantiales','Country Villa Allende','Estacion Juarez Celman','Ferreyra','General Bustos','General Fotheringham','General Paz','Guiñazú','Ituzaingo','Jardin','Jose Ignacio Diaz','Juniors','La Calera','La Floresta','Las Palmas','Lomas del Chateau','Los Bulevares','Los Cedros','Los Chasquis','Los Paraísos','Las Rosas','Manantiales','Marqués de Sobremonte','Mendiolaza','Miguel Cerro','Monte Cristo','Muller','Nicolas Avellaneda','Nuevo Cordoba','Palermo','Parque Capital','Parque Costanero','Parque Liceo','Parque San Martin','Parque Velez Sarsfield','Paso de los Andes','Patria Grande','Patricios','Pinar de Atenas','Pueyrredon','Quebrada Las Rosas','Quintas del Este','Quintas del Norte','Quintas del Sur','Ricardo Rojas','Rivadavia','Sagrada Familia','San Ignacio','San Juan Bautista','San Martin','San Roque','Santa Isabel','Santa Rita','Villa Acacias','Villa Allende','Villa Belgrano','Villa Bustos','Villa Cabrera','Villa Centenario','Villa Cornú','Villa del Prado','Villa Dolores','Villa Eucaristica','Villa Flores','Villa Fortabat','Villa Italia','Villa La Florida','Villa Libertad','Villa Maipú','Villa Martelli','Villa Páez','Villa Parque','Villa Poeta Lugones','Villa Progreso','Villa Rivera Indarte','Villa Rivadavia','Villa Sarmiento','Villa Sol','Villa Urquiza','Villa Warcalde','Yapeyú','Arguello','Colinas de Villa Allende'];
 
-var CFG={msgPedido:'Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Kiosco/Drugs/Almacén','Despensa','Autoservicio','Supermercado','Minimercado','Mayorista','Bar/Resto','Parrilla','Cafeteria','Heladeria','Panaderia','Confiteria','Rotiseria','Estacion de servicio','Club/Escuela','Salón/Catering','Camping','Hotel','Hostel','Complejo turistico','Balneario','Distribuidor','Farmacia','Otro'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Sin interes','Precio','Otro'],tiposProducto:['Helados','Panificacion','Fiambres y quesos','Bebidas','Congelados','Almacen','Golosinas','Lacteos','Otros'],msgs:Object.assign({},MD)};
+var CFG={msgPedido:'Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Kiosco/Drugs/Almacén','Autoservicio','Supermercado','Minimercado','Mayorista','Bar/Resto','Parrilla','Cafeteria','Heladeria','Panaderia','Confiteria','Rotiseria','Estacion de servicio','Club/Escuela','Salón/Catering','Camping','Hotel','Hostel','Complejo turistico','Balneario','Distribuidor','Farmacia','Otro'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Sin interes','Precio','Otro'],tiposProducto:['Helados','Panificacion','Fiambres y quesos','Bebidas','Congelados','Almacen','Golosinas','Lacteos','Otros'],msgs:Object.assign({},MD)};
 var D={user:null,usrs:[{id:1,n:'JL',u:'jl',p:'seitu2026',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:3,n:'Chamu',u:'chamu',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:4,n:'Pablo',u:'pablo',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
 
 // ════════════════════════════════════════════════════════════════════
@@ -399,7 +399,7 @@ function descargarXLSX(filas,nombreArchivo){
 // Unificacion de categorias de negocio: las viejas se muestran ya como la nueva.
 // Se aplica en memoria al cargar (todos lo ven bien) y el admin lo persiste una vez.
 var MAPA_TIPOS={
-  'Kiosco':'Kiosco/Drugs/Almacén','Drugstore':'Kiosco/Drugs/Almacén','Almacen':'Kiosco/Drugs/Almacén','Almacén':'Kiosco/Drugs/Almacén',
+  'Kiosco':'Kiosco/Drugs/Almacén','Drugstore':'Kiosco/Drugs/Almacén','Almacen':'Kiosco/Drugs/Almacén','Almacén':'Kiosco/Drugs/Almacén','Despensa':'Kiosco/Drugs/Almacén',
   'Bar':'Bar/Resto','Restaurante':'Bar/Resto',
   'Club':'Club/Escuela','Escuela':'Club/Escuela'
 };
@@ -408,7 +408,9 @@ function tipoUnificado(t){return MAPA_TIPOS[t]||t;}
 // vieja y actualiza el catalogo guardado. Solo la corre el admin, una sola vez.
 function migrarCategorias(){
   if(!D.user||D.user.r!=='admin')return;
-  if(D.cfg&&D.cfg.tiposMigrados)return; // ya se hizo
+  // La marca lleva version: si se suman categorias al mapa, se sube el numero y vuelve a correr.
+  var VER_MIGRACION=2;
+  if(D.cfg&&D.cfg.tiposMigradosV>=VER_MIGRACION)return; // ya se hizo esta version
   var cambiados=D.cli.filter(function(c){return c._tipoViejo;});
   // Persistir contactos que cambiaron de categoria
   D.cli.forEach(function(c){
@@ -422,7 +424,7 @@ function migrarCategorias(){
   // Ordenar dejando "Otro" al final
   lista.sort(function(a,b){if(a==='Otro')return 1;if(b==='Otro')return -1;return a.localeCompare(b);});
   D.cfg.tipos=lista;
-  D.cfg.tiposMigrados=true;
+  D.cfg.tiposMigradosV=VER_MIGRACION;
   fsSetConfig(D.cfg);
   if(cambiados.length)logEvento('edicion','','','Categorias unificadas: '+cambiados.length+' contactos actualizados','','');
 }
