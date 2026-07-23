@@ -4,41 +4,27 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='4.2 - 22/07/2026';
+var VERSION='4.3 - 23/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
 var EC={'Nuevo Prospecto':'#fb923c','Contactado':'#fbbf24','Propuesta Enviada':'#a78bfa','Negociacion':'#22d3ee','Cliente Activo':'#4ade80','No Le Interesa':'#f87171','Perdido':'#f87171'};
 var MD={'Nuevo Prospecto':'Hola! Soy de Sei Tu Helados, pase por tu local y me gustaria contarte nuestra propuesta. Tenes un minuto?','Contactado':'Hola! Te escribo para coordinar una visita y mostrarte la propuesta de Sei Tu. Que dia te viene bien?','Propuesta Enviada':'Hola! Pudiste ver la propuesta? Queda alguna duda que pueda responder?','Negociacion':'Hola! Como venimos con la propuesta? Si necesitas ajustar algo avisame.','Cliente Activo':'Hola! Como va la venta? Aviso si hay novedades o promos.','No Le Interesa':'Gracias por tu tiempo! Si cambia la situacion quedo disponible.','Perdido':'Hola! Hace tiempo no hablamos. Segui interesado en Sei Tu?'};
-var ARG_PROV=['Buenos Aires','Catamarca','Chaco','Chubut','Cordoba','Corrientes','Entre Rios','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquen','Rio Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucuman'];
+// Provincias donde opera la empresa. Si se suma una nueva, agregarla aca y en ARG_CIU.
+var ARG_PROV=['Cordoba','Santa Fe','Catamarca','La Rioja','Santiago del Estero','Tucuman','Salta','Jujuy'];
 var ARG_CIU={
-  'Buenos Aires':['Buenos Aires (CABA)','La Plata','Mar del Plata','Bah\u00eda Blanca','Quilmes','La Matanza','Lomas de Zamora','Mor\u00f3n','San Isidro','Tigre','Pilar','Moreno','San Fernando','Lanús','Avellaneda','Berazategui','Florencio Varela','Tres de Febrero','Merlo','Ezeiza','Tandil','Pergamino','Zárate','Campana','Luján','Chivilcoy','Olavarría','San Nicolás'],
   'Cordoba':['Córdoba Capital','Río Cuarto','Villa María','San Francisco','Villa Carlos Paz','Alta Gracia','Jesús María','Río Tercero','Bell Ville','La Calera','Marcos Juárez','Cruz del Eje','Villa Dolores','Arroyito','Oliva','Monte Cristo','Unquillo','Malagueño','Colonia Caroya','Las Varillas','Leones','General Cabrera','La Carlota','Hernando','Cosquín','Capilla del Monte','Villa Nueva','Almafuerte','Dean Funes','Villa Allende','Río Ceballos','Mendiolaza','Saldán','Salsipuedes','Agua de Oro','La Granja','Estación Juárez Celman','Toledo','Villa del Rosario','Laguna Larga','Pilar','Río Segundo','Río Primero','Villa General Belgrano','Santa Rosa de Calamuchita','Embalse','La Falda','Valle Hermoso','Huerta Grande','Villa Giardino','La Cumbre','Tanti','Bialet Massé','Santa María de Punilla','Icho Cruz','Mina Clavero','Villa Cura Brochero','General Deheza','Laboulaye','Corral de Bustos','Morteros','Brinkmann','Devoto','Freyre','Balnearia','Villa del Totoral','Sinsacate'],
-  'Santa Fe':['Rosario','Santa Fe','Rafaela','Villa Constitución','San Lorenzo','Venado Tuerto','Reconquista','Esperanza','Casilda','Gálvez','Ceres','Las Rosas','Firmat','Sunchales','Cañada de Gómez'],
-  'Mendoza':['Mendoza','San Rafael','Godoy Cruz','Guaymallén','Las Heras','Maipú','Luján de Cuyo','Junín','Rivadavia','Tunuyán','Malargüe'],
-  'Tucuman':['San Miguel de Tucumán','Yerba Buena','Tafí Viejo','Banda del Río Salí','Alderetes','Concepción','Monteros','Aguilares'],
-  'Salta':['Salta','General Güemes','Tartagal','Orán','Cafayate','Rosario de la Frontera'],
-  'Entre Rios':['Paraná','Concordia','Gualeguaychú','Concepción del Uruguay','Gualeguay','Villaguay'],
-  'Corrientes':['Corrientes','Goya','Paso de los Libres','Mercedes','Curuzú Cuatiá','Santo Tomé'],
-  'Misiones':['Posadas','Oberá','Eldorado','Puerto Iguazú','Aristóbulo del Valle'],
-  'Chaco':['Resistencia','Barranqueras','Villa Ángela','Roque Sáenz Peña'],
-  'Santiago del Estero':['Santiago del Estero','La Banda','Termas de Río Hondo','Añatuya','Frías'],
-  'San Juan':['San Juan','Rivadavia','Chimbas','Rawson','Pocito','Caucete'],
-  'Jujuy':['San Salvador de Jujuy','Palpalá','Perico','Libertador Gral San Martín'],
-  'Rio Negro':['Viedma','Bariloche','General Roca','Cipolletti','Allen','El Bolsón'],
-  'Neuquen':['Neuquén','Cutral-Có','Zapala','Centenario','San Martín de los Andes'],
-  'La Pampa':['Santa Rosa','General Pico','Toay','Eduardo Castex'],
-  'Chubut':['Comodoro Rivadavia','Rawson','Trelew','Puerto Madryn','Esquel'],
-  'San Luis':['San Luis','Villa Mercedes','Merlo'],
-  'Catamarca':['San Fernando del Valle de Catamarca','Tinogasta','Andalgalá'],
-  'La Rioja':['La Rioja','Chilecito','Aimogasta'],
-  'Formosa':['Formosa','Clorinda','Pirané'],
-  'Santa Cruz':['Río Gallegos','Caleta Olivia','Pico Truncado'],
-  'Tierra del Fuego':['Ushuaia','Río Grande','Tolhuin']
+  'Santa Fe':['Rosario','Santa Fe','Rafaela','Villa Constitución','San Lorenzo','Venado Tuerto','Reconquista','Esperanza','Casilda','Gálvez','Ceres','Las Rosas','Firmat','Sunchales','Cañada de Gómez','Santo Tomé','Villa Gobernador Gálvez','Granadero Baigorria','Funes','Roldán','Pérez','San Justo','Vera','Avellaneda','San Jorge','Carcarañá','Arroyo Seco','Coronda','San Cristóbal','Tostado','El Trébol','Rufino','Armstrong','Totoras','Capitán Bermúdez'],
+  'Catamarca':['San Fernando del Valle de Catamarca','Valle Viejo','Fray Mamerto Esquiú','Tinogasta','Andalgalá','Belén','Santa María','Recreo','Los Altos','Icaño','Chumbicha','Capayán','Pomán','Saujil','Londres','Fiambalá','El Rodeo','Huillapima','Ancasti','Santa Rosa'],
+  'La Rioja':['La Rioja','Chilecito','Aimogasta','Chamical','Chepes','Villa Unión','Olta','Ulapes','Famatina','Nonogasta','Sanagasta','Anillaco','Aminga','Patquía','Milagro','Villa Castelli','Vinchina','Tama'],
+  'Santiago del Estero':['Santiago del Estero','La Banda','Termas de Río Hondo','Añatuya','Frías','Fernández','Quimilí','Monte Quemado','Suncho Corral','Loreto','Clodomira','Beltrán','Selva','Bandera','Nueva Esperanza','Pampa de los Guanacos','Los Juríes','Tintina','Sumampa','Villa Ojo de Agua'],
+  'Tucuman':['San Miguel de Tucumán','Yerba Buena','Tafí Viejo','Banda del Río Salí','Alderetes','Concepción','Monteros','Aguilares','Lules','Famaillá','Bella Vista','Simoca','Tafí del Valle','Trancas','Burruyacú','Las Talitas','El Manantial','Juan Bautista Alberdi','La Cocha','Graneros','Amaicha del Valle','Ranchillos'],
+  'Salta':['Salta','San Ramón de la Nueva Orán','Tartagal','General Güemes','Cafayate','Rosario de la Frontera','Metán','Rosario de Lerma','Cerrillos','San Lorenzo','Vaqueros','La Caldera','Campo Quijano','Chicoana','El Carril','Embarcación','Aguaray','Mosconi','Joaquín V. González','Las Lajitas','Cachi','Molinos','La Poma','Colonia Santa Rosa','Pichanal','Apolinario Saravia'],
+  'Jujuy':['San Salvador de Jujuy','Palpalá','Perico','Libertador General San Martín','San Pedro de Jujuy','La Quiaca','Humahuaca','Tilcara','Maimará','Purmamarca','El Carmen','Monterrico','Fraile Pintado','Calilegua','Yuto','Abra Pampa','Susques','Volcán','León','Caimancito','Santa Clara','Cangrejillos']
 };
 var ARG_BARRIOS=['Alberdi','Alta Cordoba','Altamira','Altos de la Quintas','Argüello','Barra de Argüello','Bella Vista','Bimaco','Bo.13 de Diciembre','Bo.Ameghino','Bo.Calasanz Norte','Bo.Calasanz Sur','Bo.Centro','Bo.Cerro Chico','Bo.Cofico','Bo.Colinas de Velez Sarsfield','Bo.Don Bosco','Bo.General Paz','Bo.Jardin Espinosa','Bo.Jardin Hipico','Bo.Los Granados','Bo.Maipu','Bo.Muller','Bo.Naciones Unidas','Bo.Nueva Córdoba','Bo.Observatorio','Bo.Primero de Mayo','Bo.Residencial America','Bo.San Ignacio','Bo.San Lorenzo','Bo.San Vicente','Bo.Urca','Bo.Vallescondido','Bo.Velez Sarsfield','Bo.Villa Azalais','Bo.Villa Cornu','Bo.Villa del Parque','Bo.Villa Eucaristica','Bo.Villa Paez','Bo.Villa Progreso','Bo.Villa San Martin','Bo.Yapeyú','Casas Brujas','Centro','Cerro de las Rosas','Ciudad de los Cuartetos','Cofico','Colinas de Villa Allende','Country El Bosque','Country Los Cedros','Country Los Manantiales','Country Villa Allende','Estacion Juarez Celman','Ferreyra','General Bustos','General Fotheringham','General Paz','Guiñazú','Ituzaingo','Jardin','Jose Ignacio Diaz','Juniors','La Calera','La Floresta','Las Palmas','Lomas del Chateau','Los Bulevares','Los Cedros','Los Chasquis','Los Paraísos','Las Rosas','Manantiales','Marqués de Sobremonte','Mendiolaza','Miguel Cerro','Monte Cristo','Muller','Nicolas Avellaneda','Nuevo Cordoba','Palermo','Parque Capital','Parque Costanero','Parque Liceo','Parque San Martin','Parque Velez Sarsfield','Paso de los Andes','Patria Grande','Patricios','Pinar de Atenas','Pueyrredon','Quebrada Las Rosas','Quintas del Este','Quintas del Norte','Quintas del Sur','Ricardo Rojas','Rivadavia','Sagrada Familia','San Ignacio','San Juan Bautista','San Martin','San Roque','Santa Isabel','Santa Rita','Villa Acacias','Villa Allende','Villa Belgrano','Villa Bustos','Villa Cabrera','Villa Centenario','Villa Cornú','Villa del Prado','Villa Dolores','Villa Eucaristica','Villa Flores','Villa Fortabat','Villa Italia','Villa La Florida','Villa Libertad','Villa Maipú','Villa Martelli','Villa Páez','Villa Parque','Villa Poeta Lugones','Villa Progreso','Villa Rivera Indarte','Villa Rivadavia','Villa Sarmiento','Villa Sol','Villa Urquiza','Villa Warcalde','Yapeyú','Arguello','Colinas de Villa Allende'];
 
-var CFG={msgPedido:'Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Kiosco','Drugstore','Despensa','Almacen','Autoservicio','Supermercado','Minimercado','Mayorista','Bar','Restaurante','Parrilla','Cafeteria','Heladeria','Panaderia','Confiteria','Rotiseria','Estacion de servicio','Club','Camping','Hotel','Hostel','Complejo turistico','Balneario','Distribuidor','Farmacia','Otro'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Sin interes','Precio','Otro'],tiposProducto:['Helados','Panificacion','Fiambres y quesos','Bebidas','Congelados','Almacen','Golosinas','Lacteos','Otros'],msgs:Object.assign({},MD)};
+var CFG={msgPedido:'Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Kiosco/Drugs/Almacén','Despensa','Autoservicio','Supermercado','Minimercado','Mayorista','Bar/Resto','Parrilla','Cafeteria','Heladeria','Panaderia','Confiteria','Rotiseria','Estacion de servicio','Club/Escuela','Salón/Catering','Camping','Hotel','Hostel','Complejo turistico','Balneario','Distribuidor','Farmacia','Otro'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Sin interes','Precio','Otro'],tiposProducto:['Helados','Panificacion','Fiambres y quesos','Bebidas','Congelados','Almacen','Golosinas','Lacteos','Otros'],msgs:Object.assign({},MD)};
 var D={user:null,usrs:[{id:1,n:'JL',u:'jl',p:'seitu2026',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:3,n:'Chamu',u:'chamu',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:4,n:'Pablo',u:'pablo',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
 
 // ════════════════════════════════════════════════════════════════════
@@ -242,7 +228,9 @@ function fsSetContacto(c){
   if(soloLectura())return Promise.resolve();
   if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
-  return fsDB.collection('contactos').doc(c.id).set(c)
+  // _tipoViejo es una marca temporal de la migracion de categorias: no se guarda
+  var doc={};for(var k in c){if(k!=='_tipoViejo')doc[k]=c[k];}
+  return fsDB.collection('contactos').doc(c.id).set(doc)
     .then(function(){setSyncDot('ok');})
     .catch(function(e){setSyncDot('error');debugLog('error','contactos write: '+e.message);toast('No se pudo guardar: '+e.message,'err');});
 }
@@ -408,7 +396,38 @@ function descargarXLSX(filas,nombreArchivo){
   }
 }
 // Normaliza campos por si llegan registros viejos/incompletos desde Firestore
+// Unificacion de categorias de negocio: las viejas se muestran ya como la nueva.
+// Se aplica en memoria al cargar (todos lo ven bien) y el admin lo persiste una vez.
+var MAPA_TIPOS={
+  'Kiosco':'Kiosco/Drugs/Almacén','Drugstore':'Kiosco/Drugs/Almacén','Almacen':'Kiosco/Drugs/Almacén','Almacén':'Kiosco/Drugs/Almacén',
+  'Bar':'Bar/Resto','Restaurante':'Bar/Resto',
+  'Club':'Club/Escuela','Escuela':'Club/Escuela'
+};
+function tipoUnificado(t){return MAPA_TIPOS[t]||t;}
+// Migracion unica de categorias: persiste en Firestore los contactos con categoria
+// vieja y actualiza el catalogo guardado. Solo la corre el admin, una sola vez.
+function migrarCategorias(){
+  if(!D.user||D.user.r!=='admin')return;
+  if(D.cfg&&D.cfg.tiposMigrados)return; // ya se hizo
+  var cambiados=D.cli.filter(function(c){return c._tipoViejo;});
+  // Persistir contactos que cambiaron de categoria
+  D.cli.forEach(function(c){
+    if(c._tipoViejo){delete c._tipoViejo;fsSetContacto(c);}
+  });
+  // Actualizar el catalogo guardado: sacar las viejas, sumar las nuevas
+  var viejas=Object.keys(MAPA_TIPOS);
+  var nuevas=['Kiosco/Drugs/Almacén','Bar/Resto','Club/Escuela','Salón/Catering'];
+  var lista=(D.cfg.tipos||[]).filter(function(t){return viejas.indexOf(t)<0;});
+  nuevas.forEach(function(t){if(lista.indexOf(t)<0)lista.push(t);});
+  // Ordenar dejando "Otro" al final
+  lista.sort(function(a,b){if(a==='Otro')return 1;if(b==='Otro')return -1;return a.localeCompare(b);});
+  D.cfg.tipos=lista;
+  D.cfg.tiposMigrados=true;
+  fsSetConfig(D.cfg);
+  if(cambiados.length)logEvento('edicion','','','Categorias unificadas: '+cambiados.length+' contactos actualizados','','');
+}
 function normalizarDatos(){
+  D.cli.forEach(function(c){if(c.tipo&&MAPA_TIPOS[c.tipo]){c._tipoViejo=c.tipo;c.tipo=MAPA_TIPOS[c.tipo];}});
   D.cli.forEach(function(c){if(!c.etapaEmbudo||c.etapaEmbudo==='')c.etapaEmbudo=c.esP?'Nuevo Prospecto':'Cliente Activo';if(!c.uv)c.uv='';if(!c.ex)c.ex={};if(c.deu===undefined)c.deu=false;if(!c.ing)c.ing='';if(!c.vend)c.vend='';if(!c.prods)c.prods=[];if(!c.prov)c.prov='';if(!c.ciu)c.ciu='';if(c.agendado===undefined)c.agendado=false;if(!c.tel2)c.tel2='';if(!c.email)c.email='';if(c.eliminado===undefined)c.eliminado=false;});
   D.usrs.forEach(function(u){if(u.activo===undefined)u.activo=true;if(!u.creado)u.creado='';if(!u.ua)u.ua='';});
   if(!D.cfg.msgPedido)D.cfg.msgPedido='Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!';
@@ -440,6 +459,7 @@ function doLogin(){
 function startApp(){
   document.getElementById('sLogin').classList.remove('on');
   try{purgarPapeleraVieja();}catch(e){} // limpia lo que lleva +30 dias en la papelera (solo admin)
+  try{migrarCategorias();}catch(e){}    // unifica categorias de negocio una sola vez (solo admin)
   if(D.user.r==='gerente'||D.user.r==='admin'){
     document.getElementById('sGerente').classList.add('on');
     document.getElementById('vNav').style.display='none';
@@ -720,7 +740,7 @@ function abrirFiltros(){
     h+='</div></div>';
   }
   if((D.cfg.tiposProducto||[]).length){
-    h+='<div class="fg"><div class="fl">Productos que vende (podes elegir varios)</div><div class="chips">';
+    h+='<div class="fg"><div class="fl">Productos que le queremos vender (podes elegir varios)</div><div class="chips">';
     (D.cfg.tiposProducto||[]).forEach(function(p){h+=fchipMulti('prods',p,p);});
     h+='</div></div>';
   }
@@ -774,21 +794,21 @@ function abrirFichaV(id){
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
   h+='<button class="btn" onclick="cMod();abrirVisita(\''+id+'\')" style="margin:0">Registrar visita</button>';
   h+='<button class="btn sec" onclick="cMod();editarContacto(\''+id+'\')" style="margin:0">Editar</button>';
-  h+='</div>';
   if(c.tel){
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
     h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin:0">Enviar WhatsApp</button>';
-    // Ubicacion: dos caminos distintos y claros
-    if(c.lat||c.gpsOk){
-      h+='<div style="font-size:12px;margin:0 0 6px">'+(c.gpsOk?'<span style="color:var(--green)">&#128205; Ubicacion confirmada (en el mapa)</span>':'<span style="color:var(--orange)">&#128205; Ubicacion sin confirmar (no aparece en el mapa)</span>')+' &middot; <span style="color:var(--muted)">'+fmt(c.gpsF||'')+'</span></div>';
-    }
-    h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px">';
+    h+='<button class="btn sec" onclick="exportarVCard(\''+id+'\')" style="margin:0">📋 Agregar a agenda</button>';
+  }
+  h+='</div>';
+  // Ubicacion: una vez confirmada solo queda un boton chico para quitarla del mapa.
+  // Si todavia no esta confirmada, se ofrecen las dos formas de ubicarla.
+  if(c.gpsOk){
+    h+='<div style="text-align:center;margin-bottom:8px"><button class="sm" onclick="borrarUbicacion(\''+id+'\')" style="font-size:10px;color:var(--muted);padding:3px 8px">&#9851; Quitar del mapa</button></div>';
+  } else {
+    h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px">';
     h+='<button class="btn sec" onclick="marcarUbicacion(\''+id+'\')" style="margin:0;flex:1;min-width:130px;font-size:12px">&#128205; GPS (en el local)</button>';
     if((c.dir||'').trim())h+='<button class="btn sec" onclick="ubicarPorDireccion(\''+id+'\')" style="margin:0;flex:1;min-width:130px;font-size:12px">&#128506; Ubicar por direccion</button>';
     h+='</div>';
-    if(c.lat)h+='<button class="btn sec" onclick="borrarUbicacion(\''+id+'\')" style="margin:0 0 8px;font-size:11px;color:var(--orange)">&#9851; Quitar del mapa</button>';
-    h+='<button class="btn sec" onclick="exportarVCard(\''+id+'\')" style="margin:0">📋 Agregar a agenda</button>';
-    h+='</div>';
+    h+='<div style="font-size:11px;color:var(--orange);text-align:center;margin-bottom:8px">Ubicacion sin confirmar (no aparece en el mapa)</div>';
   }
   var logH=htmlLog(id,8);
   if(logH){h+='<div class="div"></div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">HISTORIAL</div>'+logH;}
@@ -814,7 +834,7 @@ function editarContacto(id){
   h+='<div class="fg" style="position:relative"><label class="fl">Ciudad</label><input class="fi" id="eCiudad" autocomplete="off" value="'+es(c.ciu||'')+'" placeholder="Escribi para buscar..."><div id="eCiudadSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>';
   h+='<div class="fg" id="eBarrioFg" style="position:relative;'+(c.ciu==='Córdoba Capital'?'':'display:none')+'"><label class="fl">Barrio</label><input class="fi" id="eBarrio" autocomplete="off" value="'+es(c.bar||'')+'" placeholder="Escribi para buscar..."><div id="eBarrioSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>';
   h+='<div class="fg"><label class="fl">Tipo de negocio</label><div class="chips">'+tH+'</div></div>';
-  h+='<div class="fg"><label class="fl">Productos que vende</label><div class="chips">'+prodH+'</div></div>';
+  h+='<div class="fg"><label class="fl">Productos que le queremos vender</label><div class="chips">'+prodH+'</div></div>';
   h+='<div class="fg"><label class="fl">Competencia</label><div class="chips">'+compH+'</div></div>';
   h+='<div class="fg"><label class="fl">Freezer</label><div class="chips">'+frH+'</div></div>';
   h+='<div class="fg"><label class="fl">Calificacion ubicacion</label><div class="chips">'+['A','B','C','D'].map(function(v){return ch(v,v,'eCal',false,'');}).join('')+'</div></div>';
@@ -1617,24 +1637,23 @@ function aFicha(id){
   if(c.prods&&c.prods.length)h+='<div class="fl">Vende</div><div style="font-size:13px;margin-bottom:10px">'+es(c.prods.join(' · '))+'</div>';
   if(c.comp){h+='<div class="fl">Competencia</div><div style="font-size:13px;margin-bottom:10px">'+es(c.comp)+'</div>';}
   if(c.obs){h+='<div class="fl">Observaciones</div><div style="font-size:13px;color:var(--muted);margin-bottom:10px">'+es(c.obs)+'</div>';}
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0">';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 8px">';
   h+='<button class="btn" onclick="cMod();editarContacto(\''+id+'\')" style="margin:0">Editar</button>';
   h+='<button class="btn sec" onclick="cMod();abrirVisita(\''+id+'\')" style="margin:0">Registrar visita</button>';
-  h+='</div>';
   if(c.tel){
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">';
     h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin:0">Enviar WhatsApp</button>';
-    // Ubicacion: dos caminos distintos y claros
-    if(c.lat||c.gpsOk){
-      h+='<div style="font-size:12px;margin:0 0 6px">'+(c.gpsOk?'<span style="color:var(--green)">&#128205; Ubicacion confirmada (en el mapa)</span>':'<span style="color:var(--orange)">&#128205; Ubicacion sin confirmar (no aparece en el mapa)</span>')+' &middot; <span style="color:var(--muted)">'+fmt(c.gpsF||'')+'</span></div>';
-    }
-    h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px">';
+    h+='<button class="btn sec" onclick="exportarVCard(\''+id+'\')" style="margin:0">📋 Agregar a agenda</button>';
+  }
+  h+='</div>';
+  // Ubicacion: confirmada = solo un boton chico. Sin confirmar = las dos formas de ubicarla.
+  if(c.gpsOk){
+    h+='<div style="text-align:center;margin-bottom:14px"><button class="sm" onclick="borrarUbicacion(\''+id+'\')" style="font-size:10px;color:var(--muted);padding:3px 8px">&#9851; Quitar del mapa</button></div>';
+  } else {
+    h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px">';
     h+='<button class="btn sec" onclick="marcarUbicacion(\''+id+'\')" style="margin:0;flex:1;min-width:130px;font-size:12px">&#128205; GPS (en el local)</button>';
     if((c.dir||'').trim())h+='<button class="btn sec" onclick="ubicarPorDireccion(\''+id+'\')" style="margin:0;flex:1;min-width:130px;font-size:12px">&#128506; Ubicar por direccion</button>';
     h+='</div>';
-    if(c.lat)h+='<button class="btn sec" onclick="borrarUbicacion(\''+id+'\')" style="margin:0 0 8px;font-size:11px;color:var(--orange)">&#9851; Quitar del mapa</button>';
-    h+='<button class="btn sec" onclick="exportarVCard(\''+id+'\')" style="margin:0">📋 Agregar a agenda</button>';
-    h+='</div>';
+    h+='<div style="font-size:11px;color:var(--orange);text-align:center;margin-bottom:14px">Ubicacion sin confirmar (no aparece en el mapa)</div>';
   }
   h+='<div class="div"></div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">HISTORIAL DE VISITAS ('+vs.length+')</div>';
   if(!vs.length){h+='<div style="color:var(--muted);font-size:13px">Sin visitas registradas</div>';}
@@ -3064,7 +3083,7 @@ function aVisPros(id,nu){
          '<div class="fg" style="position:relative"><label class="fl">Ciudad *</label><input class="fi" id="pCiudad" autocomplete="off" placeholder="Escribi para buscar..." value="'+es(c.ciu||'')+'"><div id="pCiudadSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>'+
          '<div class="fg" id="pBarrioFg" style="position:relative;'+(c.ciu==='Córdoba Capital'?'':'display:none')+'"><label class="fl">Barrio</label><input class="fi" id="pBarrio" autocomplete="off" placeholder="Escribi para buscar..." value="'+es(c.bar||'')+'"><div id="pBarrioSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>'+
          '<div class="fg"><label class="fl">Tipo de negocio</label><div class="chips" style="margin-top:6px">'+tH+'</div></div>'+
-         '<div class="fg"><label class="fl">Productos que vende (podes elegir varios)</label><div class="chips" style="margin-top:6px">'+prodH+'</div></div>';
+         '<div class="fg"><label class="fl">Productos que le queremos vender (podes elegir varios)</label><div class="chips" style="margin-top:6px">'+prodH+'</div></div>';
      },
      init:function(){
        if(c.tipo)sc('tip',c.tipo);
