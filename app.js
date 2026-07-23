@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='4.4 - 23/07/2026';
+var VERSION='5.0 - 23/07/2026 (seguridad)';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -25,7 +25,7 @@ var ARG_CIU={
 var ARG_BARRIOS=['Alberdi','Alta Cordoba','Altamira','Altos de la Quintas','Argüello','Barra de Argüello','Bella Vista','Bimaco','Bo.13 de Diciembre','Bo.Ameghino','Bo.Calasanz Norte','Bo.Calasanz Sur','Bo.Centro','Bo.Cerro Chico','Bo.Cofico','Bo.Colinas de Velez Sarsfield','Bo.Don Bosco','Bo.General Paz','Bo.Jardin Espinosa','Bo.Jardin Hipico','Bo.Los Granados','Bo.Maipu','Bo.Muller','Bo.Naciones Unidas','Bo.Nueva Córdoba','Bo.Observatorio','Bo.Primero de Mayo','Bo.Residencial America','Bo.San Ignacio','Bo.San Lorenzo','Bo.San Vicente','Bo.Urca','Bo.Vallescondido','Bo.Velez Sarsfield','Bo.Villa Azalais','Bo.Villa Cornu','Bo.Villa del Parque','Bo.Villa Eucaristica','Bo.Villa Paez','Bo.Villa Progreso','Bo.Villa San Martin','Bo.Yapeyú','Casas Brujas','Centro','Cerro de las Rosas','Ciudad de los Cuartetos','Cofico','Colinas de Villa Allende','Country El Bosque','Country Los Cedros','Country Los Manantiales','Country Villa Allende','Estacion Juarez Celman','Ferreyra','General Bustos','General Fotheringham','General Paz','Guiñazú','Ituzaingo','Jardin','Jose Ignacio Diaz','Juniors','La Calera','La Floresta','Las Palmas','Lomas del Chateau','Los Bulevares','Los Cedros','Los Chasquis','Los Paraísos','Las Rosas','Manantiales','Marqués de Sobremonte','Mendiolaza','Miguel Cerro','Monte Cristo','Muller','Nicolas Avellaneda','Nuevo Cordoba','Palermo','Parque Capital','Parque Costanero','Parque Liceo','Parque San Martin','Parque Velez Sarsfield','Paso de los Andes','Patria Grande','Patricios','Pinar de Atenas','Pueyrredon','Quebrada Las Rosas','Quintas del Este','Quintas del Norte','Quintas del Sur','Ricardo Rojas','Rivadavia','Sagrada Familia','San Ignacio','San Juan Bautista','San Martin','San Roque','Santa Isabel','Santa Rita','Villa Acacias','Villa Allende','Villa Belgrano','Villa Bustos','Villa Cabrera','Villa Centenario','Villa Cornú','Villa del Prado','Villa Dolores','Villa Eucaristica','Villa Flores','Villa Fortabat','Villa Italia','Villa La Florida','Villa Libertad','Villa Maipú','Villa Martelli','Villa Páez','Villa Parque','Villa Poeta Lugones','Villa Progreso','Villa Rivera Indarte','Villa Rivadavia','Villa Sarmiento','Villa Sol','Villa Urquiza','Villa Warcalde','Yapeyú','Arguello','Colinas de Villa Allende'];
 
 var CFG={msgPedido:'Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Kiosco/Drugs/Almacén','Autoservicio','Supermercado','Minimercado','Mayorista','Bar/Resto','Parrilla','Cafeteria','Heladeria','Panaderia','Confiteria','Rotiseria','Estacion de servicio','Club/Escuela','Salón/Catering','Camping','Hotel','Hostel','Complejo turistico','Balneario','Distribuidor','Farmacia','Otro'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Sin interes','Precio','Otro'],tiposProducto:['Helados','Panificacion','Fiambres y quesos','Bebidas','Congelados','Almacen','Golosinas','Lacteos','Otros'],msgs:Object.assign({},MD)};
-var D={user:null,usrs:[{id:1,n:'JL',u:'jl',p:'seitu2026',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:3,n:'Chamu',u:'chamu',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:4,n:'Pablo',u:'pablo',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
+var D={user:null,usrs:[{id:1,n:'JL',u:'jl',email:'jorge.ledesmagd@gmail.com',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',email:'jledes.tf@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:3,n:'Chamu',u:'chamu',email:'jorge_500_df@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:4,n:'Pablo',u:'pablo',email:'pablodellacasa13@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
 
 // ════════════════════════════════════════════════════════════════════
 // FIREBASE / FIRESTORE - FUENTE UNICA DE DATOS EN TIEMPO REAL
@@ -39,6 +39,8 @@ var firebaseConfig={
   appId:"1:803130355928:web:e5c2743eb2c6c961b6e7ad"
 };
 var fsDB=null; // se inicializa en window.load cuando los CDN están cargados
+var AUTH_USER=null;          // usuario autenticado en Firebase (null = no hay sesion)
+var FS_LISTENERS_ON=false;   // evita montar los listeners dos veces
 
 var FS_READY=false;          // true cuando los 7 listeners ya bajaron al menos una vez
 var DEBUG_LOG=[];            // ultimos eventos tecnicos (errores, escrituras) para el Modo Debug del admin
@@ -121,10 +123,10 @@ function fsSetupListeners(){
   });
 
   var USUARIOS_DEFAULT=[
-    {id:1,n:'JL',u:'jl',p:'seitu2026',r:'admin',activo:true,creado:'2026-06-01',ua:''},
-    {id:2,n:'Jorge',u:'jorge',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},
-    {id:3,n:'Chamu',u:'chamu',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},
-    {id:4,n:'Pablo',u:'pablo',p:'seitu2026',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}
+    {id:1,n:'JL',u:'jl',email:'jorge.ledesmagd@gmail.com',r:'admin',activo:true,creado:'2026-06-01',ua:''},
+    {id:2,n:'Jorge',u:'jorge',email:'jledes.tf@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},
+    {id:3,n:'Chamu',u:'chamu',email:'jorge_500_df@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},
+    {id:4,n:'Pablo',u:'pablo',email:'pablodellacasa13@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}
   ];
   fsDB.collection('usuarios').onSnapshot(function(snap){
     var arr=fsSnapToArr(snap);
@@ -168,6 +170,13 @@ function fsSetupListeners(){
 function fsArrancarApp(){
   if(typeof bootTimeout!=='undefined')clearTimeout(bootTimeout); // limpiar timeout de seguridad
   document.getElementById('sBoot').classList.remove('on');
+  // Con Firebase disponible, manda la sesion real (Firebase Auth), no la guardada en el equipo.
+  if(fsDB&&typeof firebase!=='undefined'&&firebase.auth){
+    if(AUTH_USER){iniciarSesionApp(AUTH_USER);}
+    else{document.getElementById('sLogin').classList.add('on');}
+    return;
+  }
+  // Modo local (sin Firebase): se usa la sesion guardada en este dispositivo
   var ses=lg('jses',null);
   if(ses){
     var fresh=D.usrs.find(function(u){return u.u===ses.u;});
@@ -293,7 +302,9 @@ function fsSetUsuario(u){
   if(soloLectura())return Promise.resolve();
   if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
-  return fsDB.collection('usuarios').doc(String(u.id)).set(u)
+  // La contrasena NUNCA se guarda en la base: la maneja Firebase Auth encriptada.
+  var doc={};for(var k in u){if(k!=='p')doc[k]=u[k];}
+  return fsDB.collection('usuarios').doc(String(u.id)).set(doc)
     .then(function(){setSyncDot('ok');})
     .catch(function(e){setSyncDot('error');debugLog('error','usuarios write: '+e.message);toast('No se pudo guardar el usuario','err');});
 }
@@ -428,6 +439,19 @@ function migrarCategorias(){
   fsSetConfig(D.cfg);
   if(cambiados.length)logEvento('edicion','','','Categorias unificadas: '+cambiados.length+' contactos actualizados','','');
 }
+// Borra de la base las contrasenas en texto plano que quedaron del sistema viejo.
+// Ahora las maneja Firebase Auth encriptadas: no deben existir mas aca.
+function limpiarPassViejas(){
+  if(!D.user||D.user.r!=='admin')return;
+  var conPass=D.usrs.filter(function(u){return u.p!==undefined;});
+  if(!conPass.length)return;
+  conPass.forEach(function(u){
+    delete u.p;
+    if(!u.email&&EMAILS_USUARIOS[u.u])u.email=EMAILS_USUARIOS[u.u];
+    fsSetUsuario(u);
+  });
+  logEvento('usuario','','','Contrasenas en texto plano eliminadas de la base ('+conPass.length+')','','');
+}
 function normalizarDatos(){
   D.cli.forEach(function(c){if(c.tipo&&MAPA_TIPOS[c.tipo]){c._tipoViejo=c.tipo;c.tipo=MAPA_TIPOS[c.tipo];}});
   D.cli.forEach(function(c){if(!c.etapaEmbudo||c.etapaEmbudo==='')c.etapaEmbudo=c.esP?'Nuevo Prospecto':'Cliente Activo';if(!c.uv)c.uv='';if(!c.ex)c.ex={};if(c.deu===undefined)c.deu=false;if(!c.ing)c.ing='';if(!c.vend)c.vend='';if(!c.prods)c.prods=[];if(!c.prov)c.prov='';if(!c.ciu)c.ciu='';if(c.agendado===undefined)c.agendado=false;if(!c.tel2)c.tel2='';if(!c.email)c.email='';if(c.eliminado===undefined)c.eliminado=false;});
@@ -444,24 +468,133 @@ function gcs(g){var r=[];document.querySelectorAll('[data-g="'+g+'"].on').forEac
 function sc(g,v){document.querySelectorAll('[data-g="'+g+'"]').forEach(function(e){e.classList.toggle('on',e.getAttribute('data-id')===v);});}
 // SYNC
 // AUTH
+// ── AUTENTICACION REAL (Firebase Auth) ────────────────────────────────
+// Los usuarios entran con su nombre de usuario de siempre; la app lo traduce
+// al email de la cuenta. Las contrasenas las maneja Google encriptadas:
+// NUNCA se guardan en la base de datos ni en este archivo.
+var EMAILS_USUARIOS={
+  'jl':'jorge.ledesmagd@gmail.com',
+  'jorge':'jledes.tf@gmail.com',
+  'chamu':'jorge_500_df@gmail.com',
+  'pablo':'pablodellacasa13@gmail.com'
+};
+// Traduce lo que se escribio en el login a un email. Si ya es un email, lo usa tal cual
+// (asi un usuario nuevo puede entrar sin tocar el codigo).
+function emailDeUsuario(u){
+  var k=String(u||'').trim().toLowerCase();
+  if(EMAILS_USUARIOS[k])return EMAILS_USUARIOS[k];
+  if(k.indexOf('@')>0)return k;
+  // Usuario creado desde el panel: puede tener el email guardado en su ficha
+  var us=D.usrs.find(function(x){return x.u===k;});
+  if(us&&us.email)return us.email;
+  return null;
+}
+function msgErrorAuth(cod){
+  switch(cod){
+    case 'auth/user-not-found':return 'Este usuario todavia no esta dado de alta en el sistema nuevo. Avisale al administrador.';
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+    case 'auth/invalid-login-credentials':return 'Usuario o contrasena incorrectos.';
+    case 'auth/invalid-email':return 'El usuario no es valido.';
+    case 'auth/user-disabled':return 'Este usuario esta desactivado.';
+    case 'auth/too-many-requests':return 'Demasiados intentos fallidos. Espera unos minutos y volve a probar.';
+    case 'auth/network-request-failed':return 'Sin conexion a internet. Revisa los datos o el WiFi.';
+    default:return 'No se pudo ingresar. Proba de nuevo.';
+  }
+}
 function doLogin(){
   var u=document.getElementById('lU').value.trim();
   var p=document.getElementById('lP').value.trim();
   var e=document.getElementById('lErr');e.style.display='none';
   if(!u||!p){e.textContent='Ingresa usuario y contrasena.';e.style.display='block';return;}
-  var usr=null;for(var i=0;i<D.usrs.length;i++){if(D.usrs[i].u===u&&D.usrs[i].p===p){usr=D.usrs[i];break;}}
-  if(!usr){e.textContent='Usuario o contrasena incorrectos.';e.style.display='block';return;}
-  if(usr.activo===false){e.textContent='Este usuario esta desactivado.';e.style.display='block';return;}
+
+  // Sin Firebase (modo local): solo se puede entrar si este dispositivo ya tenia sesion iniciada.
+  if(!fsDB||typeof firebase==='undefined'||!firebase.auth){
+    var ses=lg('jses',null);
+    if(ses&&ses.u===u.toLowerCase()){
+      D.user=ses;startApp();
+      toast('Sin conexion: trabajando con los datos de este dispositivo','err');
+    } else {
+      e.textContent='Sin conexion a internet. Para entrar la primera vez en este dispositivo se necesita conexion.';
+      e.style.display='block';
+    }
+    return;
+  }
+
+  var email=emailDeUsuario(u);
+  if(!email){e.textContent='Usuario desconocido. Escribi tu usuario o tu email completo.';e.style.display='block';return;}
+
+  var btn=document.querySelector('#sLogin .btn');
+  if(btn){btn.disabled=true;btn.textContent='Ingresando...';}
+  function restaurarBoton(){if(btn){btn.disabled=false;btn.textContent='Ingresar';}}
+
+  firebase.auth().signInWithEmailAndPassword(email,p)
+    .then(function(){
+      // La sesion quedo abierta: onAuthStateChanged levanta los datos y arranca la app
+      restaurarBoton();
+      document.getElementById('lP').value='';
+    })
+    .catch(function(err){
+      restaurarBoton();
+      debugLog('error','Login: '+err.code);
+      e.textContent=msgErrorAuth(err.code);
+      e.style.display='block';
+    });
+}
+// Una vez autenticado en Firebase, ubica el registro del usuario (rol, nombre, permisos)
+// y arranca la app. Se llama cuando ya cargaron los datos.
+// Cualquiera puede pedir el email de restablecimiento desde el login,
+// sirve tanto para recuperar la contrasena como para cambiarla.
+function olvideContrasena(){
+  var u=document.getElementById('lU').value.trim();
+  var e=document.getElementById('lErr');
+  if(!u){e.textContent='Escribi primero tu usuario y volve a tocar el link.';e.style.display='block';return;}
+  var email=emailDeUsuario(u);
+  if(!email){e.textContent='Usuario desconocido. Escribi tu usuario o tu email completo.';e.style.display='block';return;}
+  if(typeof firebase==='undefined'||!firebase.auth){e.textContent='Se necesita conexion a internet.';e.style.display='block';return;}
+  firebase.auth().sendPasswordResetEmail(email).then(function(){
+    e.style.display='none';
+    oMod('Email enviado','<div style="font-size:14px;margin-bottom:10px">Te mandamos un email a <b style="color:var(--cyan)">'+es(email)+'</b> con un link para elegir una contrasena nueva.</div><div style="font-size:12px;color:var(--muted)">Si no lo ves, fijate en la carpeta de spam. El link vence en unas horas.</div>');
+  }).catch(function(err){
+    e.textContent=msgErrorAuth(err.code);e.style.display='block';
+  });
+}
+function iniciarSesionApp(fbUser){
+  if(!fbUser)return;
+  var mail=(fbUser.email||'').toLowerCase();
+  var usr=D.usrs.find(function(x){
+    if(x.email&&x.email.toLowerCase()===mail)return true;
+    return EMAILS_USUARIOS[x.u]&&EMAILS_USUARIOS[x.u].toLowerCase()===mail;
+  });
+  if(!usr){
+    var e=document.getElementById('lErr');
+    if(e){e.textContent='Tu cuenta existe pero no tiene permisos asignados. Avisale al administrador.';e.style.display='block';}
+    document.getElementById('sBoot').classList.remove('on');
+    document.getElementById('sLogin').classList.add('on');
+    firebase.auth().signOut();
+    return;
+  }
+  if(usr.activo===false){
+    var e2=document.getElementById('lErr');
+    if(e2){e2.textContent='Este usuario esta desactivado.';e2.style.display='block';}
+    document.getElementById('sBoot').classList.remove('on');
+    document.getElementById('sLogin').classList.add('on');
+    firebase.auth().signOut();
+    return;
+  }
   usr.ua=new Date().toISOString();
   D.user=usr;
   ls('jses',D.user);
   fsSetUsuario(usr);
+  document.getElementById('sBoot').classList.remove('on');
+  document.getElementById('sLogin').classList.remove('on');
   startApp();
 }
 function startApp(){
   document.getElementById('sLogin').classList.remove('on');
   try{purgarPapeleraVieja();}catch(e){} // limpia lo que lleva +30 dias en la papelera (solo admin)
   try{migrarCategorias();}catch(e){}    // unifica categorias de negocio una sola vez (solo admin)
+  try{limpiarPassViejas();}catch(e){}   // borra de la base las contrasenas en texto plano
   if(D.user.r==='gerente'||D.user.r==='admin'){
     document.getElementById('sGerente').classList.add('on');
     document.getElementById('vNav').style.display='none';
@@ -487,6 +620,12 @@ function doLogout(){
   document.getElementById('sLogin').classList.add('on');
   document.getElementById('vNav').style.display='none';
   document.getElementById('lU').value='';document.getElementById('lP').value='';
+  var le=document.getElementById('lErr');if(le)le.style.display='none';
+  // Cerrar tambien la sesion real de Firebase
+  if(typeof firebase!=='undefined'&&firebase.auth&&firebase.auth().currentUser){
+    AUTH_USER=null;
+    firebase.auth().signOut().catch(function(){});
+  }
 }
 // NAV
 // Fecha en formato YYYY-MM-DD usando la HORA LOCAL del dispositivo.
@@ -2425,7 +2564,7 @@ function renderGCfg(){
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
   h+='<input class="fi" id="nuNom" placeholder="Nombre (ej: Martin)" style="margin:0">';
   h+='<input class="fi" id="nuUsr" placeholder="Usuario (ej: martin)" autocapitalize="none" style="margin:0">';
-  h+='<input class="fi" id="nuPass" placeholder="Contrasena" style="margin:0">';
+  h+='<input class="fi" id="nuMail" type="email" placeholder="Email (para su cuenta)" autocapitalize="none" style="margin:0">';
   h+='<select class="fi" id="nuRol" style="margin:0"><option value="vendedor">Vendedor</option><option value="gerente">Gerente (solo lectura)</option><option value="admin">Administrador</option></select>';
   h+='</div>';
   h+='<button class="btn sec" onclick="crearUsuario()" style="margin:0">+ Crear usuario</button>';
@@ -2658,30 +2797,42 @@ function crearUsuario(){
   if(soloLectura())return;
   var n=(document.getElementById('nuNom').value||'').trim();
   var u=(document.getElementById('nuUsr').value||'').trim().toLowerCase();
-  var p=(document.getElementById('nuPass').value||'').trim();
+  var mail=(document.getElementById('nuMail').value||'').trim().toLowerCase();
   var r=document.getElementById('nuRol').value;
-  if(!n||!u||!p){toast('Completa nombre, usuario y contrasena','err');return;}
-  if(p.length<4){toast('La contrasena debe tener al menos 4 caracteres','err');return;}
+  if(!n||!u||!mail){toast('Completa nombre, usuario y email','err');return;}
+  if(mail.indexOf('@')<1){toast('El email no es valido','err');return;}
   if(/\s/.test(u)){toast('El usuario no puede tener espacios','err');return;}
   if(D.usrs.some(function(x){return x.u===u;})){toast('Ya existe un usuario "'+u+'"','err');return;}
   if(D.usrs.some(function(x){return x.n.toLowerCase()===n.toLowerCase();})){toast('Ya existe un usuario con el nombre "'+n+'"','err');return;}
+  if(D.usrs.some(function(x){return (x.email||'').toLowerCase()===mail;})){toast('Ya hay un usuario con ese email','err');return;}
   var maxId=D.usrs.reduce(function(m,x){return Math.max(m,x.id||0);},0);
-  var nu={id:maxId+1,n:n,u:u,p:p,r:r,activo:true,creado:today(),ua:''};
+  var nu={id:maxId+1,n:n,u:u,email:mail,r:r,activo:true,creado:today(),ua:''};
   D.usrs.push(nu);
   fsSetUsuario(nu);
   logEvento('usuario','','','Usuario creado: '+n+' ('+r+')','','');
-  toast('Usuario '+n+' creado como '+r,'ok');
   renderVendBtns(); // si es vendedor, aparece en los botones del filtro global
   renderGCfg();
+  oMod('Usuario creado - falta un paso','<div style="font-size:14px;margin-bottom:12px"><b>'+es(n)+'</b> ya tiene permisos de <b>'+es(r)+'</b> en el sistema.</div><div style="font-size:13px;color:var(--muted);margin-bottom:10px">Para que pueda entrar, falta crear su cuenta en Firebase (la contrasena la maneja Google, no se guarda aca):</div><ol style="font-size:13px;color:var(--muted);padding-left:20px;line-height:1.7"><li>Entra a <b>console.firebase.google.com</b></li><li>Proyecto <b>crm-jorge-63a40</b> &rarr; <b>Authentication</b> &rarr; <b>Users</b></li><li><b>Add user</b>, con el email <b style="color:var(--cyan)">'+es(mail)+'</b> y una contrasena inicial</li><li>Pasale la contrasena para que entre y la cambie</li></ol>');
 }
-function cambPass(uid2){oMod('Cambiar contrasena','<div class="fg"><label class="fl">Nueva contrasena</label><input class="fi" type="password" id="np" placeholder="Min 4 caracteres"></div><button class="btn" onclick="confPass(\''+uid2+'\')">Cambiar</button>');}
-function confPass(uid2){
-  var p=document.getElementById('np').value;
-  if(!p||p.length<4){toast('Min 4 caracteres','err');return;}
+// Con autenticacion real, la contrasena de otro usuario no se puede fijar desde aca:
+// se le envia un email para que la restablezca el mismo (es lo seguro y lo estandar).
+function cambPass(uid2){
   var u=D.usrs.find(function(x){return x.id==uid2;});if(!u)return;
-  u.p=p;if(D.user&&D.user.id==uid2)D.user.p=p;
-  fsSetUsuario(u);
-  cMod();toast('Contrasena actualizada','ok');
+  var mail=u.email||EMAILS_USUARIOS[u.u]||'';
+  if(!mail){toast('Este usuario no tiene email cargado','err');return;}
+  oMod('Restablecer contrasena','<div style="font-size:14px;margin-bottom:10px">Se le va a enviar un email a <b style="color:var(--cyan)">'+es(mail)+'</b> con un link para que <b>'+es(u.n)+'</b> elija una contrasena nueva.</div><div style="font-size:12px;color:var(--muted);margin-bottom:14px">Por seguridad, nadie (ni vos) puede ver ni fijar la contrasena de otro usuario.</div><button class="btn" onclick="confPass(\''+uid2+'\')">Enviar email de restablecimiento</button>');
+}
+function confPass(uid2){
+  var u=D.usrs.find(function(x){return x.id==uid2;});if(!u)return;
+  var mail=u.email||EMAILS_USUARIOS[u.u]||'';
+  if(!mail){toast('Este usuario no tiene email cargado','err');return;}
+  if(typeof firebase==='undefined'||!firebase.auth){toast('Se necesita conexion a internet','err');return;}
+  firebase.auth().sendPasswordResetEmail(mail).then(function(){
+    cMod();toast('Email enviado a '+mail,'ok');
+    logEvento('usuario','','','Restablecimiento de contrasena enviado a '+u.n,'','');
+  }).catch(function(e){
+    toast('No se pudo enviar: '+msgErrorAuth(e.code),'err');
+  });
 }
 function exportarVCard(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
@@ -3581,16 +3732,31 @@ window.addEventListener('load',function(){
     fsDB=firebase.firestore();
     try{fsDB.enablePersistence({synchronizeTabs:true});}catch(e){}
 
-    firebase.auth().signInAnonymously().then(function(){
-      fsBootMsg('Sincronizando datos...');
-      fsSetupListeners();
-    }).catch(function(err){
+    // Autenticacion real: si ya hay sesion abierta en este dispositivo, entra solo.
+    // Si no, se muestra el login. Se elimino el acceso anonimo (era el agujero principal).
+    firebase.auth().onAuthStateChanged(function(fbUser){
+      if(fbUser){
+        AUTH_USER=fbUser;
+        if(!FS_LISTENERS_ON){
+          FS_LISTENERS_ON=true;
+          fsBootMsg('Sincronizando datos...');
+          fsSetupListeners();
+        } else if(FS_READY){
+          iniciarSesionApp(fbUser);
+        }
+      } else {
+        AUTH_USER=null;
+        D.user=null;ls('jses',null);
+        if(typeof bootTimeout!=='undefined')clearTimeout(bootTimeout);
+        document.getElementById('sBoot').classList.remove('on');
+        document.querySelectorAll('.sc').forEach(function(s){s.classList.remove('on');});
+        document.getElementById('sLogin').classList.add('on');
+        var nv=document.getElementById('vNav');if(nv)nv.style.display='none';
+      }
+    },function(err){
       debugLog('error','Auth: '+err.message);
       fsBootMsg('Error de conexion - abriendo en modo local...');
-      setTimeout(function(){
-        FS_READY=true;
-        fsArrancarApp();
-      },2000);
+      setTimeout(function(){FS_READY=true;fsArrancarApp();},2000);
     });
   } catch(e){
     // Firebase no disponible: usar datos de localStorage si existen
