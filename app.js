@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='5.0 - 23/07/2026 (seguridad)';
+var VERSION='5.1 - 24/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -417,6 +417,20 @@ var MAPA_TIPOS={
 function tipoUnificado(t){return MAPA_TIPOS[t]||t;}
 // Migracion unica de categorias: persiste en Firestore los contactos con categoria
 // vieja y actualiza el catalogo guardado. Solo la corre el admin, una sola vez.
+// Migracion unica: los contactos ya cargados (sin fuente) son de prospeccion directa.
+// Persiste el dato en la base para que el filtro y los conteos por fuente los incluyan.
+function migrarFuente(){
+  if(!D.user||D.user.r!=='admin')return;
+  if(D.cfg&&D.cfg.fuenteMigrada)return;
+  var sinFuente=D.cli.filter(function(c){return !c.fuente;});
+  sinFuente.forEach(function(c){
+    c.fuente='Prospeccion directa';
+    fsSetContacto(c);
+  });
+  D.cfg.fuenteMigrada=true;
+  fsSetConfig(D.cfg);
+  if(sinFuente.length)logEvento('edicion','','','Fuente asignada a contactos existentes: '+sinFuente.length+' como Prospeccion directa','','');
+}
 function migrarCategorias(){
   if(!D.user||D.user.r!=='admin')return;
   // La marca lleva version: si se suman categorias al mapa, se sube el numero y vuelve a correr.
@@ -454,7 +468,7 @@ function limpiarPassViejas(){
 }
 function normalizarDatos(){
   D.cli.forEach(function(c){if(c.tipo&&MAPA_TIPOS[c.tipo]){c._tipoViejo=c.tipo;c.tipo=MAPA_TIPOS[c.tipo];}});
-  D.cli.forEach(function(c){if(!c.etapaEmbudo||c.etapaEmbudo==='')c.etapaEmbudo=c.esP?'Nuevo Prospecto':'Cliente Activo';if(!c.uv)c.uv='';if(!c.ex)c.ex={};if(c.deu===undefined)c.deu=false;if(!c.ing)c.ing='';if(!c.vend)c.vend='';if(!c.prods)c.prods=[];if(!c.prov)c.prov='';if(!c.ciu)c.ciu='';if(c.agendado===undefined)c.agendado=false;if(!c.tel2)c.tel2='';if(!c.email)c.email='';if(c.eliminado===undefined)c.eliminado=false;});
+  D.cli.forEach(function(c){if(!c.etapaEmbudo||c.etapaEmbudo==='')c.etapaEmbudo=c.esP?'Nuevo Prospecto':'Cliente Activo';if(!c.uv)c.uv='';if(!c.ex)c.ex={};if(c.deu===undefined)c.deu=false;if(!c.ing)c.ing='';if(!c.vend)c.vend='';if(!c.prods)c.prods=[];if(!c.prov)c.prov='';if(!c.ciu)c.ciu='';if(c.agendado===undefined)c.agendado=false;if(!c.tel2)c.tel2='';if(!c.email)c.email='';if(c.eliminado===undefined)c.eliminado=false;if(!c.fuente)c.fuente=c.esP?'Prospeccion directa':'';});
   D.usrs.forEach(function(u){if(u.activo===undefined)u.activo=true;if(!u.creado)u.creado='';if(!u.ua)u.ua='';});
   if(!D.cfg.msgPedido)D.cfg.msgPedido='Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!';
   if(!D.cfg.msgLinks)D.cfg.msgLinks={};
@@ -594,6 +608,7 @@ function startApp(){
   document.getElementById('sLogin').classList.remove('on');
   try{purgarPapeleraVieja();}catch(e){} // limpia lo que lleva +30 dias en la papelera (solo admin)
   try{migrarCategorias();}catch(e){}    // unifica categorias de negocio una sola vez (solo admin)
+  try{migrarFuente();}catch(e){}        // marca los contactos existentes como Prospeccion directa (solo admin)
   try{limpiarPassViejas();}catch(e){}   // borra de la base las contrasenas en texto plano
   if(D.user.r==='gerente'||D.user.r==='admin'){
     document.getElementById('sGerente').classList.add('on');
@@ -911,6 +926,7 @@ function abrirFichaV(id){
   if(c.cFr)h+='<span class="tg m">'+es(c.cFr)+'</span>';
   if(c.calU)h+='<span class="tg m">Ubic: '+c.calU+'</span>';
   if(c.trans)h+='<span class="tg m">Transito: '+es(c.trans)+'</span>';
+  if(c.fuente&&c.esP)h+='<span class="tg" style="background:rgba(139,92,246,.18);color:#a78bfa">'+iconoFuente(c.fuente)+' '+es(c.fuente)+'</span>';
   h+='</div>';
   // Productos
   if(c.prods&&c.prods.length){h+='<div style="font-size:12px;color:var(--muted);margin-top:6px">Vende: '+es(c.prods.join(' · '))+'</div>';}
@@ -982,6 +998,8 @@ function editarContacto(id){
   h+='<div class="fg"><label class="fl">Transito</label><div class="chips">'+['Alto','Medio','Bajo'].map(function(v){return ch(v,v,'eTr',false,'');}).join('')+'</div></div>';
   h+='<div class="fg"><label class="fl">Telefono adicional <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="eTel2" type="tel" value="'+es(c.tel2||'')+'"></div>';
   h+='<div class="fg"><label class="fl">Email <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="eEmail" type="email" value="'+es(c.email||'')+'"></div>';
+  var fuenteEc=c.fuente||'Prospeccion directa';
+  h+='<div class="fg"><label class="fl">Como llego el contacto</label><div class="chips">'+['Instagram','WhatsApp','Referido','Prospeccion directa'].map(function(f){return '<span class="ch'+(fuenteEc===f?' on':'')+'" data-id="'+es(f)+'" data-g="eFuente" onclick="var p=this.parentNode;p.querySelectorAll(\'.ch\').forEach(function(x){x.classList.remove(\'on\')});this.classList.add(\'on\')" style="font-size:12px;padding:5px 10px">'+es(f)+'</span>';}).join('')+'</div></div>';
   h+='<div class="fg"><label class="fl">Observaciones</label><textarea class="fi fta" id="eObs" rows="3">'+es(c.obs||'')+'</textarea></div>';
   h+='<button class="btn or" onclick="guardarEdicionContacto(\'' + id.replace(/'/g,"\\'") + '\')">Guardar cambios</button>';
   oMod('Editar: '+es(c.nm),h);
@@ -1017,6 +1035,7 @@ function guardarEdicionContacto(id){
   chk('calU',gc('eCal'));
   chk('trans',gc('eTr'));
   var eEmailEl=document.getElementById('eEmail');if(eEmailEl)chk('email',eEmailEl.value.trim());
+  chk('fuente',gc('eFuente'));
   chk('obs',document.getElementById('eObs').value.trim());
   if(cambios.length){
     c._modBy=D.user?D.user.n:'?';
@@ -1389,11 +1408,39 @@ function chequearDupVivo(){
   h+='</div>';
   cont.innerHTML=h;
 }
+// Fuente del lead: recuerda la ultima elegida durante esta sesion, para cargar
+// tandas del mismo origen (ej: varias consultas de Instagram) sin re-seleccionar.
+// Fuente del lead: recuerda la ultima elegida durante la sesion de carga.
+// Si pasan mas de 15 minutos sin cargar un prospecto, vuelve sola a "Prospeccion directa"
+// (evita seguir en "Instagram" cuando ya volviste a la calle).
+var ultimaFuente='';
+var ultimaFuenteHora=0;
+var FUENTE_TIMEOUT=15*60*1000; // 15 minutos
+function fuenteVigente(){
+  if(ultimaFuente&&(Date.now()-ultimaFuenteHora)>FUENTE_TIMEOUT){
+    ultimaFuente=''; // se enfrio: vuelve al default
+  }
+  return ultimaFuente||'Prospeccion directa';
+}
+function iconoFuente(f){
+  if(f==='Instagram')return '&#128247;';
+  if(f==='WhatsApp')return '&#128241;';
+  if(f==='Referido')return '&#129309;';
+  return '&#128694;';
+}
+function setFuenteWizard(el){
+  var cont=document.getElementById('pFuenteChips');
+  if(cont)cont.querySelectorAll('.fb').forEach(function(x){x.classList.remove('on');});
+  el.classList.add('on');
+  ultimaFuente=el.getAttribute('data-fuente');
+  ultimaFuenteHora=Date.now();
+  if(W&&W.data)W.data.fuente=ultimaFuente;
+}
 function nuevoPros(){
   gpsPend=null;capturarGPS(function(g){gpsPend=g;}); // el vendedor esta parado en el local: momento perfecto para el GPS
   var tid=uid();
   var vend=D.user?D.user.n:'';
-  var nuevo={id:tid,nm:'',fan:'',tel:'',dir:'',bar:'',tipo:'',prov:'',ciu:'',esP:true,etapaEmbudo:'Nuevo Prospecto',calU:'',trans:'',comp:'',cFr:'',cEx:'',obs:'',uv:'',ul:'',prox:'',ing:today(),ex:{},deu:false,vend:vend,prods:[]};
+  var nuevo={id:tid,nm:'',fan:'',tel:'',dir:'',bar:'',tipo:'',prov:'',ciu:'',esP:true,etapaEmbudo:'Nuevo Prospecto',calU:'',trans:'',comp:'',cFr:'',cEx:'',obs:'',uv:'',ul:'',prox:'',ing:today(),ex:{},deu:false,vend:vend,prods:[],fuente:fuenteVigente()};
   D.cli.push(nuevo);
   fsSetContacto(nuevo);
   aVisPros(tid,true);
@@ -1586,6 +1633,21 @@ function renderGD(){
   }
   // ── EMBUDO EN BARRAS DE PORCENTAJE ─────────────────────────────────
   h+=sG('Embudo de ventas - % por etapa'+(gVendSel?' ('+es(gVendSel)+')':''),embudoBarrasHTML(cliBase));
+  // Distribucion por fuente del lead (de donde vienen los prospectos)
+  var porFuente={};cliBase.forEach(function(c){if(c.esP){var f=c.fuente||'Prospeccion directa';porFuente[f]=(porFuente[f]||0)+1;}});
+  var fuentesArr=Object.keys(porFuente);
+  if(fuentesArr.length){
+    var totF=fuentesArr.reduce(function(s,k){return s+porFuente[k];},0);
+    var colF={'Instagram':'#e1306c','WhatsApp':'#25d366','Referido':'#a78bfa','Prospeccion directa':'#64748b'};
+    var fh2='<div>';
+    fuentesArr.sort(function(a,b){return porFuente[b]-porFuente[a];}).forEach(function(f){
+      var n=porFuente[f],pct=Math.round(n/totF*100);
+      fh2+='<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:700">'+iconoFuente(f)+' '+es(f)+'</span><span style="font-weight:800">'+n+' · '+pct+'%</span></div>';
+      fh2+='<div style="height:14px;background:var(--s2);border-radius:7px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+(colF[f]||'#64748b')+';border-radius:7px"></div></div></div>';
+    });
+    fh2+='</div>';
+    h+=sG('Prospectos por fuente'+(gVendSel?' ('+es(gVendSel)+')':''),fh2);
+  }
 
   // ── GRAFICOS DE TORTA ──────────────────────────────────────────────
   var paleta=['#22d3ee','#fb923c','#4ade80','#a78bfa','#fbbf24','#f87171','#38bdf8','#f472b6','#94a3b8','#facc15'];
@@ -1712,6 +1774,7 @@ function renderGC(){
   fh+='<select onchange="gCFo.frez=this.value;renderGC()" style="'+estilo+'">'+selOpts('cFr','Freezer: todos')+'</select>';
   fh+='<select onchange="gCFo.eta=this.value;renderGC()" style="'+estilo+'">'+selOpts('etapaEmbudo','Etapa: todas')+'</select>';
   fh+='<select onchange="gCFo.calU=this.value;renderGC()" style="'+estilo+'">'+selOpts('calU','Ubicacion: todas')+'</select>';
+  fh+='<select onchange="gCFo.fuente=this.value;renderGC()" style="'+estilo+'">'+selOpts('fuente','Fuente: todas')+'</select>';
   var hayF=Object.keys(gCFo).some(function(k){return gCFo[k];});
   if(hayF)fh+='<button class="sm" onclick="limpiarGCFo()" style="font-size:11px;color:var(--red)">Limpiar</button>';
   fh+='<button class="sm g" onclick="document.getElementById(\'gCF\').scrollIntoView();renderGC()" style="font-size:11px">OK</button>';
@@ -1725,6 +1788,7 @@ function renderGC(){
   if(gCFo.frez)cs=cs.filter(function(c){return c.cFr===gCFo.frez;});
   if(gCFo.eta)cs=cs.filter(function(c){return c.etapaEmbudo===gCFo.eta;});
   if(gCFo.calU)cs=cs.filter(function(c){return c.calU===gCFo.calU;});
+  if(gCFo.fuente)cs=cs.filter(function(c){return c.fuente===gCFo.fuente;});
   if(gCF2==='Clientes')cs=cs.filter(function(c){return !c.esP;});
   else if(gCF2==='Prospectos')cs=cs.filter(function(c){return c.esP;});
   else if(gCF2==='Sin visitar')cs=cs.filter(function(c){return !c.ul;});
@@ -1750,8 +1814,8 @@ function renderGC(){
   document.getElementById('gCB').innerHTML=h;
 }
 function sGCF(f){gCF2=f;renderGC();}
-var gCFo={bar:'',comp:'',frez:'',tipNeg:'',eta:'',calU:''};
-function limpiarGCFo(){gCFo={bar:'',comp:'',frez:'',tipNeg:'',eta:'',calU:''};renderGC();}
+var gCFo={bar:'',comp:'',frez:'',tipNeg:'',eta:'',calU:'',fuente:''};
+function limpiarGCFo(){gCFo={bar:'',comp:'',frez:'',tipNeg:'',eta:'',calU:'',fuente:''};renderGC();}
 function aFicha(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
   var vs=D.vis.filter(function(v){return v.cid===id;}).slice().reverse();
@@ -1761,6 +1825,7 @@ function aFicha(id){
   h+=(c.esP?'<span class="tg o">'+es(c.etapaEmbudo||'PROSPECTO')+'</span>':'<span class="tg g">CLIENTE</span>');
   if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900">⚠ DEUDOR</span>';
   if(c.vend)h+='<span class="tg m">'+es(c.vend)+'</span>';
+  if(c.fuente&&c.esP)h+='<span class="tg" style="background:rgba(139,92,246,.18);color:#a78bfa">'+iconoFuente(c.fuente)+' '+es(c.fuente)+'</span>';
   h+='</div></div>';
   h+='<div class="div"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0">';
   if(c.tel)h+='<div><div class="fl">Telefono</div><div style="font-size:14px;font-weight:700">'+es(c.tel)+'</div></div>';
@@ -2500,7 +2565,7 @@ function nuevoProsAdmin(){
 function confirmarNuevoProsAdmin(){
   var vend=document.getElementById('npaVend').value;
   var tid=uid();
-  var nuevo={id:tid,nm:'',fan:'',tel:'',dir:'',bar:'',tipo:'',prov:'',ciu:'',esP:true,etapaEmbudo:'Nuevo Prospecto',calU:'',trans:'',comp:'',cFr:'',cEx:'',obs:'',uv:'',ul:'',prox:'',ing:today(),ex:{},deu:false,vend:vend,prods:[]};
+  var nuevo={id:tid,nm:'',fan:'',tel:'',dir:'',bar:'',tipo:'',prov:'',ciu:'',esP:true,etapaEmbudo:'Nuevo Prospecto',calU:'',trans:'',comp:'',cFr:'',cEx:'',obs:'',uv:'',ul:'',prox:'',ing:today(),ex:{},deu:false,vend:vend,prods:[],fuente:fuenteVigente()};
   D.cli.push(nuevo);
   fsSetContacto(nuevo);
   cMod();
@@ -3224,7 +3289,13 @@ function aVisPros(id,nu){
      render:function(){
        var tH=(D.cfg.tipos||[]).map(function(t){return ch(t,t,'tip',false,'');}).join('');
        var prodH=(D.cfg.tiposProducto||[]).map(function(p){return ch(p,p,'prods',true,'');}).join('');
+       var fuenteActual=c.fuente||fuenteVigente();
+       var fuentes=['Instagram','WhatsApp','Referido','Prospeccion directa'];
+       var fuenteH=fuentes.map(function(f){
+         return '<span class="fb'+(fuenteActual===f?' on':'')+'" data-fuente="'+es(f)+'" onclick="setFuenteWizard(this)" style="font-size:12px;padding:7px 12px">'+es(f)+'</span>';
+       }).join('');
        return '<div style="font-size:20px;font-weight:800;margin-bottom:14px">Datos del local</div>'+
+         '<div class="fg"><label class="fl">Como llego este contacto?</label><div class="chips" style="margin-top:6px" id="pFuenteChips">'+fuenteH+'</div></div>'+
          '<div class="fg"><label class="fl">Nombre del local *</label><input class="fi" id="pNm" placeholder="Ej: Kiosco El Sol" value="'+es(c.nm||'')+'"></div>'+
          '<div class="fg"><label class="fl">Dueno o encargado</label><input class="fi" id="pFan" placeholder="Ej: Juan Perez" value="'+es(c.fan||'')+'"></div>'+
          '<div class="fg"><label class="fl">Telefono *</label><input class="fi" id="pTel" type="tel" inputmode="numeric" placeholder="Ej: 3511234567" value="'+es(c.tel||'')+'"></div>'+
@@ -3280,6 +3351,9 @@ function aVisPros(id,nu){
        c.prods=d.prods=gcs('prods');
        var emailEl2=document.getElementById('pEmail');c.email=d.email=emailEl2?emailEl2.value.trim():'';
        var tel2El=document.getElementById('pTel2');c.tel2=d.tel2=tel2El?tel2El.value.trim():'';
+       // Fuente del lead: la que quedo marcada en los chips
+       var chipF=document.querySelector('#pFuenteChips .fb.on');
+       c.fuente=d.fuente=(chipF?chipF.getAttribute('data-fuente'):(c.fuente||'Prospeccion directa'));
        fsSetContacto(c);
      }},
 
