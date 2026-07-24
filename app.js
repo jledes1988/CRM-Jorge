@@ -1411,11 +1411,11 @@ function chequearDupVivo(){
 // Fuente del lead: recuerda la ultima elegida durante esta sesion, para cargar
 // tandas del mismo origen (ej: varias consultas de Instagram) sin re-seleccionar.
 // Fuente del lead: recuerda la ultima elegida durante la sesion de carga.
-// Si pasan mas de 15 minutos sin cargar un prospecto, vuelve sola a "Prospeccion directa"
+// Si pasan mas de 30 minutos sin cargar un prospecto, vuelve sola a "Prospeccion directa"
 // (evita seguir en "Instagram" cuando ya volviste a la calle).
 var ultimaFuente='';
 var ultimaFuenteHora=0;
-var FUENTE_TIMEOUT=15*60*1000; // 15 minutos
+var FUENTE_TIMEOUT=30*60*1000; // 30 minutos
 function fuenteVigente(){
   if(ultimaFuente&&(Date.now()-ultimaFuenteHora)>FUENTE_TIMEOUT){
     ultimaFuente=''; // se enfrio: vuelve al default
