@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='5.1 - 24/07/2026';
+var VERSION='5.4 - 25/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -1360,14 +1360,47 @@ function ubicarPorDireccion(id){
   probar();
 }
 // Borra la ubicacion de un contacto para poder re-geocodificarla (util tras corregir la direccion)
+// Lista los contactos con ubicacion confirmada, para revisarlos y quitar los mal marcados.
+function renderRevisarUbic(){
+  var vend=document.getElementById('mapaRevVend').value;
+  var cont=document.getElementById('mapaRevLista');if(!cont)return;
+  if(!vend){cont.innerHTML='';return;}
+  var lista=D.cli.filter(function(c){return !c.eliminado&&c.gpsOk&&(vend==='__todos'||c.vend===vend);}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  var h='<div style="max-height:280px;overflow-y:auto;margin-top:8px">';
+  if(!lista.length)h+='<div class="empty" style="padding:14px">Sin ubicaciones confirmadas</div>';
+  lista.forEach(function(c){
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted)">'+es(c.bar||c.ciu||'')+(c.vend?' · '+es(c.vend):'')+'</div></div>';
+    h+='<button class="sm" onclick="quitarDelMapaAdmin(\''+c.id+'\')" style="font-size:11px;color:var(--red)">Quitar del mapa</button>';
+    h+='</div>';
+  });
+  h+='</div>';
+  cont.innerHTML=h;
+}
+function quitarDelMapaAdmin(id){
+  if(soloLectura())return;
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  delete c.gpsAcc;delete c.gpsAprox;delete c.gpsF;
+  c.lat=null;c.lng=null;c.gpsOk=false;
+  fsSetContacto(c);
+  logEvento('edicion',c.id,c.nm,'Ubicacion quitada del mapa (revision)','','');
+  toast('"'+es(c.nm)+'" quitado del mapa','ok');
+  renderRevisarUbic();
+  renderGCfg();
+}
 function borrarUbicacion(id){
   if(soloLectura())return;
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
-  if(!confirm('Quitar la ubicacion de "'+es(c.nm)+'"? Volvera a aparecer sin marcar en el mapa y podras re-ubicarlo por direccion o GPS.'))return;
-  delete c.lat;delete c.lng;delete c.gpsAcc;delete c.gpsAprox;delete c.gpsF;
+  if(!confirm('Quitar la ubicacion de "'+es(c.nm)+'"? Va a desaparecer del mapa y despues podras volver a ubicarlo por GPS o por direccion.'))return;
+  delete c.lat;delete c.lng;delete c.gpsAcc;delete c.gpsAprox;delete c.gpsF;delete c.gpsOk;
+  c.lat=null;c.lng=null;c.gpsOk=false; // dejar explicito el estado "sin ubicacion" para que se sincronice
   fsSetContacto(c);
-  toast('Ubicacion borrada','ok');
+  toast('Quitado del mapa','ok');
   cMod();
+  // Refrescar la vista que corresponda
+  if(D.user&&D.user.r==='vendedor'){if(document.getElementById('sVM').classList.contains('on'))renderVM();}
+  else{if(document.getElementById('sGM')&&document.getElementById('sGM').classList.contains('on'))renderGM();}
 }
 // ── DETECCION DE DUPLICADOS ───────────────────────────────────────────
 // Normaliza texto para comparar (sin acentos, minusculas, sin puntuacion)
@@ -1437,7 +1470,8 @@ function setFuenteWizard(el){
   if(W&&W.data)W.data.fuente=ultimaFuente;
 }
 function nuevoPros(){
-  gpsPend=null;capturarGPS(function(g){gpsPend=g;}); // el vendedor esta parado en el local: momento perfecto para el GPS
+  gpsPend=null; // La ubicacion ya NO se captura automaticamente: se confirma a mano
+  // (con "Estoy en el local"), asi cargar desde casa no marca una ubicacion equivocada.
   var tid=uid();
   var vend=D.user?D.user.n:'';
   var nuevo={id:tid,nm:'',fan:'',tel:'',dir:'',bar:'',tipo:'',prov:'',ciu:'',esP:true,etapaEmbudo:'Nuevo Prospecto',calU:'',trans:'',comp:'',cFr:'',cEx:'',obs:'',uv:'',ul:'',prox:'',ing:today(),ex:{},deu:false,vend:vend,prods:[],fuente:fuenteVigente()};
@@ -2612,7 +2646,21 @@ function renderGCfg(){
   h+='<div style="font-size:13px;color:var(--muted);margin-bottom:6px">En el mapa solo aparecen los contactos con ubicacion <b style="color:var(--green)">confirmada por GPS</b>, para que sea 100% confiable.</div>';
   h+='<div style="display:flex;gap:16px;margin-bottom:4px"><div><div style="font-size:22px;font-weight:800;color:var(--green)">'+_conf+'</div><div style="font-size:11px;color:var(--muted)">confirmados</div></div>';
   h+='<div><div style="font-size:22px;font-weight:800;color:var(--orange)">'+_sinConf+'</div><div style="font-size:11px;color:var(--muted)">por confirmar</div></div></div>';
-  h+='<div style="font-size:12px;color:var(--muted);margin-top:6px">La confirmacion se hace sola: al crear un prospecto, o en la primera visita a cada cliente, el vendedor marca el GPS parado en el local.</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-top:6px">La confirmacion se hace a mano: al crear un prospecto o en la primera visita, el vendedor marca el GPS parado en el local.</div>';
+  // Herramienta para revisar y quitar del mapa ubicaciones mal marcadas (ej: cargadas desde casa)
+  if(_conf){
+    h+='<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">';
+    h+='<div style="font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:6px">REVISAR UBICACIONES CONFIRMADAS</div>';
+    h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Si alguna quedo mal marcada (por ej. cargada desde tu casa), podes quitarla del mapa aca.</div>';
+    var vSelMapa='<option value="">Ver confirmados de...</option><option value="__todos">Todos</option>';
+    D.usrs.filter(function(u){return u.r==='vendedor';}).forEach(function(u){
+      var nU=_vivos.filter(function(c){return c.gpsOk&&c.vend===u.n;}).length;
+      if(nU)vSelMapa+='<option value="'+es(u.n)+'">'+es(u.n)+' ('+nU+')</option>';
+    });
+    h+='<select class="fi" id="mapaRevVend" onchange="renderRevisarUbic()" style="margin:0">'+vSelMapa+'</select>';
+    h+='<div id="mapaRevLista"></div>';
+    h+='</div>';
+  }
   h+='</div>';
   h+='<div class="card"><div class="ct">USUARIOS DEL SISTEMA</div>';
   D.usrs.forEach(function(u){
@@ -3171,7 +3219,6 @@ function wFin(){
   var c=D.cli.find(function(x){return x.id===W.cid;});
   if(c){
     c.ul=v.fecha;
-    if(W.nu&&gpsPend&&!c.lat){c.lat=gpsPend.lat;c.lng=gpsPend.lng;c.gpsAcc=gpsPend.acc;c.gpsF=gpsPend.f;c.gpsOk=true;gpsPend=null;}
     if(v.vendio===true)c.uv=v.fecha;
     if(v.eta)c.etapaEmbudo=v.eta;
     if(v.deu!==undefined)c.deu=v.deu;
