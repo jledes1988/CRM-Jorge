@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='5.4 - 25/07/2026';
+var VERSION='5.5 - 25/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -1366,25 +1366,44 @@ function renderRevisarUbic(){
   var cont=document.getElementById('mapaRevLista');if(!cont)return;
   if(!vend){cont.innerHTML='';return;}
   var lista=D.cli.filter(function(c){return !c.eliminado&&c.gpsOk&&(vend==='__todos'||c.vend===vend);}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
-  var h='<div style="max-height:280px;overflow-y:auto;margin-top:8px">';
-  if(!lista.length)h+='<div class="empty" style="padding:14px">Sin ubicaciones confirmadas</div>';
+  var h='';
+  if(!lista.length){cont.innerHTML='<div class="empty" style="padding:14px">Sin ubicaciones confirmadas</div>';return;}
+  // Barra de accion: seleccionar todos + quitar los tildados
+  h+='<div style="display:flex;align-items:center;gap:8px;margin:10px 0 6px">';
+  h+='<label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="revTodos" onchange="document.querySelectorAll(\'.revChk\').forEach(function(x){x.checked=this.checked}.bind(this))" style="width:16px;height:16px">Seleccionar todos</label>';
+  h+='<button class="btn sec" onclick="quitarSeleccionadosDelMapa()" style="margin:0 0 0 auto;font-size:12px;color:var(--red);padding:7px 12px">Quitar del mapa los tildados</button>';
+  h+='</div>';
+  h+='<div style="max-height:280px;overflow-y:auto">';
   lista.forEach(function(c){
-    h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">';
+    h+='<label style="display:flex;align-items:center;gap:9px;padding:8px 4px;border-bottom:1px solid var(--border);cursor:pointer">';
+    h+='<input type="checkbox" class="revChk" value="'+es(c.id)+'" style="width:18px;height:18px;flex-shrink:0">';
     h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div>';
     h+='<div style="font-size:11px;color:var(--muted)">'+es(c.bar||c.ciu||'')+(c.vend?' · '+es(c.vend):'')+'</div></div>';
-    h+='<button class="sm" onclick="quitarDelMapaAdmin(\''+c.id+'\')" style="font-size:11px;color:var(--red)">Quitar del mapa</button>';
-    h+='</div>';
+    h+='</label>';
   });
   h+='</div>';
   cont.innerHTML=h;
 }
-function quitarDelMapaAdmin(id){
-  if(soloLectura())return;
-  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+function quitarUnoDelMapa(c){
   delete c.gpsAcc;delete c.gpsAprox;delete c.gpsF;
   c.lat=null;c.lng=null;c.gpsOk=false;
   fsSetContacto(c);
   logEvento('edicion',c.id,c.nm,'Ubicacion quitada del mapa (revision)','','');
+}
+function quitarSeleccionadosDelMapa(){
+  if(soloLectura())return;
+  var ids=Array.prototype.map.call(document.querySelectorAll('.revChk:checked'),function(x){return x.value;});
+  if(!ids.length){toast('No seleccionaste ninguno','err');return;}
+  if(!confirm('Quitar del mapa '+ids.length+' contacto'+(ids.length!==1?'s':'')+'? Van a poder volver a ubicarse por GPS o direccion.'))return;
+  ids.forEach(function(id){var c=D.cli.find(function(x){return x.id===id;});if(c)quitarUnoDelMapa(c);});
+  toast(ids.length+' contacto'+(ids.length!==1?'s':'')+' quitado'+(ids.length!==1?'s':'')+' del mapa','ok');
+  renderRevisarUbic();
+  renderGCfg();
+}
+function quitarDelMapaAdmin(id){
+  if(soloLectura())return;
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  quitarUnoDelMapa(c);
   toast('"'+es(c.nm)+'" quitado del mapa','ok');
   renderRevisarUbic();
   renderGCfg();
