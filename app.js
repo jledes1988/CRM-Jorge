@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='5.6 - 26/07/2026';
+var VERSION='5.7 - 26/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -652,7 +652,7 @@ function today(){return fechaLocal();}
 function vGo(t){
   document.querySelectorAll('#sVen .sc').forEach(function(s){s.classList.remove('on');});
   document.querySelectorAll('.vb').forEach(function(b){b.classList.remove('on');});
-  var m={H:['sVH','vbH',renderVH],C:['sVC','vbC',renderVC],E:['sVE','vbE',renderVE],G:['sVG','vbG',renderVG],M:['sVM','vbM',renderVM]};
+  var m={H:['sVH','vbH',renderVH],C:['sVC','vbC',renderVC],E:['sVE','vbE',renderVE],G:['sVG','vbG',renderVG],M:['sVM','vbM',renderVM],Co:['sVCo','vbCo',renderVCo]};
   if(m[t]){
     var el0=document.getElementById(m[t][0]);
     var el1=document.getElementById(m[t][1]);
@@ -1318,6 +1318,65 @@ function renderVM(){
   vMapaCapa=pintarMarcadores(vMapaObj,vMapaCapa,mc,vMFiltroEtapa,false);
   setTimeout(function(){vMapaObj.invalidateSize();},120); // la pestaña recien se hizo visible
 }
+// ── FREEZERS DEL VENDEDOR ─────────────────────────────────────────────
+// Ve solo los comodatos de SUS clientes. Puede avanzar estados (firmado/entregado)
+// y registrar retiros, pero no crear desde cero ni eliminar (eso es del admin).
+var vCoF2='pend';
+function renderVCo(){
+  var top=document.getElementById('vCoF');var cont=document.getElementById('vCoB');
+  if(!top||!cont)return;
+  var misIds={};misContactos(true).forEach(function(c){misIds[c.id]=true;});
+  var cs=D.com.filter(function(co){return misIds[co.cid];});
+
+  top.innerHTML=['pend','act','ret','all'].map(function(f){return '<span class="fb'+(vCoF2===f?' on':'')+'" onclick="vCoF2=\''+f+'\';renderVCo()">'+(f==='pend'?'Pendientes':f==='act'?'Activos':f==='ret'?'Retirados':'Todos')+'</span>';}).join('');
+
+  var nAct=cs.filter(function(co){return estadoComodato(co)==='activo';}).length;
+  var nFirm=cs.filter(function(co){return estadoComodato(co)==='por_firmar';}).length;
+  var nEntr=cs.filter(function(co){return estadoComodato(co)==='por_entregar';}).length;
+  var h='';
+  h+='<div style="padding:12px 14px;background:var(--s1);border-bottom:1px solid var(--border);display:flex;gap:12px;flex-wrap:wrap;align-items:center">';
+  h+='<div><div style="font-size:22px;font-weight:800;color:var(--green)">'+nAct+'</div><div style="font-size:10px;color:var(--muted)">ACTIVOS</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:#22d3ee">'+nEntr+'</div><div style="font-size:10px;color:var(--muted)">POR ENTREGAR</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:#fbbf24">'+nFirm+'</div><div style="font-size:10px;color:var(--muted)">POR FIRMAR</div></div>';
+  h+='</div>';
+
+  var lista=cs;
+  if(vCoF2==='pend')lista=cs.filter(function(co){var e=estadoComodato(co);return e==='por_firmar'||e==='por_entregar';});
+  else if(vCoF2==='act')lista=cs.filter(function(co){return estadoComodato(co)==='activo';});
+  else if(vCoF2==='ret')lista=cs.filter(function(co){return estadoComodato(co)==='ret';});
+
+  var ordenEst={por_firmar:0,por_entregar:1,activo:2,ret:3};
+  lista.sort(function(a,b){var ea=ordenEst[estadoComodato(a)],eb=ordenEst[estadoComodato(b)];if(ea!==eb)return ea-eb;return (a.fe||'').localeCompare(b.fe||'');});
+
+  if(!lista.length){h+='<div class="empty">Sin freezers en esta vista</div>';cont.innerHTML=h;return;}
+
+  var hoyS=today();var estadoAnterior=null;
+  lista.forEach(function(co){
+    var e=estadoComodato(co);
+    if(e!==estadoAnterior){
+      var titulos={por_firmar:'⏳ POR FIRMAR',por_entregar:'📦 POR ENTREGAR',activo:'✅ ACTIVOS',ret:'❌ RETIRADOS'};
+      h+='<div style="padding:12px 14px 6px;font-size:12px;font-weight:800;color:'+colorEstadoCom(e)+'">'+titulos[e]+'</div>';
+      estadoAnterior=e;
+    }
+    var vencido=(e==='por_firmar'||e==='por_entregar')&&co.fe&&co.fe<hoyS;
+    h+='<div class="cc"'+(vencido?' style="border-left:3px solid var(--red)"':'')+'><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+es(co.cnm||'?')+'</div>';
+    h+='<div style="font-size:12px;color:var(--muted)">'+(co.nro?'Freezer #'+es(co.nro):'Sin N° asignado')+(co.marca?' · '+es(co.marca):'')+'</div>';
+    if(e==='por_firmar')h+='<div style="font-size:11px;color:'+(vencido?'var(--red)':'var(--muted)')+';margin-top:2px">'+(vencido?'⚠ Volver a buscar firma: ':'Volver a buscar firma: ')+fmt(co.fe)+'</div>';
+    else if(e==='por_entregar')h+='<div style="font-size:11px;color:'+(vencido?'var(--red)':'var(--muted)')+';margin-top:2px">'+(vencido?'⚠ Entrega vencida: ':'Entrega pactada: ')+fmt(co.fe)+'</div>';
+    else if(e==='activo')h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">Entregado: '+fmt(co.fe)+'</div>';
+    else h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">Retiro: '+fmt(co.fr)+'</div>';
+    h+='</div><span class="tg" style="background:rgba('+h2r(colorEstadoCom(e))+',.15);color:'+colorEstadoCom(e)+'">'+labelEstadoCom(e)+'</span></div>';
+    h+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
+    if(e==='por_firmar')h+='<button class="sm g" onclick="avanzarComodatoV(\''+co.id+'\',\'por_entregar\')">✍ Marcar firmado</button>';
+    if(e==='por_entregar')h+='<button class="sm g" onclick="avanzarComodatoV(\''+co.id+'\',\'activo\')">📦 Marcar entregado</button>';
+    if(e==='activo')h+='<button class="sm" onclick="retCoV(\''+co.id+'\')" style="color:var(--orange)">Registrar retiro</button>';
+    if(e==='por_firmar'||e==='por_entregar')h+='<button class="sm" onclick="editarPendiente(\''+co.id+'\')" style="color:var(--cyan)">Editar fecha</button>';
+    h+='</div></div>';
+  });
+  cont.innerHTML=h;
+}
+function avanzarComodatoV(id,estado){avanzarComodato(id,estado);renderVCo();}
+function retCoV(id){retCo(id);renderVCo();}
 function renderGM(){
   var top=document.getElementById('gMTop');var cont=document.getElementById('gMapa');
   if(!top||!cont)return;
@@ -2495,6 +2554,11 @@ function renderGCo(){
   });
   document.getElementById('gCoB').innerHTML=h;
 }
+// Refresca la vista de comodatos que este activa (admin o vendedor)
+function refrescarComodatos(){
+  if(document.getElementById('sGCo')&&document.getElementById('sGCo').classList.contains('on')){renderGCo();}
+  if(document.getElementById('sVCo')&&document.getElementById('sVCo').classList.contains('on')){renderVCo();}
+}
 function sGCoF(f){gCoF2=f;renderGCo();}
 // Avanza un comodato al siguiente estado. Al entregar, el cliente pasa a Cliente Activo.
 function avanzarComodato(id,nuevoEstado){
@@ -2525,7 +2589,7 @@ function avanzarComodato(id,nuevoEstado){
     toast('Freezer entregado. Cliente activado','ok');
   }
   fsSetComodato(co);
-  renderGCo();
+  refrescarComodatos();
 }
 function editarPendiente(id){
   var co=D.com.find(function(x){return x.id===id;});if(!co)return;
@@ -2542,7 +2606,7 @@ function saveEditarPendiente(id){
   co.fe=document.getElementById('epF').value;
   co.obs=document.getElementById('epO').value;
   fsSetComodato(co);
-  cMod();renderGCo();toast('Guardado','ok');
+  cMod();refrescarComodatos();toast('Guardado','ok');
 }
 // Desde la ficha en Negociacion: el cliente acordo el freezer. Segun si firmo o no,
 // crea el comodato en "Por firmar" o "Por entregar" y lo suma a la lista de pendientes.
@@ -2622,11 +2686,14 @@ function saveCo(){
   cMod();renderGCo();toast('Comodato registrado ('+labelEstadoCom(estado).toLowerCase()+')','ok');
 }
 function retCo(id){
+  if(soloLectura())return;
   var co=D.com.find(function(c){return c.id===id;});if(!co)return;
+  if(!confirm('Registrar el retiro del freezer de "'+es(co.cnm||'')+'"?'))return;
   co.ret=true;co.fr=fechaLocal();
   logEvento('comodato',co.cid,co.cnm||'?','Comodato retirado · Freezer #'+(co.nro||''),'activo','retirado');
   fsSetComodato(co);
-  renderGCo();toast('Retiro registrado','ok');
+  if(document.getElementById('sGCo')&&document.getElementById('sGCo').classList.contains('on'))renderGCo();
+  toast('Retiro registrado','ok');
 }
 function delCo(id){
   if(!confirm('Eliminar?'))return;
