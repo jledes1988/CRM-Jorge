@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='5.7 - 26/07/2026';
+var VERSION='5.8 - 27/07/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -1328,7 +1328,7 @@ function renderVCo(){
   var misIds={};misContactos(true).forEach(function(c){misIds[c.id]=true;});
   var cs=D.com.filter(function(co){return misIds[co.cid];});
 
-  top.innerHTML=['pend','act','ret','all'].map(function(f){return '<span class="fb'+(vCoF2===f?' on':'')+'" onclick="vCoF2=\''+f+'\';renderVCo()">'+(f==='pend'?'Pendientes':f==='act'?'Activos':f==='ret'?'Retirados':'Todos')+'</span>';}).join('');
+  top.innerHTML='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+['pend','act','ret','all'].map(function(f){return '<span class="fb'+(vCoF2===f?' on':'')+'" onclick="vCoF2=\''+f+'\';renderVCo()">'+(f==='pend'?'Pendientes':f==='act'?'Activos':f==='ret'?'Retirados':'Todos')+'</span>';}).join('')+'<button class="btn" onclick="nuevoAcuerdoFreezer()" style="margin:0 0 0 auto;width:auto;padding:8px 14px;font-size:13px;background:linear-gradient(90deg,#fbbf24,#22d3ee);color:#0b1220;font-weight:800">❄ Acordar freezer</button></div>';
 
   var nAct=cs.filter(function(co){return estadoComodato(co)==='activo';}).length;
   var nFirm=cs.filter(function(co){return estadoComodato(co)==='por_firmar';}).length;
@@ -1377,6 +1377,35 @@ function renderVCo(){
 }
 function avanzarComodatoV(id,estado){avanzarComodato(id,estado);renderVCo();}
 function retCoV(id){retCo(id);renderVCo();}
+// Cargar un acuerdo de freezer desde la propia pestaña Freezers, sin salir:
+// primero se elige el contacto, despues se completan los datos (reusa acordoFreezer).
+function nuevoAcuerdoFreezer(){
+  var conFreezer={};D.com.forEach(function(co){if(!co.ret)conFreezer[co.cid]=true;});
+  var disp=misContactos(true).filter(function(c){return !conFreezer[c.id];}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  var h='<div class="srch" style="margin:0 0 10px;position:sticky;top:0"><input type="text" id="afqBusq" placeholder="Buscar cliente o prospecto..." oninput="filtrarAcuerdoFreezer()" style="background:none;border:none;outline:none;color:var(--text);font-size:14px;width:100%;font-family:inherit"></div>';
+  h+='<div id="afqLista" style="max-height:50vh;overflow-y:auto">'+listaAcuerdoFreezerHTML(disp)+'</div>';
+  oMod('Acordar freezer - elegir cliente',h);
+}
+function listaAcuerdoFreezerHTML(lista){
+  if(!lista.length)return '<div style="color:var(--muted);font-size:13px;padding:10px 0">Sin resultados. Los que ya tienen freezer en curso no aparecen.</div>';
+  var h='';
+  lista.slice(0,40).forEach(function(c){
+    h+='<div onclick="acordoFreezer(\''+c.id+'\')" style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer">';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div>';
+    if(c.fan&&normTxt(c.fan)!==normTxt(c.nm))h+='<div style="font-size:12px;color:var(--cyan)">'+es(c.fan)+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted)">'+es(c.bar||c.ciu||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div>';
+    h+='<span class="tg '+(c.esP?'o':'g')+'">'+(c.esP?'PROS':'CLI')+'</span>';
+    h+='<span style="color:var(--cyan);font-size:18px">›</span>';
+    h+='</div>';
+  });
+  return h;
+}
+function filtrarAcuerdoFreezer(){
+  var q=(document.getElementById('afqBusq').value||'').toLowerCase();
+  var conFreezer={};D.com.forEach(function(co){if(!co.ret)conFreezer[co.cid]=true;});
+  var disp=misContactos(true).filter(function(c){return !conFreezer[c.id]&&(c.nm.toLowerCase().includes(q)||(c.fan||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q));}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  document.getElementById('afqLista').innerHTML=listaAcuerdoFreezerHTML(disp);
+}
 function renderGM(){
   var top=document.getElementById('gMTop');var cont=document.getElementById('gMapa');
   if(!top||!cont)return;
@@ -2644,8 +2673,15 @@ function confirmarAcordoFreezer(id){
   fsSetComodato(nCom);
   logEvento('comodato',id,c.nm,'Acordo freezer · '+(estado==='por_entregar'?'firmado, por entregar':'por firmar'),'',estado);
   cMod();
-  toast('Agregado a pendientes de comodato','ok');
-  if(D.user&&D.user.r==='vendedor'){renderVC();}else{renderGC();}
+  toast('Agregado a pendientes de freezer','ok');
+  // Llevar al vendedor a la pestaña Freezers para que vea el resultado sin buscarlo.
+  if(D.user&&D.user.r==='vendedor'){
+    vCoF2='pend';
+    vGo('Co');
+  } else {
+    if(document.getElementById('sGCo')&&document.getElementById('sGCo').classList.contains('on'))renderGCo();
+    else renderGC();
+  }
 }
 function nuevoComodato(){
   var cH=D.cli.filter(function(c){return !c.eliminado;}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');}).map(function(c){return '<option value="'+c.id+'">'+es(c.nm)+(c.esP?' (prospecto)':'')+'</option>';}).join('');
