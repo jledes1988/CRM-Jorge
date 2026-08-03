@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='5.9 - 03/08/2026';
+var VERSION='6.0 - 03/08/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -25,7 +25,7 @@ var ARG_CIU={
 var ARG_BARRIOS=['Alberdi','Alta Cordoba','Altamira','Altos de la Quintas','Argüello','Barra de Argüello','Bella Vista','Bimaco','Bo.13 de Diciembre','Bo.Ameghino','Bo.Calasanz Norte','Bo.Calasanz Sur','Bo.Centro','Bo.Cerro Chico','Bo.Cofico','Bo.Colinas de Velez Sarsfield','Bo.Don Bosco','Bo.General Paz','Bo.Jardin Espinosa','Bo.Jardin Hipico','Bo.Los Granados','Bo.Maipu','Bo.Muller','Bo.Naciones Unidas','Bo.Nueva Córdoba','Bo.Observatorio','Bo.Primero de Mayo','Bo.Residencial America','Bo.San Ignacio','Bo.San Lorenzo','Bo.San Vicente','Bo.Urca','Bo.Vallescondido','Bo.Velez Sarsfield','Bo.Villa Azalais','Bo.Villa Cornu','Bo.Villa del Parque','Bo.Villa Eucaristica','Bo.Villa Paez','Bo.Villa Progreso','Bo.Villa San Martin','Bo.Yapeyú','Casas Brujas','Centro','Cerro de las Rosas','Ciudad de los Cuartetos','Cofico','Colinas de Villa Allende','Country El Bosque','Country Los Cedros','Country Los Manantiales','Country Villa Allende','Estacion Juarez Celman','Ferreyra','General Bustos','General Fotheringham','General Paz','Guiñazú','Ituzaingo','Jardin','Jose Ignacio Diaz','Juniors','La Calera','La Floresta','Las Palmas','Lomas del Chateau','Los Bulevares','Los Cedros','Los Chasquis','Los Paraísos','Las Rosas','Manantiales','Marqués de Sobremonte','Mendiolaza','Miguel Cerro','Monte Cristo','Muller','Nicolas Avellaneda','Nuevo Cordoba','Palermo','Parque Capital','Parque Costanero','Parque Liceo','Parque San Martin','Parque Velez Sarsfield','Paso de los Andes','Patria Grande','Patricios','Pinar de Atenas','Pueyrredon','Quebrada Las Rosas','Quintas del Este','Quintas del Norte','Quintas del Sur','Ricardo Rojas','Rivadavia','Sagrada Familia','San Ignacio','San Juan Bautista','San Martin','San Roque','Santa Isabel','Santa Rita','Villa Acacias','Villa Allende','Villa Belgrano','Villa Bustos','Villa Cabrera','Villa Centenario','Villa Cornú','Villa del Prado','Villa Dolores','Villa Eucaristica','Villa Flores','Villa Fortabat','Villa Italia','Villa La Florida','Villa Libertad','Villa Maipú','Villa Martelli','Villa Páez','Villa Parque','Villa Poeta Lugones','Villa Progreso','Villa Rivera Indarte','Villa Rivadavia','Villa Sarmiento','Villa Sol','Villa Urquiza','Villa Warcalde','Yapeyú','Arguello','Colinas de Villa Allende'];
 
 var CFG={msgPedido:'Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Kiosco/Drugs/Almacén','Autoservicio','Supermercado','Minimercado','Mayorista','Bar/Resto','Parrilla','Cafeteria','Heladeria','Panaderia','Confiteria','Rotiseria','Estacion de servicio','Club/Escuela','Salón/Catering','Camping','Hotel','Hostel','Complejo turistico','Balneario','Distribuidor','Farmacia','Otro'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Sin interes','Precio','Otro'],tiposProducto:['Helados','Panificacion','Fiambres y quesos','Bebidas','Congelados','Almacen','Golosinas','Lacteos','Otros'],msgs:Object.assign({},MD)};
-var D={user:null,usrs:[{id:1,n:'JL',u:'jl',email:'jorge.ledesmagd@gmail.com',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',email:'jledes.tf@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:3,n:'Chamu',u:'chamu',email:'jorge_500_df@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:4,n:'Pablo',u:'pablo',email:'pablodellacasa13@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
+var D={user:null,usrs:[{id:1,n:'JL',u:'jl',email:'jorge.ledesmagd@gmail.com',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',email:'jledes.tf@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:3,n:'Chamu',u:'chamu',email:'jorge_500_df@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:4,n:'Pablo',u:'pablo',email:'pablodellacasa13@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],rec:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
 
 // ════════════════════════════════════════════════════════════════════
 // FIREBASE / FIRESTORE - FUENTE UNICA DE DATOS EN TIEMPO REAL
@@ -116,6 +116,11 @@ function fsSetupListeners(){
   safeSnap('gira',function(snap){
     D.gira=fsSnapToArr(snap);
     if(FS_READY)refrescarVistaActual();
+  });
+
+  safeSnap('recorrido',function(snap){
+    D.rec=fsSnapToArr(snap);
+    if(FS_READY&&recorridoActivo&&recorridoActivo.vend)refrescarVistaActual();
   });
 
   safeSnap('log',function(snap){
@@ -297,6 +302,11 @@ function fsDelGira(cid,fecha){
 function fsAddLog(entry){
   if(!fsDB){ls('jl_log',D.log);return Promise.resolve();}
   return fsDB.collection('log').doc(entry.id).set(entry).catch(function(e){console.error('log',e);});
+}
+// Recorrido del vendedor: puntos de rastro. Silencioso, no bloquea.
+function fsAddRecorrido(pt){
+  if(!fsDB)return Promise.resolve();
+  return fsDB.collection('recorrido').doc(pt.id).set(pt).catch(function(e){/* silencioso */});
 }
 function fsSetUsuario(u){
   if(soloLectura())return Promise.resolve();
@@ -637,9 +647,11 @@ function startApp(){
     renderVH();
     // Iniciar en tab ejecutar
     renderVG();
+    try{iniciarRecorrido();}catch(e){} // rastro pasivo, solo con la app en uso
   }
 }
 function doLogout(){
+  try{detenerRecorrido();}catch(e){}
   D.user=null;ls('jses',null);
   document.querySelectorAll('.sc').forEach(function(s){s.classList.remove('on');});
   document.getElementById('sLogin').classList.add('on');
@@ -1239,6 +1251,8 @@ var vMapaObj=null,vMapaCapa=null;   // mapa del vendedor
 var gMapaObj=null,gMapaCapa=null;   // mapa del admin
 var vMFiltroEtapa='';               // filtro por etapa en el mapa del vendedor
 var gMFiltroEtapa='';
+var vMFiltroTipo='';                 // '' todos | 'cli' | 'pros'
+var gMFiltroTipo='';
 
 function crearMapa(contId){
   var mapa=L.map(contId,{zoomControl:true,attributionControl:true}).setView([-31.4201,-64.1888],12); // Cordoba Capital
@@ -1247,13 +1261,14 @@ function crearMapa(contId){
   }).addTo(mapa);
   return mapa;
 }
-function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin){
+function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin,filtroTipo){
   if(capaVieja)mapa.removeLayer(capaVieja);
   var capa=L.layerGroup();
   var bounds=[];
   lista.forEach(function(c){
-    // Opcion B: solo se muestran contactos con ubicacion CONFIRMADA por GPS.
     if(!c.gpsOk||!c.lat||!c.lng)return;
+    if(filtroTipo==='cli'&&c.esP)return;
+    if(filtroTipo==='pros'&&!c.esP)return;
     var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
     if(filtroEtapa&&eta!==filtroEtapa)return;
     var col=EC[eta]||'#94a3b8';
@@ -1263,8 +1278,10 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin){
     if(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase())pop+='<div style="font-size:12px;font-weight:700;color:#0891b2">'+es(c.fan)+'</div>';
     pop+='<div style="font-size:11px;color:#666">'+es(c.bar||c.ciu||'')+(c.tipo?' · '+es(c.tipo):'')+'</div>';
     pop+='<div style="font-size:11px;margin-top:3px"><span style="background:'+col+';color:#fff;padding:2px 8px;border-radius:10px;font-weight:700">'+es(eta)+'</span></div>';
-    pop+='<button onclick="'+(esAdmin?'aFicha':'abrirFichaV')+'(\''+c.id+'\')" style="margin-top:8px;background:#0891b2;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">Ver ficha</button>';
-    pop+='</div>';
+    pop+='<div style="display:flex;gap:6px;margin-top:8px">';
+    pop+='<button onclick="'+(esAdmin?'aFicha':'abrirFichaV')+'(\''+c.id+'\')" style="background:#0891b2;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">Ver ficha</button>';
+    if(!esAdmin)pop+='<button onclick="agregarAGiraDesdeMapa(\''+c.id+'\')" style="background:#22223a;color:#4ade80;border:1px solid #4ade80;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">+ Gira</button>';
+    pop+='</div></div>';
     m.bindPopup(pop);
     capa.addLayer(m);
     bounds.push([c.lat,c.lng]);
@@ -1273,18 +1290,23 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin){
   if(bounds.length)mapa.fitBounds(bounds,{padding:[35,35],maxZoom:15});
   return capa;
 }
-function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro){
+function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro,filtroTipo,fnFiltroTipo){
   var conf=lista.filter(function(c){return c.gpsOk&&c.lat&&c.lng;}).length;
   var sinConf=lista.length-conf;
+  var selEstilo='background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;font-size:12px;cursor:pointer';
   var h='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">';
-  h+='<select onchange="'+fnFiltro+'(this.value)" style="background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;font-size:12px;cursor:pointer">';
+  h+='<select onchange="'+fnFiltroTipo+'(this.value)" style="'+selEstilo+'">';
+  h+='<option value=""'+(!filtroTipo?' selected':'')+'>Todos</option>';
+  h+='<option value="cli"'+(filtroTipo==='cli'?' selected':'')+'>Solo clientes</option>';
+  h+='<option value="pros"'+(filtroTipo==='pros'?' selected':'')+'>Solo prospectos</option>';
+  h+='</select>';
+  h+='<select onchange="'+fnFiltro+'(this.value)" style="'+selEstilo+'">';
   h+='<option value="">Todas las etapas</option>';
   ET.concat(SA).forEach(function(e){h+='<option value="'+es(e)+'"'+(filtroActual===e?' selected':'')+'>'+es(e)+'</option>';});
   h+='</select>';
   h+='<button class="sm g" onclick="'+fnCentro+'()" style="font-size:11px">&#128205; Mi ubicacion</button>';
   h+='<span style="font-size:11px;color:var(--muted);margin-left:auto">'+conf+' en el mapa'+(sinConf?' &middot; <span style="color:var(--orange)">'+sinConf+' por confirmar</span>':'')+'</span>';
   h+='</div>';
-  // Leyenda de colores
   h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">';
   ET.forEach(function(e){h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:'+(EC[e]||'#94a3b8')+';display:inline-block"></span>'+es(e)+'</span>';});
   h+='</div>';
@@ -1293,12 +1315,49 @@ function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro){
 }
 function setVMFiltroEtapa(v){vMFiltroEtapa=v;renderVM();}
 function setGMFiltroEtapa(v){gMFiltroEtapa=v;renderGM();}
+function setVMFiltroTipo(v){vMFiltroTipo=v;renderVM();}
+function setGMFiltroTipo(v){gMFiltroTipo=v;renderGM();}
+// P3: desde el popup del mapa, agendar una visita eligiendo solo la fecha.
+function agregarAGiraDesdeMapa(cid){
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  if(vMapaObj)vMapaObj.closePopup();
+  var hoy=today();
+  var man=new Date();man.setDate(man.getDate()+1);var manStr=fechaLocal(man);
+  var h='<div style="margin-bottom:10px"><div style="font-size:15px;font-weight:800">'+es(c.nm)+'</div>';
+  if(c.fan)h+='<div style="font-size:12px;color:var(--cyan)">'+es(c.fan)+'</div>';
+  if(c.dir)h+='<div style="font-size:12px;color:var(--muted)">📍 '+es(c.dir)+'</div>';
+  h+='</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:6px">¿Para que dia lo agendas?</div>';
+  h+='<div style="display:flex;gap:8px;margin-bottom:10px">';
+  h+='<button class="btn" style="flex:1;margin:0" onclick="confirmarGiraMapa(\''+cid+'\',\''+hoy+'\')">Hoy</button>';
+  h+='<button class="btn sec" style="flex:1;margin:0" onclick="confirmarGiraMapa(\''+cid+'\',\''+manStr+'\')">Mañana</button>';
+  h+='</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:4px">O elegi una fecha:</div>';
+  h+='<input type="date" id="giraMapaFecha" value="'+hoy+'" min="'+hoy+'" style="width:100%;background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);padding:9px;font-size:14px;font-family:inherit;margin-bottom:10px">';
+  h+='<button class="btn" style="width:100%;margin:0" onclick="confirmarGiraMapa(\''+cid+'\',document.getElementById(\'giraMapaFecha\').value)">Agendar</button>';
+  oMod('Agregar a la gira',h);
+}
+function confirmarGiraMapa(cid,fecha){
+  if(!fecha){toast('Elegi una fecha','err');return;}
+  agregarAGira(cid,fecha);
+  cMod();
+}
+var vMiUbicMarker=null;
 function centrarMiUbicacion(mapa){
   capturarGPS(function(g){
     if(!g){toast('No se pudo obtener tu ubicacion','err');return;}
     mapa.setView([g.lat,g.lng],15);
-    L.circleMarker([g.lat,g.lng],{radius:7,fillColor:'#fff',color:'#0891b2',weight:3,fillOpacity:1}).addTo(mapa).bindPopup('Estas aca').openPopup();
+    dibujarMiUbicacion(mapa,g);
   });
+}
+// P2A: dibuja/actualiza el punto "estas aca" (azul con halo, distinto de los clientes)
+function dibujarMiUbicacion(mapa,g){
+  if(vMiUbicMarker){try{mapa.removeLayer(vMiUbicMarker);}catch(e){}}
+  var grp=L.layerGroup();
+  L.circleMarker([g.lat,g.lng],{radius:14,fillColor:'#3b82f6',color:'#3b82f6',weight:1,fillOpacity:.18}).addTo(grp);
+  L.circleMarker([g.lat,g.lng],{radius:7,fillColor:'#3b82f6',color:'#fff',weight:3,fillOpacity:1}).addTo(grp).bindPopup('Estas aca');
+  grp.addTo(mapa);
+  vMiUbicMarker=grp;
 }
 function centrarVM(){if(vMapaObj)centrarMiUbicacion(vMapaObj);}
 function centrarGM(){if(gMapaObj)centrarMiUbicacion(gMapaObj);}
@@ -1306,11 +1365,12 @@ function renderVM(){
   var top=document.getElementById('vMTop');var cont=document.getElementById('vMapa');
   if(!top||!cont)return;
   var mc=misContactos();
-  top.innerHTML=barraMapaHTML(mc,vMFiltroEtapa,'setVMFiltroEtapa','centrarVM');
+  top.innerHTML=barraMapaHTML(mc,vMFiltroEtapa,'setVMFiltroEtapa','centrarVM',vMFiltroTipo,'setVMFiltroTipo');
   if(typeof L==='undefined'){cont.innerHTML='<div class="empty" style="padding-top:40px">El mapa necesita conexion a internet la primera vez que se abre.</div>';return;}
   if(!vMapaObj){cont.innerHTML='';vMapaObj=crearMapa('vMapa');}
-  vMapaCapa=pintarMarcadores(vMapaObj,vMapaCapa,mc,vMFiltroEtapa,false);
-  setTimeout(function(){vMapaObj.invalidateSize();},120); // la pestaña recien se hizo visible
+  vMapaCapa=pintarMarcadores(vMapaObj,vMapaCapa,mc,vMFiltroEtapa,false,vMFiltroTipo);
+  capturarGPS(function(g){if(g&&vMapaObj)dibujarMiUbicacion(vMapaObj,g);}); // P2A: tu ubicacion en vivo
+  setTimeout(function(){vMapaObj.invalidateSize();},120);
 }
 // ── FREEZERS DEL VENDEDOR ─────────────────────────────────────────────
 // Ve solo los comodatos de SUS clientes. Puede avanzar estados (firmado/entregado)
@@ -1400,14 +1460,58 @@ function filtrarAcuerdoFreezer(){
   var disp=misContactos(true).filter(function(c){return !conFreezer[c.id]&&(c.nm.toLowerCase().includes(q)||(c.fan||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q));}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   document.getElementById('afqLista').innerHTML=listaAcuerdoFreezerHTML(disp);
 }
+// ── VER RECORRIDO (solo admin): trazado del vendedor en un dia ────────
+var recorridoActivo={vend:'',dia:''};
+function barraRecorridoHTML(){
+  var vends=D.usrs.filter(function(u){return u.r==='vendedor';});
+  var estilo='background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;font-size:12px;cursor:pointer';
+  var h='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">';
+  h+='<span style="font-size:11px;color:var(--cyan);font-weight:700">VER RECORRIDO</span>';
+  h+='<select id="recVend" onchange="setRecorridoVend(this.value)" style="'+estilo+'">';
+  h+='<option value="">— vendedor —</option>';
+  vends.forEach(function(u){h+='<option value="'+es(u.u)+'"'+(recorridoActivo.vend===u.u?' selected':'')+'>'+es(u.n)+'</option>';});
+  h+='</select>';
+  h+='<input type="date" id="recDia" value="'+(recorridoActivo.dia||today())+'" max="'+today()+'" onchange="setRecorridoDia(this.value)" style="'+estilo+'">';
+  if(recorridoActivo.vend){
+    var pts=D.rec.filter(function(p){return p.vend===recorridoActivo.vend&&p.f===(recorridoActivo.dia||today());});
+    h+='<span style="font-size:11px;color:var(--muted)">'+pts.length+' puntos</span>';
+    h+='<button class="sm" onclick="salirRecorrido()" style="font-size:11px;color:var(--red)">Salir del recorrido</button>';
+  }
+  h+='</div>';
+  return h;
+}
+function setRecorridoVend(v){recorridoActivo.vend=v;if(!recorridoActivo.dia)recorridoActivo.dia=today();renderGM();}
+function setRecorridoDia(d){recorridoActivo.dia=d;renderGM();}
+function salirRecorrido(){recorridoActivo={vend:'',dia:''};renderGM();}
+function pintarRecorrido(mapa,capaVieja,vend,dia){
+  if(capaVieja)mapa.removeLayer(capaVieja);
+  var capa=L.layerGroup();
+  dia=dia||today();
+  var pts=D.rec.filter(function(p){return p.vend===vend&&p.f===dia;}).sort(function(a,b){return a.t-b.t;});
+  if(!pts.length){capa.addTo(mapa);return capa;}
+  var latlngs=pts.map(function(p){return [p.lat,p.lng];});
+  L.polyline(latlngs,{color:'#22d3ee',weight:3,opacity:.8}).addTo(capa);
+  L.circleMarker(latlngs[0],{radius:8,fillColor:'#4ade80',color:'#fff',weight:2,fillOpacity:1}).addTo(capa).bindPopup('Inicio del recorrido');
+  L.circleMarker(latlngs[latlngs.length-1],{radius:8,fillColor:'#f87171',color:'#fff',weight:2,fillOpacity:1}).addTo(capa).bindPopup('Ultimo punto');
+  for(var i=1;i<latlngs.length-1;i++){
+    L.circleMarker(latlngs[i],{radius:3,fillColor:'#22d3ee',color:'#22d3ee',weight:1,fillOpacity:.7}).addTo(capa);
+  }
+  capa.addTo(mapa);
+  mapa.fitBounds(latlngs,{padding:[40,40],maxZoom:15});
+  return capa;
+}
 function renderGM(){
   var top=document.getElementById('gMTop');var cont=document.getElementById('gMapa');
   if(!top||!cont)return;
   var base=cliGlobal();
-  top.innerHTML=barraMapaHTML(base,gMFiltroEtapa,'setGMFiltroEtapa','centrarGM');
+  top.innerHTML=barraMapaHTML(base,gMFiltroEtapa,'setGMFiltroEtapa','centrarGM',gMFiltroTipo,'setGMFiltroTipo')+barraRecorridoHTML();
   if(typeof L==='undefined'){cont.innerHTML='<div class="empty" style="padding-top:40px">El mapa necesita conexion a internet la primera vez que se abre.</div>';return;}
   if(!gMapaObj){cont.innerHTML='';gMapaObj=crearMapa('gMapa');}
-  gMapaCapa=pintarMarcadores(gMapaObj,gMapaCapa,base,gMFiltroEtapa,true);
+  if(recorridoActivo.vend){
+    gMapaCapa=pintarRecorrido(gMapaObj,gMapaCapa,recorridoActivo.vend,recorridoActivo.dia);
+  } else {
+    gMapaCapa=pintarMarcadores(gMapaObj,gMapaCapa,base,gMFiltroEtapa,true,gMFiltroTipo);
+  }
   setTimeout(function(){gMapaObj.invalidateSize();},120);
 }
 
@@ -1419,6 +1523,41 @@ function capturarGPS(cb){
   navigator.geolocation.getCurrentPosition(function(pos){
     if(cb)cb({lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy||0),f:today()});
   },function(){if(cb)cb(null);},{enableHighAccuracy:true,timeout:8000,maximumAge:60000});
+}
+
+// ── RECORRIDO DEL VENDEDOR (rastro pasivo, solo con la app en uso) ─────
+// Deja un punto cada 5 minutos MIENTRAS el vendedor usa la app. No corre en segundo
+// plano: no gasta bateria ni datos extra. Filtros: no agrega si no se movio (~60m),
+// maximo 200 puntos por dia. Solo el administrador ve el trazado, despues de la gira.
+var REC_INTERVALO=5*60*1000;
+var REC_MAX_DIA=200;
+var REC_MIN_MOV=0.00055;   // ~60 metros en grados (aprox)
+var recUltimaPos=null;
+var recTimer=null;
+function iniciarRecorrido(){
+  if(!D.user||D.user.r!=='vendedor')return;
+  if(recTimer)return;
+  setTimeout(tomarPuntoRecorrido,15000);
+  recTimer=setInterval(tomarPuntoRecorrido,REC_INTERVALO);
+}
+function detenerRecorrido(){if(recTimer){clearInterval(recTimer);recTimer=null;}}
+function tomarPuntoRecorrido(){
+  if(!D.user||D.user.r!=='vendedor')return;
+  if(document.hidden)return;
+  var hoy=today();
+  var hoyPts=D.rec.filter(function(p){return p.vend===D.user.u&&p.f===hoy;});
+  if(hoyPts.length>=REC_MAX_DIA)return;
+  capturarGPS(function(g){
+    if(!g)return;
+    if(recUltimaPos){
+      var dl=Math.abs(g.lat-recUltimaPos.lat),dg=Math.abs(g.lng-recUltimaPos.lng);
+      if(dl<REC_MIN_MOV&&dg<REC_MIN_MOV)return;
+    }
+    var pt={id:D.user.u+'_'+Date.now(),vend:D.user.u,lat:g.lat,lng:g.lng,f:hoy,t:Date.now()};
+    D.rec.push(pt);
+    recUltimaPos={lat:g.lat,lng:g.lng};
+    fsAddRecorrido(pt);
+  });
 }
 // Boton "Marcar ubicacion" de las fichas: captura GPS y CONFIRMA la ubicacion (gpsOk=true)
 function marcarUbicacion(id){
@@ -1971,10 +2110,10 @@ function renderGC(){
     cs.forEach(function(c){
       var d7=dias(c.ul);var col=d7===null?'var(--red)':d7>14?'var(--red)':d7>7?'var(--orange)':'var(--green)';
       h+='<div class="lrow" onclick="aFicha(\''+c.id+'\')">';
-      h+='<span style="width:8px;height:8px;border-radius:50%;background:'+col+';flex-shrink:0"></span>';
-      h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase()?' <span style="color:var(--cyan);font-weight:400">· '+es(c.fan)+'</span>':'')+'</div>';
+      h+='<span class="ldot" style="background:'+col+'"></span>';
+      h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase()?' <span class="lfan">· '+es(c.fan)+'</span>':'')+'</div>';
       h+='<div class="lsub">'+es(c.dir||c.bar||c.ciu||'')+(c.vend?' · '+es(c.vend):'')+'</div></div>';
-      h+=(c.esP?'<span class="tg o" style="flex-shrink:0">PROS</span>':'<span class="tg g" style="flex-shrink:0">CLI</span>');
+      h+=(c.esP?'<span class="tg o ltg">PROS</span>':'<span class="tg g ltg">CLI</span>');
       if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:2px 6px;border-radius:5px;font-size:9px;font-weight:900;flex-shrink:0">DEU</span>';
       h+='</div>';
     });
@@ -2211,8 +2350,8 @@ function renderGE(){
     cs.forEach(function(c){
       var col=EC[c.etapaEmbudo]||'var(--muted)';
       h+='<div class="lrow" onclick="aFicha(\''+c.id+'\')">';
-      h+='<span style="width:8px;height:8px;border-radius:50%;background:'+col+';flex-shrink:0"></span>';
-      h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase()?' <span style="color:var(--cyan);font-weight:400">· '+es(c.fan)+'</span>':'')+'</div>';
+      h+='<span class="ldot" style="background:'+col+'"></span>';
+      h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase()?' <span class="lfan">· '+es(c.fan)+'</span>':'')+'</div>';
       h+='<div class="lsub" style="color:'+col+'">'+es(c.etapaEmbudo||'')+'<span style="color:var(--muted)"> · '+es(c.bar||c.tipo||'')+(c.vend?' · '+es(c.vend):'')+'</span></div></div>';
       h+='</div>';
     });
@@ -3939,11 +4078,11 @@ function renderVG(){
       var c=D.cli.find(function(x){return x.id===g.cid;});if(!c)return;
       var yaVis=D.vis.some(function(v){return v.cid===g.cid&&v.fecha===gDiaActivo;});
       h+='<div class="lrow" onclick="abrirVisita(\''+g.cid+'\')">';
-      h+='<div style="width:24px;height:24px;border-radius:50%;background:'+(yaVis?'var(--green)':'var(--s3)')+';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:'+(yaVis?'#000':'var(--text)')+';flex-shrink:0">'+(yaVis?'✓':idx+1)+'</div>';
-      h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan?' <span style="color:var(--cyan);font-weight:400">· '+es(c.fan)+'</span>':'')+'</div>';
+      h+='<div class="lnum" style="background:'+(yaVis?'var(--green)':'var(--s3)')+';color:'+(yaVis?'#000':'var(--text)')+'">'+(yaVis?'✓':idx+1)+'</div>';
+      h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan?' <span class="lfan">· '+es(c.fan)+'</span>':'')+'</div>';
       h+='<div class="lsub">'+(c.dir?'📍 '+es(c.dir):es(c.ciu||c.bar||''))+'</div></div>';
-      h+='<span class="tg '+(c.esP?'o':'g')+'" style="flex-shrink:0">'+(c.esP?'PROS':'CLI')+'</span>';
-      h+='<button onclick="event.stopPropagation();quitarDeGira(\''+g.cid+'\',\''+gDiaActivo+'\')" style="background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:2px 4px;flex-shrink:0">✕</button>';
+      h+='<span class="tg '+(c.esP?'o':'g')+' ltg">'+(c.esP?'PROS':'CLI')+'</span>';
+      h+='<button class="lx" onclick="event.stopPropagation();quitarDeGira(\''+g.cid+'\',\''+gDiaActivo+'\')">✕</button>';
       h+='</div>';
     });
   } else {
@@ -3967,7 +4106,7 @@ function renderVG(){
       if(c.dir)h+='<div style="font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📍 '+es(c.dir)+'</div>';
       h+='<div style="font-size:11px;color:var(--muted)">'+es(c.tipo||'')+(c.ciu?' · '+es(c.ciu):c.bar?' · '+es(c.bar):'')+'</div>';
       h+='</div>';
-      h+='<span class="tg '+(c.esP?'o':'g')+'" style="flex-shrink:0">'+(c.esP?'PROS':'CLI')+'</span>';
+      h+='<span class="tg '+(c.esP?'o':'g')+' ltg">'+(c.esP?'PROS':'CLI')+'</span>';
       h+='<button onclick="quitarDeGira(\''+g.cid+'\',\''+gDiaActivo+'\')" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0">✕</button>';
       h+='</div>';
       // Datos clave
@@ -4134,8 +4273,8 @@ function renderVE(){
       var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
       var colE=EC[eta]||'var(--muted)';
       h+='<div class="lrow" onclick="abrirFichaV(\''+c.id+'\')">';
-      h+='<span style="width:8px;height:8px;border-radius:50%;background:'+colE+';flex-shrink:0"></span>';
-      h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan?' <span style="color:var(--cyan);font-weight:400">· '+es(c.fan)+'</span>':'')+'</div>';
+      h+='<span class="ldot" style="background:'+colE+'"></span>';
+      h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan?' <span class="lfan">· '+es(c.fan)+'</span>':'')+'</div>';
       h+='<div class="lsub" style="color:'+colE+'">'+es(eta)+'<span style="color:var(--muted)"> · '+es(c.bar||c.ciu||c.tipo||'')+'</span></div></div>';
       h+='</div>';
     });
@@ -4204,10 +4343,10 @@ function renderVC(){
       var d7=dias(c.ul);
       var colVis=d7===null?'var(--red)':d7>14?'var(--red)':d7>7?'var(--orange)':'var(--green)';
       h+='<div class="lrow" onclick="abrirFichaV(\''+c.id+'\')">';
-      h+='<span style="width:8px;height:8px;border-radius:50%;background:'+colVis+';flex-shrink:0"></span>';
-      h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan?' <span style="color:var(--cyan);font-weight:400">· '+es(c.fan)+'</span>':'')+'</div>';
+      h+='<span class="ldot" style="background:'+colVis+'"></span>';
+      h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan?' <span class="lfan">· '+es(c.fan)+'</span>':'')+'</div>';
       h+='<div class="lsub">'+es(c.dir||c.bar||c.ciu||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div>';
-      h+='<span class="tg '+(c.esP?'o':'g')+'" style="flex-shrink:0">'+(c.esP?'PROS':'CLI')+'</span>';
+      h+='<span class="tg '+(c.esP?'o':'g')+' ltg">'+(c.esP?'PROS':'CLI')+'</span>';
       h+='</div>';
     });
     var _vcb0=document.getElementById('vCB');if(_vcb0)_vcb0.innerHTML=h;return;

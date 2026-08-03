@@ -173,3 +173,22 @@ input:checked+.sl3:before{transform:translateX(18px)}
 #modal{z-index:1000!important}
 #toast{z-index:1100!important}
 .leaflet-pane,.leaflet-top,.leaflet-bottom{z-index:400}
+
+/* ── Botones de vista lista/tarjetas (estilo explorador de archivos) ── */
+.vwbg{display:inline-flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0}
+.vwb{background:var(--s2);border:none;color:var(--muted);padding:6px 9px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
+.vwb.on{background:var(--cyan);color:var(--bg)}
+.vwb:not(.on):active{background:var(--s3)}
+
+/* ── Vista LISTA: renglones separados con la estetica del CRM ── */
+.lrow{display:flex;align-items:center;gap:11px;padding:12px 14px;margin:0 -14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.lrow:first-child{border-top:1px solid var(--border)}
+.lrow:active{background:var(--s1)}
+.lrow .ldot{width:9px;height:9px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 3px rgba(255,255,255,.04)}
+.lrow .ln{flex:1;min-width:0}
+.lrow .lnm{font-size:14.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
+.lrow .lnm .lfan{color:var(--cyan);font-weight:600}
+.lrow .lsub{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;line-height:1.3}
+.lrow .lnum{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+.lrow .lx{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:2px 4px;flex-shrink:0;line-height:1}
+.lrow .ltg{flex-shrink:0;min-width:38px;text-align:center}
