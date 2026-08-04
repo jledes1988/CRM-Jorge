@@ -151,6 +151,8 @@ input:checked+.sl3:before{transform:translateX(18px)}
   #vCB,#vHB{display:block}
   #vCB{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px;align-content:start}
   #vCB .cc{margin:0}
+  /* Vista lista en escritorio: un renglon por fila, ancho completo (no grilla de tarjetas) */
+  #vCB.lmode{display:block}
   /* Tablero Kanban del Embudo en escritorio */
   .kanban{display:grid;grid-auto-flow:column;grid-auto-columns:280px;gap:14px;align-items:start;overflow-x:auto;padding-bottom:10px}
   .kbCol{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:10px;max-height:calc(100vh - 220px);overflow-y:auto}

@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='6.0 - 03/08/2026';
+var VERSION='6.1 - 04/08/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -1504,10 +1504,13 @@ function renderGM(){
   var top=document.getElementById('gMTop');var cont=document.getElementById('gMapa');
   if(!top||!cont)return;
   var base=cliGlobal();
-  top.innerHTML=barraMapaHTML(base,gMFiltroEtapa,'setGMFiltroEtapa','centrarGM',gMFiltroTipo,'setGMFiltroTipo')+barraRecorridoHTML();
+  // El recorrido (rastro GPS del dia) es informacion sensible: solo el admin lo ve, no el gerente.
+  var esAdmin=D.user&&D.user.r==='admin';
+  if(!esAdmin&&recorridoActivo.vend)recorridoActivo={vend:'',dia:''};
+  top.innerHTML=barraMapaHTML(base,gMFiltroEtapa,'setGMFiltroEtapa','centrarGM',gMFiltroTipo,'setGMFiltroTipo')+(esAdmin?barraRecorridoHTML():'');
   if(typeof L==='undefined'){cont.innerHTML='<div class="empty" style="padding-top:40px">El mapa necesita conexion a internet la primera vez que se abre.</div>';return;}
   if(!gMapaObj){cont.innerHTML='';gMapaObj=crearMapa('gMapa');}
-  if(recorridoActivo.vend){
+  if(esAdmin&&recorridoActivo.vend){
     gMapaCapa=pintarRecorrido(gMapaObj,gMapaCapa,recorridoActivo.vend,recorridoActivo.dia);
   } else {
     gMapaCapa=pintarMarcadores(gMapaObj,gMapaCapa,base,gMFiltroEtapa,true,gMFiltroTipo);
@@ -2058,36 +2061,9 @@ var gCF2='Todos';
 function renderGC(){
   var fs=['Todos','Clientes','Prospectos','Sin visitar','Con freezer','Deudores'];
   var fh=fs.map(function(f){return '<span class="fb'+(gCF2===f?' on':'')+'" onclick="sGCF(\''+f+'\')">'+f+'</span>';}).join('');
-  var base0=cliGlobal();
-  // Grupos de chips multiseleccion: varias ciudades, varios tipos, etc.
-  function chipGroup(campo,estadoKey,lbl){
-    var s={};base0.forEach(function(c){var v=c[campo];if(campo==='comp'&&v){v.split(',').forEach(function(x){x=x.trim();if(x)s[x]=true;});}else if(v)s[v]=true;});
-    var keys=Object.keys(s).sort();
-    if(!keys.length)return '';
-    var arr=gCFo[estadoKey];
-    var o='<div style="width:100%;margin-top:6px"><div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:3px;text-transform:uppercase">'+lbl+'</div><div class="chips">';
-    keys.forEach(function(k){
-      var on=arr.indexOf(k)>=0;
-      o+='<span class="ch'+(on?' on':'')+'" onclick="toggleGCFo(\''+estadoKey+'\',this.getAttribute(\'data-v\'))" data-v="'+es(k)+'" style="font-size:11px;padding:5px 9px">'+es(k)+'</span>';
-    });
-    o+='</div></div>';
-    return o;
-  }
-  fh+='<div style="display:flex;flex-direction:column;gap:2px;margin-top:8px;width:100%">';
-  fh+=chipGroup('bar','bar','Barrio / Ciudad');
-  fh+=chipGroup('tipo','tipNeg','Tipo de negocio');
-  fh+=chipGroup('comp','comp','Competencia');
-  fh+=chipGroup('cFr','frez','Freezer');
-  fh+=chipGroup('etapaEmbudo','eta','Etapa');
-  fh+=chipGroup('calU','calU','Ubicacion');
-  fh+=chipGroup('fuente','fuente','Fuente');
-  var hayF=Object.keys(gCFo).some(function(k){return gCFo[k]&&gCFo[k].length;});
-  fh+='<div style="display:flex;gap:8px;margin-top:8px;align-items:center">';
-  if(hayF)fh+='<button class="sm" onclick="limpiarGCFo()" style="font-size:11px;color:var(--red)">Limpiar filtros</button>';
-  fh+='<span style="margin-left:auto">'+botonesVistaHTML()+'</span>';
-  fh+='</div>';
-  fh+='</div>';
   document.getElementById('gCF').innerHTML=fh;
+  var gvDiv=document.getElementById('gCVista');if(gvDiv)gvDiv.innerHTML=botonesVistaHTML();
+  var base0=cliGlobal();
   var q=(document.getElementById('gCS')&&document.getElementById('gCS').value||'').toLowerCase();
   var cs=base0.slice();
   if(gCFo.bar.length)cs=cs.filter(function(c){return gCFo.bar.indexOf(c.bar)>=0||gCFo.bar.indexOf(c.ciu)>=0;});
@@ -2104,6 +2080,19 @@ function renderGC(){
   else if(gCF2==='Deudores')cs=cs.filter(function(c){return c.deu;});
   if(q)cs=cs.filter(function(c){return c.nm.toLowerCase().includes(q)||(c.dir||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q);});
   cs.sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  // Resumen de filtros activos (fuera del flujo normal, arriba de la lista) + boton para limpiar todo.
+  var actChips='';
+  function chipG(k,txt){return '<span class="ch on" onclick="qGCF(\''+k+'\')" style="font-size:11px;padding:5px 10px">'+txt+' &#215;</span>';}
+  if(gCFo.bar.length)actChips+=chipG('bar',es(gCFo.bar.join(', ')));
+  if(gCFo.tipNeg.length)actChips+=chipG('tipNeg',es(gCFo.tipNeg.join(', ')));
+  if(gCFo.comp.length)actChips+=chipG('comp','Comp: '+es(gCFo.comp.join(', ')));
+  if(gCFo.frez.length)actChips+=chipG('frez','Freezer: '+es(gCFo.frez.join(', ')));
+  if(gCFo.eta.length)actChips+=chipG('eta','Etapa: '+es(gCFo.eta.join(', ')));
+  if(gCFo.calU.length)actChips+=chipG('calU','Ubic: '+es(gCFo.calU.join(', ')));
+  if(gCFo.fuente.length)actChips+=chipG('fuente','Fuente: '+es(gCFo.fuente.join(', ')));
+  if(actChips)actChips+='<button class="sm" onclick="limpiarGCFo()" style="font-size:11px;color:var(--red)">Limpiar todo</button>';
+  var gaDiv=document.getElementById('gCActivos');
+  if(gaDiv){gaDiv.innerHTML=actChips;gaDiv.style.display=actChips?'block':'none';}
   var h='<div style="padding:8px 14px;font-size:11px;color:var(--muted);font-weight:700">'+cs.length+' REGISTROS</div>';
   if(!cs.length){h+='<div class="empty">Sin resultados</div>';document.getElementById('gCB').innerHTML=h;return;}
   if(vistaModo==='lista'){
@@ -2135,14 +2124,49 @@ function renderGC(){
   document.getElementById('gCB').innerHTML=h;
 }
 function sGCF(f){gCF2=f;renderGC();}
+function qGCF(k){gCFo[k]=[];renderGC();}
 function toggleGCFo(k,v){
   if(!Array.isArray(gCFo[k]))gCFo[k]=[];
   var i=gCFo[k].indexOf(v);
   if(i>=0)gCFo[k].splice(i,1);else gCFo[k].push(v);
   renderGC();
+  document.querySelectorAll('[data-gfk="'+k+'"]').forEach(function(el){
+    el.classList.toggle('on',gCFo[k].indexOf(el.getAttribute('data-gfv'))>=0);
+  });
 }
 var gCFo={bar:[],comp:[],frez:[],tipNeg:[],eta:[],calU:[],fuente:[]};
 function limpiarGCFo(){gCFo={bar:[],comp:[],frez:[],tipNeg:[],eta:[],calU:[],fuente:[]};renderGC();}
+// Filtros avanzados del admin en modal (antes iban siempre visibles y tapaban la lista de contactos).
+function abrirFiltrosAdmin(){
+  var base0=cliGlobal();
+  function chipGroup(campo,estadoKey,lbl){
+    var s={};base0.forEach(function(c){var v=c[campo];if(campo==='comp'&&v){v.split(',').forEach(function(x){x=x.trim();if(x)s[x]=true;});}else if(v)s[v]=true;});
+    var keys=Object.keys(s).sort();
+    if(!keys.length)return '';
+    var arr=gCFo[estadoKey];
+    var o='<div class="fg"><div class="fl">'+lbl+'</div><div class="chips">';
+    keys.forEach(function(k){
+      var on=arr.indexOf(k)>=0;
+      o+='<span class="ch'+(on?' on':'')+'" data-gfk="'+estadoKey+'" data-gfv="'+es(k)+'" onclick="toggleGCFo(this.getAttribute(\'data-gfk\'),this.getAttribute(\'data-gfv\'))" style="font-size:12px;padding:6px 11px">'+es(k)+'</span>';
+    });
+    o+='</div></div>';
+    return o;
+  }
+  var h='';
+  h+=chipGroup('bar','bar','Barrio / Ciudad');
+  h+=chipGroup('tipo','tipNeg','Tipo de negocio');
+  h+=chipGroup('comp','comp','Competencia');
+  h+=chipGroup('cFr','frez','Freezer');
+  h+=chipGroup('etapaEmbudo','eta','Etapa');
+  h+=chipGroup('calU','calU','Ubicacion');
+  h+=chipGroup('fuente','fuente','Fuente');
+  if(!h)h='<div class="empty">Todavia no hay datos suficientes para filtrar.</div>';
+  h+='<div style="display:flex;gap:8px;margin-top:4px">';
+  h+='<button class="btn sec" style="flex:1;margin:0" onclick="limpiarGCFo();cMod()">Limpiar</button>';
+  h+='<button class="btn" style="flex:1;margin:0" onclick="renderGC();cMod()">OK</button>';
+  h+='</div>';
+  oMod('Filtrar contactos',h);
+}
 function aFicha(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
   var vs=D.vis.filter(function(v){return v.cid===id;}).slice().reverse();
@@ -4336,6 +4360,7 @@ function renderVC(){
   var actDiv=document.getElementById('vCActivos');
   if(actDiv){actDiv.innerHTML=chips;actDiv.style.display=chips?'block':'none';}
   var vDiv=document.getElementById('vCVista');if(vDiv)vDiv.innerHTML=botonesVistaHTML();
+  var _vcbLm=document.getElementById('vCB');if(_vcbLm)_vcbLm.classList.toggle('lmode',vistaModo==='lista');
   var h='<div style="padding:6px 14px;font-size:11px;color:var(--muted);font-weight:700">'+cs.length+' CONTACTOS</div>';
   if(!cs.length){h+='<div class="empty">Sin resultados</div>';document.getElementById('vCB').innerHTML=h;return;}
   if(vistaModo==='lista'){
