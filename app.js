@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='6.1 - 04/08/2026';
+var VERSION='6.2 - 08/08/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -24,7 +24,7 @@ var ARG_CIU={
 };
 var ARG_BARRIOS=['Alberdi','Alta Cordoba','Altamira','Altos de la Quintas','Argüello','Barra de Argüello','Bella Vista','Bimaco','Bo.13 de Diciembre','Bo.Ameghino','Bo.Calasanz Norte','Bo.Calasanz Sur','Bo.Centro','Bo.Cerro Chico','Bo.Cofico','Bo.Colinas de Velez Sarsfield','Bo.Don Bosco','Bo.General Paz','Bo.Jardin Espinosa','Bo.Jardin Hipico','Bo.Los Granados','Bo.Maipu','Bo.Muller','Bo.Naciones Unidas','Bo.Nueva Córdoba','Bo.Observatorio','Bo.Primero de Mayo','Bo.Residencial America','Bo.San Ignacio','Bo.San Lorenzo','Bo.San Vicente','Bo.Urca','Bo.Vallescondido','Bo.Velez Sarsfield','Bo.Villa Azalais','Bo.Villa Cornu','Bo.Villa del Parque','Bo.Villa Eucaristica','Bo.Villa Paez','Bo.Villa Progreso','Bo.Villa San Martin','Bo.Yapeyú','Casas Brujas','Centro','Cerro de las Rosas','Ciudad de los Cuartetos','Cofico','Colinas de Villa Allende','Country El Bosque','Country Los Cedros','Country Los Manantiales','Country Villa Allende','Estacion Juarez Celman','Ferreyra','General Bustos','General Fotheringham','General Paz','Guiñazú','Ituzaingo','Jardin','Jose Ignacio Diaz','Juniors','La Calera','La Floresta','Las Palmas','Lomas del Chateau','Los Bulevares','Los Cedros','Los Chasquis','Los Paraísos','Las Rosas','Manantiales','Marqués de Sobremonte','Mendiolaza','Miguel Cerro','Monte Cristo','Muller','Nicolas Avellaneda','Nuevo Cordoba','Palermo','Parque Capital','Parque Costanero','Parque Liceo','Parque San Martin','Parque Velez Sarsfield','Paso de los Andes','Patria Grande','Patricios','Pinar de Atenas','Pueyrredon','Quebrada Las Rosas','Quintas del Este','Quintas del Norte','Quintas del Sur','Ricardo Rojas','Rivadavia','Sagrada Familia','San Ignacio','San Juan Bautista','San Martin','San Roque','Santa Isabel','Santa Rita','Villa Acacias','Villa Allende','Villa Belgrano','Villa Bustos','Villa Cabrera','Villa Centenario','Villa Cornú','Villa del Prado','Villa Dolores','Villa Eucaristica','Villa Flores','Villa Fortabat','Villa Italia','Villa La Florida','Villa Libertad','Villa Maipú','Villa Martelli','Villa Páez','Villa Parque','Villa Poeta Lugones','Villa Progreso','Villa Rivera Indarte','Villa Rivadavia','Villa Sarmiento','Villa Sol','Villa Urquiza','Villa Warcalde','Yapeyú','Arguello','Colinas de Villa Allende'];
 
-var CFG={msgPedido:'Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Kiosco/Drugs/Almacén','Autoservicio','Supermercado','Minimercado','Mayorista','Bar/Resto','Parrilla','Cafeteria','Heladeria','Panaderia','Confiteria','Rotiseria','Estacion de servicio','Club/Escuela','Salón/Catering','Camping','Hotel','Hostel','Complejo turistico','Balneario','Distribuidor','Farmacia','Otro'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Sin interes','Precio','Otro'],tiposProducto:['Helados','Panificacion','Fiambres y quesos','Bebidas','Congelados','Almacen','Golosinas','Lacteos','Otros'],msgs:Object.assign({},MD)};
+var CFG={msgPedido:'Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Kiosco/Drugs/Almacén','Autoservicio','Supermercado','Minimercado','Mayorista','Bar/Resto','Parrilla','Cafeteria','Heladeria','Panaderia','Confiteria','Rotiseria','Estacion de servicio','Club/Escuela','Salón/Catering','Camping','Hotel','Hostel','Complejo turistico','Balneario','Distribuidor','Farmacia','Otro'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Sin interes','Precio','Otro'],fuentes:['Redes Sociales','WhatsApp','Referido','Prospeccion directa','Franquicia'],tiposProducto:['Helados','Panificacion','Fiambres y quesos','Bebidas','Congelados','Almacen','Golosinas','Lacteos','Otros'],msgs:Object.assign({},MD)};
 var D={user:null,usrs:[{id:1,n:'JL',u:'jl',email:'jorge.ledesmagd@gmail.com',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',email:'jledes.tf@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:3,n:'Chamu',u:'chamu',email:'jorge_500_df@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:4,n:'Pablo',u:'pablo',email:'pablodellacasa13@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],rec:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
 
 // ════════════════════════════════════════════════════════════════════
@@ -450,6 +450,21 @@ function migrarFuente(){
   fsSetConfig(D.cfg);
   if(sinFuente.length)logEvento('edicion','','','Fuente asignada a contactos existentes: '+sinFuente.length+' como Prospeccion directa','','');
 }
+// Migracion unica: "Instagram" paso a llamarse "Redes Sociales" (mismo significado,
+// pero ahora tambien excluye el paso de confirmar GPS al terminar una visita).
+function migrarInstagramARedesSociales(){
+  if(!D.user||D.user.r!=='admin')return;
+  if(!D.cfg.fuentes)D.cfg.fuentes=CFG.fuentes.slice();
+  if(D.cfg&&D.cfg.instagramMigrado)return;
+  var afectados=D.cli.filter(function(c){return c.fuente==='Instagram';});
+  afectados.forEach(function(c){c.fuente='Redes Sociales';fsSetContacto(c);});
+  var idx=D.cfg.fuentes.indexOf('Instagram');
+  if(idx>=0){D.cfg.fuentes[idx]='Redes Sociales';}
+  else if(D.cfg.fuentes.indexOf('Redes Sociales')<0){D.cfg.fuentes.unshift('Redes Sociales');}
+  D.cfg.instagramMigrado=true;
+  fsSetConfig(D.cfg);
+  if(afectados.length)logEvento('edicion','','','Fuente renombrada: Instagram -> Redes Sociales en '+afectados.length+' contactos','','');
+}
 function migrarCategorias(){
   if(!D.user||D.user.r!=='admin')return;
   // La marca lleva version: si se suman categorias al mapa, se sube el numero y vuelve a correr.
@@ -629,6 +644,7 @@ function startApp(){
   try{purgarPapeleraVieja();}catch(e){} // limpia lo que lleva +30 dias en la papelera (solo admin)
   try{migrarCategorias();}catch(e){}    // unifica categorias de negocio una sola vez (solo admin)
   try{migrarFuente();}catch(e){}        // marca los contactos existentes como Prospeccion directa (solo admin)
+  try{migrarInstagramARedesSociales();}catch(e){} // renombra Instagram -> Redes Sociales (solo admin)
   try{limpiarPassViejas();}catch(e){}   // borra de la base las contrasenas en texto plano
   if(D.user.r==='gerente'||D.user.r==='admin'){
     document.getElementById('sGerente').classList.add('on');
@@ -811,6 +827,7 @@ function verInaccion(){
       h+='<div style="display:flex;gap:6px">';
       h+='<button class="sm g" onclick="cMod();abrirVisita(\''+c.id+'\')">Visita</button>';
       if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')">WhatsApp</button>';
+      h+='<button class="sm" onclick="cMod();agregarAGiraDesdeMapa(\''+c.id+'\')">+ Gira</button>';
       h+='</div></div>';
     });
   }
@@ -1032,7 +1049,7 @@ function editarContacto(id){
   h+='<div class="fg"><label class="fl">Telefono adicional <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="eTel2" type="tel" value="'+es(c.tel2||'')+'"></div>';
   h+='<div class="fg"><label class="fl">Email <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="eEmail" type="email" value="'+es(c.email||'')+'"></div>';
   var fuenteEc=c.fuente||'Prospeccion directa';
-  h+='<div class="fg"><label class="fl">Como llego el contacto</label><div class="chips">'+['Instagram','WhatsApp','Referido','Prospeccion directa'].map(function(f){return '<span class="ch'+(fuenteEc===f?' on':'')+'" data-id="'+es(f)+'" data-g="eFuente" onclick="var p=this.parentNode;p.querySelectorAll(\'.ch\').forEach(function(x){x.classList.remove(\'on\')});this.classList.add(\'on\')" style="font-size:12px;padding:5px 10px">'+es(f)+'</span>';}).join('')+'</div></div>';
+  h+='<div class="fg"><label class="fl">Como llego el contacto</label><div class="chips">'+(D.cfg.fuentes||CFG.fuentes).map(function(f){return '<span class="ch'+(fuenteEc===f?' on':'')+'" data-id="'+es(f)+'" data-g="eFuente" onclick="var p=this.parentNode;p.querySelectorAll(\'.ch\').forEach(function(x){x.classList.remove(\'on\')});this.classList.add(\'on\')" style="font-size:12px;padding:5px 10px">'+es(f)+'</span>';}).join('')+'</div></div>';
   h+='<div class="fg"><label class="fl">Observaciones</label><textarea class="fi fta" id="eObs" rows="3">'+es(c.obs||'')+'</textarea></div>';
   h+='<button class="btn or" onclick="guardarEdicionContacto(\'' + id.replace(/'/g,"\\'") + '\')">Guardar cambios</button>';
   oMod('Editar: '+es(c.nm),h);
@@ -1272,6 +1289,10 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin,filtroTipo){
     var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
     if(filtroEtapa&&eta!==filtroEtapa)return;
     var col=EC[eta]||'#94a3b8';
+    // Acordo el freezer pero todavia no esta activo (por firmar / por entregar):
+    // se distingue con el mismo color del boton "Acordar freezer", no es cliente activo todavia.
+    var coAcordado=D.com.some(function(co){return co.cid===c.id&&!co.ret&&estadoComodato(co)!=='activo';});
+    if(coAcordado)col='#fbbf24';
     var m=L.circleMarker([c.lat,c.lng],{radius:9,fillColor:col,color:'#0b1220',weight:2,fillOpacity:.92});
     var pop='<div style="font-family:inherit;min-width:170px">';
     pop+='<div style="font-weight:800;font-size:14px;margin-bottom:2px">'+es(c.nm)+'</div>';
@@ -1480,7 +1501,7 @@ function barraRecorridoHTML(){
   h+='</div>';
   return h;
 }
-function setRecorridoVend(v){recorridoActivo.vend=v;if(!recorridoActivo.dia)recorridoActivo.dia=today();renderGM();}
+function setRecorridoVend(v){recorridoActivo.vend=v;if(!recorridoActivo.dia)recorridoActivo.dia=today();giraVerActiva={vend:'',dia:''};renderGM();}
 function setRecorridoDia(d){recorridoActivo.dia=d;renderGM();}
 function salirRecorrido(){recorridoActivo={vend:'',dia:''};renderGM();}
 function pintarRecorrido(mapa,capaVieja,vend,dia){
@@ -1505,13 +1526,16 @@ function renderGM(){
   if(!top||!cont)return;
   var base=cliGlobal();
   // El recorrido (rastro GPS del dia) es informacion sensible: solo el admin lo ve, no el gerente.
+  // La gira PLANIFICADA (a diferencia del recorrido) la pueden ver admin y gerente por igual.
   var esAdmin=D.user&&D.user.r==='admin';
   if(!esAdmin&&recorridoActivo.vend)recorridoActivo={vend:'',dia:''};
-  top.innerHTML=barraMapaHTML(base,gMFiltroEtapa,'setGMFiltroEtapa','centrarGM',gMFiltroTipo,'setGMFiltroTipo')+(esAdmin?barraRecorridoHTML():'');
+  top.innerHTML=barraMapaHTML(base,gMFiltroEtapa,'setGMFiltroEtapa','centrarGM',gMFiltroTipo,'setGMFiltroTipo')+(esAdmin?barraRecorridoHTML():'')+barraGiraVerHTML();
   if(typeof L==='undefined'){cont.innerHTML='<div class="empty" style="padding-top:40px">El mapa necesita conexion a internet la primera vez que se abre.</div>';return;}
   if(!gMapaObj){cont.innerHTML='';gMapaObj=crearMapa('gMapa');}
   if(esAdmin&&recorridoActivo.vend){
     gMapaCapa=pintarRecorrido(gMapaObj,gMapaCapa,recorridoActivo.vend,recorridoActivo.dia);
+  } else if(giraVerActiva.vend){
+    gMapaCapa=pintarGiraPlanVendedor(gMapaObj,gMapaCapa,giraVerActiva.vend,giraVerActiva.dia||today());
   } else {
     gMapaCapa=pintarMarcadores(gMapaObj,gMapaCapa,base,gMFiltroEtapa,true,gMFiltroTipo);
   }
@@ -1532,8 +1556,8 @@ function capturarGPS(cb){
 // Deja un punto cada 5 minutos MIENTRAS el vendedor usa la app. No corre en segundo
 // plano: no gasta bateria ni datos extra. Filtros: no agrega si no se movio (~60m),
 // maximo 200 puntos por dia. Solo el administrador ve el trazado, despues de la gira.
-var REC_INTERVALO=5*60*1000;
-var REC_MAX_DIA=200;
+var REC_INTERVALO=2.5*60*1000;
+var REC_MAX_DIA=400; // subido en proporcion al bajar el intervalo, para cubrir la misma duracion de jornada
 var REC_MIN_MOV=0.00055;   // ~60 metros en grados (aprox)
 var recUltimaPos=null;
 var recTimer=null;
@@ -2136,6 +2160,60 @@ function toggleGCFo(k,v){
 }
 var gCFo={bar:[],comp:[],frez:[],tipNeg:[],eta:[],calU:[],fuente:[]};
 function limpiarGCFo(){gCFo={bar:[],comp:[],frez:[],tipNeg:[],eta:[],calU:[],fuente:[]};renderGC();}
+
+// ── AUDITORIA DE CONTACTOS ────────────────────────────────────────────
+// Herramienta generica: elegis un campo y te muestra los contactos que no
+// tienen ningun valor cargado ahi, y (para los campos con lista maestra
+// editable) los que quedaron con un valor que ya se borro de esa lista.
+var AUDIT_CAMPOS=[
+  {key:'tipo',lbl:'Tipo de negocio',lista:'tipos'},
+  {key:'prods',lbl:'Productos que le queremos vender',lista:'tiposProducto',arr:true},
+  {key:'fuente',lbl:'Fuente (como llego el contacto)',lista:'fuentes'},
+  {key:'bar',lbl:'Barrio / Ciudad'},
+  {key:'comp',lbl:'Competencia'},
+  {key:'cFr',lbl:'Freezer'},
+  {key:'calU',lbl:'Calificacion de ubicacion'},
+  {key:'trans',lbl:'Transito'}
+];
+function auditoriaHTML(){
+  var opts=AUDIT_CAMPOS.map(function(f){return '<option value="'+f.key+'">'+es(f.lbl)+'</option>';}).join('');
+  var h='<div class="card"><div class="ct">AUDITORIA DE CONTACTOS</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Elegi un filtro: te muestro los contactos sin ningun valor cargado ahi, y (si ese campo tiene una lista editable) los que tienen un valor que ya no existe en la lista actual.</div>';
+  h+='<select class="fi" id="audCampo" style="margin-bottom:8px">'+opts+'</select>';
+  h+='<button class="btn sec" onclick="correrAuditoria()" style="margin:0">Revisar</button>';
+  h+='<div id="audRes" style="margin-top:12px"></div>';
+  h+='</div>';
+  return h;
+}
+function correrAuditoria(){
+  var key=document.getElementById('audCampo').value;
+  var f=AUDIT_CAMPOS.find(function(x){return x.key===key;});if(!f)return;
+  var base=D.cli.filter(function(c){return !c.eliminado;});
+  var listaValida=f.lista?(D.cfg[f.lista]||CFG[f.lista]||[]):null;
+  var vacios=[],invalidos=[];
+  base.forEach(function(c){
+    if(f.arr){
+      var arr=c[key]||[];
+      if(!arr.length){vacios.push(c);return;}
+      if(listaValida){var malos=arr.filter(function(v){return listaValida.indexOf(v)<0;});if(malos.length)invalidos.push({c:c,val:malos.join(', ')});}
+    } else {
+      var v=c[key];
+      if(!v||!String(v).trim()){vacios.push(c);return;}
+      if(listaValida&&listaValida.indexOf(v)<0)invalidos.push({c:c,val:v});
+    }
+  });
+  function fila(c,extra){
+    return '<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="flex:1;font-size:12px">'+es(c.nm)+(c.fan?' · <span style="color:var(--cyan)">'+es(c.fan)+'</span>':'')+(extra?' <span style="color:var(--muted)">— \''+es(extra)+'\'</span>':'')+'</span><button class="sm" onclick="cMod();aFicha(\''+c.id+'\')" style="font-size:10px;padding:3px 8px">Ver</button></div>';
+  }
+  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">'+base.length+' contactos revisados</div>';
+  h+='<div style="font-size:12px;font-weight:700;color:var(--orange);margin:10px 0 6px">SIN DATO CARGADO ('+vacios.length+')</div>';
+  h+=vacios.length?vacios.slice(0,300).map(function(c){return fila(c);}).join(''):'<div style="font-size:12px;color:var(--muted)">Ninguno</div>';
+  if(listaValida){
+    h+='<div style="font-size:12px;font-weight:700;color:var(--red);margin:14px 0 6px">VALOR QUE YA NO ESTA EN LA LISTA ('+invalidos.length+')</div>';
+    h+=invalidos.length?invalidos.slice(0,300).map(function(it){return fila(it.c,it.val);}).join(''):'<div style="font-size:12px;color:var(--muted)">Ninguno</div>';
+  }
+  document.getElementById('audRes').innerHTML=h;
+}
 // Filtros avanzados del admin en modal (antes iban siempre visibles y tapaban la lista de contactos).
 function abrirFiltrosAdmin(){
   var base0=cliGlobal();
@@ -3226,6 +3304,7 @@ function renderGCfg(){
     {key:'tiposProducto',label:'Tipos de productos'},
     {key:'marcas',label:'Marcas competidoras'},
     {key:'razones',label:'Motivos de no venta'},
+    {key:'fuentes',label:'Formas de prospeccion (como llego el contacto)'},
   ];
   catalogos.forEach(function(cat){
     var items=D.cfg[cat.key]||[];
@@ -3241,6 +3320,8 @@ function renderGCfg(){
     h+='<button class="sm g" onclick="addItemCat(\''+cat.key+'\')" >+ Agregar</button></div></div>';
   });
   h+='</div>';
+
+  h+=auditoriaHTML();
 
   // ── MENSAJES WHATSAPP POR ETAPA ───────────────────────────────────
   h+='<div class="card"><div class="ct">MENSAJES DE WHATSAPP POR ETAPA</div>';
@@ -3263,6 +3344,10 @@ function renderGCfg(){
   h+='<div class="card"><div class="ct">MENSAJE DE PEDIDO (boton en Gira)</div>';
   h+='<textarea class="fi fta" id="msgPedidoCfg" rows="3" style="font-size:13px">'+es(D.cfg.msgPedido||'')+'</textarea>';
   h+='<button class="btn sec" onclick="savMsgPedido()" style="margin-top:8px">Guardar mensaje de pedido</button></div>';
+  h+='<div class="card"><div class="ct">MENSAJE PARA FRANQUICIADOS</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Se usa automaticamente al tocar "Enviar WhatsApp" en un contacto con fuente "Franquicia" que esta en la etapa Contactado (en vez del mensaje normal de esa etapa). Usa las mismas variables de arriba.</div>';
+  h+='<textarea class="fi fta" id="msgFranquiciaCfg" rows="3" style="font-size:13px">'+es(D.cfg.msgFranquicia||'Hola {nombre}! Gracias por tu interes en sumarte como franquicia de Sei Tu Helados. Te cuento como sigue el proceso...')+'</textarea>';
+  h+='<button class="btn sec" onclick="savMsgFranquicia()" style="margin-top:8px">Guardar mensaje de franquiciados</button></div>';
   // Links de catálogo
   h+='<div class="card"><div class="ct">LINKS DE CATÁLOGO / LISTA DE PRECIOS</div>';
   h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Pegá el link de Google Drive o Dropbox. Se agrega automáticamente al final de cada mensaje de WhatsApp.</div>';
@@ -3421,6 +3506,11 @@ function savMsgPedido(){
   if(el)D.cfg.msgPedido=el.value;
   fsSetConfig(D.cfg);toast('Mensaje de pedido guardado','ok');
 }
+function savMsgFranquicia(){
+  var el=document.getElementById('msgFranquiciaCfg');
+  if(el)D.cfg.msgFranquicia=el.value;
+  fsSetConfig(D.cfg);toast('Mensaje de franquiciados guardado','ok');
+}
 function savLinks(){
   if(!D.cfg.msgLinks)D.cfg.msgLinks={};
   var lt=document.getElementById('linkTodos');if(lt)D.cfg.msgLinks.todos=lt.value.trim();
@@ -3512,9 +3602,12 @@ function envWA(id){
   var c=D.cli.find(function(x){return x.id===id;});
   if(!c){toast('Contacto no encontrado','err');return;}
   if(!c.tel){toast('Este contacto no tiene telefono','err');return;}
-  var mBase=c.esP
-    ?((D.cfg.msgs&&D.cfg.msgs[c.etapaEmbudo])||MD[c.etapaEmbudo]||'Hola! Te escribo de Sei Tu Helados.')
-    :'Hola! Te escribo de Sei Tu Helados.';
+  var esFranquiciaContactado=c.esP&&c.fuente==='Franquicia'&&c.etapaEmbudo==='Contactado'&&D.cfg.msgFranquicia;
+  var mBase=esFranquiciaContactado
+    ? D.cfg.msgFranquicia
+    : c.esP
+      ?((D.cfg.msgs&&D.cfg.msgs[c.etapaEmbudo])||MD[c.etapaEmbudo]||'Hola! Te escribo de Sei Tu Helados.')
+      :'Hola! Te escribo de Sei Tu Helados.';
   // Reemplazar variables personalizadas en el mensaje
   var m=mBase
     .replace(/\{nombre\}/gi, c.fan||c.nm||'')   // dueño/encargado
@@ -3626,6 +3719,84 @@ function misGira(){
     return c&&c.vend===D.user.n;
   });
 }
+// ── MAPA DE LA GIRA (vendedor: hasta hoy+7 dias; admin/gerente: por vendedor y dia) ──
+// Dibuja los puntos de una gira YA ORDENADA (por 'orden') con pines numerados y una
+// linea punteada que conecta las paradas en ese orden — es la ruta PLANEADA, distinta
+// del "recorrido" (que es el rastro GPS real que ya se camino).
+function pintarGiraPuntos(mapa,capaVieja,puntos){
+  if(capaVieja)mapa.removeLayer(capaVieja);
+  var capa=L.layerGroup();
+  if(!puntos.length){capa.addTo(mapa);return capa;}
+  var latlngs=[];
+  puntos.forEach(function(c,idx){
+    latlngs.push([c.lat,c.lng]);
+    var icon=L.divIcon({html:'<div style="background:#22d3ee;color:#0b1220;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;border:2px solid #0b1220;box-shadow:0 1px 4px rgba(0,0,0,.4)">'+(idx+1)+'</div>',className:'',iconSize:[26,26],iconAnchor:[13,13]});
+    var m=L.marker([c.lat,c.lng],{icon:icon});
+    var pop='<div style="font-family:inherit;min-width:150px"><div style="font-weight:800;font-size:13px">'+es(c.nm)+'</div>';
+    if(c.fan)pop+='<div style="font-size:11px;font-weight:700;color:#0891b2">'+es(c.fan)+'</div>';
+    if(c.dir)pop+='<div style="font-size:11px;color:#666">'+es(c.dir)+'</div>';
+    pop+='</div>';
+    m.bindPopup(pop);
+    capa.addLayer(m);
+  });
+  if(latlngs.length>1)L.polyline(latlngs,{color:'#22d3ee',weight:2,opacity:.65,dashArray:'6,8'}).addTo(capa);
+  capa.addTo(mapa);
+  mapa.fitBounds(latlngs,{padding:[40,40],maxZoom:15});
+  return capa;
+}
+// ── Vista vendedor: mapa de la gira del dia activo, dentro de la pestana Gira ──
+var giraMapaOn=false;
+var vGiraMapaObj=null,vGiraMapaCapa=null;
+function toggleGiraMapaVG(){
+  giraMapaOn=!giraMapaOn;
+  var vgb=document.getElementById('vGB');
+  var wrap=document.getElementById('vGiraMapaWrap');
+  if(vgb)vgb.style.display=giraMapaOn?'none':'block';
+  if(wrap)wrap.style.display=giraMapaOn?'flex':'none';
+  if(giraMapaOn)renderGiraMapaVendedor();
+  renderVG();
+}
+function renderGiraMapaVendedor(){
+  var cont=document.getElementById('vGiraMapa');if(!cont)return;
+  if(typeof L==='undefined'){cont.innerHTML='<div class="empty" style="padding-top:40px">El mapa necesita conexion a internet la primera vez que se abre.</div>';return;}
+  if(!vGiraMapaObj){cont.innerHTML='';vGiraMapaObj=crearMapa('vGiraMapa');}
+  var planActivo=misGira().filter(function(g){return g.fecha===gDiaActivo;}).sort(function(a,b){return(a.orden||0)-(b.orden||0);});
+  var puntos=planActivo.map(function(g){return D.cli.find(function(x){return x.id===g.cid;});}).filter(function(c){return c&&c.gpsOk&&c.lat&&c.lng;});
+  vGiraMapaCapa=pintarGiraPuntos(vGiraMapaObj,vGiraMapaCapa,puntos);
+  setTimeout(function(){vGiraMapaObj.invalidateSize();},120);
+}
+// ── Vista admin/gerente: elegir vendedor + dia (hasta hoy+7) y ver su gira planeada ──
+var giraVerActiva={vend:'',dia:''};
+function barraGiraVerHTML(){
+  var vends=D.usrs.filter(function(u){return u.r==='vendedor';});
+  var estilo='background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;font-size:12px;cursor:pointer';
+  var hoy=today();var lim=new Date();lim.setDate(lim.getDate()+7);var limStr=fechaLocal(lim);
+  var h='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">';
+  h+='<span style="font-size:11px;color:var(--cyan);font-weight:700">VER GIRA PLANIFICADA</span>';
+  h+='<select id="giraVerVend" onchange="setGiraVerVend(this.value)" style="'+estilo+'">';
+  h+='<option value="">— vendedor —</option>';
+  vends.forEach(function(u){h+='<option value="'+es(u.u)+'"'+(giraVerActiva.vend===u.u?' selected':'')+'>'+es(u.n)+'</option>';});
+  h+='</select>';
+  h+='<input type="date" id="giraVerDia" value="'+(giraVerActiva.dia||hoy)+'" min="'+hoy+'" max="'+limStr+'" onchange="setGiraVerDia(this.value)" style="'+estilo+'">';
+  if(giraVerActiva.vend)h+='<button class="sm" onclick="salirGiraVer()" style="font-size:11px;color:var(--red)">Salir de la gira</button>';
+  h+='</div>';
+  return h;
+}
+function setGiraVerVend(v){giraVerActiva.vend=v;if(!giraVerActiva.dia)giraVerActiva.dia=today();recorridoActivo={vend:'',dia:''};renderGM();}
+function setGiraVerDia(d){giraVerActiva.dia=d;renderGM();}
+function salirGiraVer(){giraVerActiva={vend:'',dia:''};renderGM();}
+function pintarGiraPlanVendedor(mapa,capaVieja,vendUsuario,dia){
+  var vu=D.usrs.find(function(u){return u.u===vendUsuario;});
+  var nombreVend=vu?vu.n:vendUsuario;
+  var ordenados=D.gira.filter(function(g){
+    if(g.fecha!==dia)return false;
+    var c=D.cli.find(function(x){return x.id===g.cid;});
+    return c&&c.vend===nombreVend;
+  }).sort(function(a,b){return(a.orden||0)-(b.orden||0);});
+  var puntos=ordenados.map(function(g){return D.cli.find(function(x){return x.id===g.cid;});}).filter(function(c){return c&&c.gpsOk&&c.lat&&c.lng;});
+  return pintarGiraPuntos(mapa,capaVieja,puntos);
+}
+
 // Log de un contacto especifico (para mostrar en ficha)
 function logDeContacto(cid){
   return D.log.filter(function(e){return e.cid===cid;}).slice().reverse();
@@ -3785,7 +3956,10 @@ function wFin(){
   hideWiz();toast('Guardado!','ok');
   // Confirmar ubicacion: si el contacto todavia no tiene GPS confirmado, ofrecerlo ahora
   // (parado en el local). Solo para el vendedor, una unica vez por contacto.
-  if(c&&!c.gpsOk&&!W.origenAdmin){
+  // Si el contacto viene de Redes Sociales o WhatsApp, quien carga el prospecto esta
+  // en la computadora, no en el local: no tiene sentido pedir "Estoy en el local".
+  var saltarGps=c&&(c.fuente==='Redes Sociales'||c.fuente==='WhatsApp');
+  if(c&&!c.gpsOk&&!W.origenAdmin&&!saltarGps){
     setTimeout(function(){confirmarUbicacion(c.id);},400);
     return;
   }
@@ -3864,7 +4038,7 @@ function aVisPros(id,nu){
        var tH=(D.cfg.tipos||[]).map(function(t){return ch(t,t,'tip',false,'');}).join('');
        var prodH=(D.cfg.tiposProducto||[]).map(function(p){return ch(p,p,'prods',true,'');}).join('');
        var fuenteActual=c.fuente||fuenteVigente();
-       var fuentes=['Instagram','WhatsApp','Referido','Prospeccion directa'];
+       var fuentes=(D.cfg.fuentes||CFG.fuentes);
        var fuenteH=fuentes.map(function(f){
          return '<span class="fb'+(fuenteActual===f?' on':'')+'" data-fuente="'+es(f)+'" onclick="setFuenteWizard(this)" style="font-size:12px;padding:7px 12px">'+es(f)+'</span>';
        }).join('');
@@ -4093,6 +4267,9 @@ function renderVG(){
   h+='<div class="scr">';
   h+='<div style="padding:10px 14px 6px;display:flex;align-items:center;gap:8px">';
   h+='<div style="font-size:13px;font-weight:700;text-transform:capitalize;flex:1">'+nomDia+(gDiaActivo===hoy?' <span style="background:rgba(34,211,238,.15);color:var(--cyan);font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px">HOY</span>':'')+'</div>';
+  var limiteMapa=new Date();limiteMapa.setDate(limiteMapa.getDate()+7);
+  var dentroDeRango=gDiaActivo>=hoy&&gDiaActivo<=fechaLocal(limiteMapa);
+  if(dentroDeRango&&planActivo.length)h+='<button class="sm" onclick="toggleGiraMapaVG()">'+(giraMapaOn?'&#9776; Lista':'&#128506; Mapa')+'</button>';
   h+='<button class="sm g" onclick="abrirAgregarAGira(\''+gDiaActivo+'\')">+ Agregar</button>';
   h+='</div>';
   if(!planActivo.length){
