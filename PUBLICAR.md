@@ -1,33 +1,58 @@
-# CRM-Jorge — Versión 6.2, cómo subirla
+# CRM-Jorge — Publicar esta entrega (arregla la pantalla negra del mapa)
 
-## Paso 1 · Subir los 3 archivos a GitHub
+## Por qué se puso negra la pantalla del mapa de Gira
 
-1. Entrá a `https://github.com/jledes1988/CRM-Jorge`
-2. **Add file → Upload files**
-3. Arrastrá `app.js`, `index.html` y `estilos.css` (los 3 juntos, de esta misma carpeta)
-4. Abajo, en el mensaje de commit, poné algo como `v6.2`
-5. **Commit changes**
+Tu `app.js` y tu `index.html` en GitHub quedaron de versiones distintas: subiste
+el `app.js` nuevo pero el `index.html` viejo (le falta el bloque del mapa que
+`app.js` necesita). No es nada roto — solo hay que subir los 3 archivos de
+esta carpeta **juntos**, en la misma subida, para que queden sincronizados.
 
-GitHub Pages se actualiza solo en 1-2 minutos. No hace falta ningún otro paso.
+## Paso 0 · Limpiar el repo (una sola vez)
 
-## Paso 2 · Verificar que se publicó
+En GitHub, entrá a cada uno de estos dos archivos y borralos (ícono de tacho
+arriba a la derecha del archivo → Commit):
 
-1. Abrí `https://jledes1988.github.io/CRM-Jorge` (o refrescá si ya la tenías abierta — a veces conviene forzar recarga con Ctrl+Shift+R)
-2. En la pantalla de login, o en Config → Debug, tiene que decir **versión 6.2**
+- `INDEX~1.HTM`
+- `estilos_1.css`
 
-## Qué trae esta versión
+Son copias duplicadas que no usa la app — no van a faltar.
 
-- **Fuentes de prospección editables** — Config → Administrador de catálogos → ahí podés agregar, renombrar o borrar las formas en que llega un contacto. "Instagram" pasó a llamarse "Redes Sociales" (los contactos viejos se migran solos, no perdés nada). Sumé "Franquicia" como opción nueva.
-- **Redes Sociales / WhatsApp sin pedir GPS** — si cargás un prospecto con esa fuente, ya no aparece el cartel de "confirmá tu ubicación parado en el local".
-- **Mensaje para franquiciados** — nuevo campo en Config con un texto de arranque. Se manda solo al tocar "Enviar WhatsApp" en un contacto con fuente Franquicia y etapa Contactado. Editalo con el texto final que quieras.
-- **Auditoría de contactos (Config)** — elegís cualquier filtro (tipo de negocio, productos, competencia, freezer, ubicación, tránsito, fuente) y te muestra los contactos sin ese dato cargado, más los que quedaron con un valor que ya no existe en la lista.
-- **"Sin gestión" → Gira** — cada contacto de ese panel ahora tiene un botón "+ Gira" con selector de fecha.
-- **Puntos dorados en el mapa** — los clientes que acordaron freezer pero todavía no está activo (por firmar / por entregar) se ven en dorado, distinto del resto de las etapas.
-- **Recorrido más fiel** — pasa de tomar un punto cada 5 minutos a cada 2.5 minutos (con más margen diario para que no se corte a media tarde).
-- **Mapa de Gira** — en la pestaña Gira del vendedor, botón "🗺 Mapa" (solo si el día tiene paradas cargadas y está dentro de los próximos 8 días): muestra los puntos numerados en el orden de la ruta con una línea punteada. Admin y Gerente tienen lo mismo en la pestaña Mapa, eligiendo vendedor y fecha.
-- **Filtros de Contactos (admin)** y **lista a ancho completo (vendedor)** — de la entrega anterior (6.1), ya publicadas.
+## Paso 1 · Subir los 3 archivos
+
+1. Antes de descargar estos 3 archivos, revisá tu carpeta de Descargas y
+   borrá cualquier `app.js`, `index.html` o `estilos.css` viejo que tengas
+   ahí (así el navegador no te guarda el nuevo como "app (1).js").
+2. Descargá los 3 de esta entrega.
+3. En `https://github.com/jledes1988/CRM-Jorge` → **Add file → Upload files**.
+4. Arrastrá los 3 archivos **juntos, sueltos** (no una carpeta): `app.js`,
+   `index.html`, `estilos.css`.
+5. GitHub te va a avisar que esos 3 nombres ya existen y se van a reemplazar
+   — es lo que tiene que pasar.
+6. Commit changes.
+
+## Paso 2 · Verificar
+
+Refrescá `https://jledes1988.github.io/CRM-Jorge` con Ctrl+Shift+R (o
+desinstalá y reinstalá el acceso directo en el celular). En el login o en
+Config → Debug tiene que decir **versión 6.2**. Probá el botón "🗺 Mapa" en
+Gira — ya no debería ponerse negro.
+
+## Qué trae esta versión (6.2)
+
+- Fuentes de prospección editables (Config → Administrador de catálogos).
+  "Instagram" pasó a llamarse "Redes Sociales"; se sumó "Franquicia".
+- Redes Sociales / WhatsApp ya no piden confirmar GPS al terminar la visita.
+- Mensaje para franquiciados (Config) — tiene un texto de arranque, editalo.
+- Auditoría de contactos (Config): elegís un filtro y te muestra quién no
+  tiene ese dato cargado, o tiene un valor que ya no existe en la lista.
+- "Sin gestión" → botón "+ Gira" con selector de fecha.
+- Puntos dorados en el mapa para clientes que acordaron freezer pero
+  todavía no está activo.
+- Recorrido: un punto cada 2.5 minutos (antes 5).
+- Mapa de Gira en la pestaña Gira (vendedor) y en Mapa (admin/gerente),
+  hasta 8 días para adelante.
 
 ## Pendiente de tu lado
 
-- **Mensajes de WhatsApp por etapa** (Config): quedaron en blanco/default después de que se borraran los tuyos — entrá y volvé a escribir el texto de cada etapa.
-- **Mensaje de franquiciados**: tiene un texto de arranque, reemplazalo por el definitivo cuando lo tengas.
+- Mensajes de WhatsApp por etapa (Config): reescribilos, quedaron en blanco.
+- Texto final del mensaje de franquiciados.
