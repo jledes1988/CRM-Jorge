@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='6.2 - 08/08/2026';
+var VERSION='6.3 - 08/08/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -1292,7 +1292,7 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin,filtroTipo){
     // Acordo el freezer pero todavia no esta activo (por firmar / por entregar):
     // se distingue con el mismo color del boton "Acordar freezer", no es cliente activo todavia.
     var coAcordado=D.com.some(function(co){return co.cid===c.id&&!co.ret&&estadoComodato(co)!=='activo';});
-    if(coAcordado)col='#fbbf24';
+    if(coAcordado)col='#ec4899';
     var m=L.circleMarker([c.lat,c.lng],{radius:9,fillColor:col,color:'#0b1220',weight:2,fillOpacity:.92});
     var pop='<div style="font-family:inherit;min-width:170px">';
     pop+='<div style="font-weight:800;font-size:14px;margin-bottom:2px">'+es(c.nm)+'</div>';
@@ -1330,6 +1330,7 @@ function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro,filtroTipo,fnFiltroT
   h+='</div>';
   h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">';
   ET.forEach(function(e){h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:'+(EC[e]||'#94a3b8')+';display:inline-block"></span>'+es(e)+'</span>';});
+  h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:#ec4899;display:inline-block"></span>Acordo freezer (por firmar/entregar)</span>';
   h+='</div>';
   if(!conf)h+='<div style="font-size:11px;color:var(--orange);margin-top:6px">Todavia no hay contactos confirmados en el mapa. La ubicacion se confirma con GPS al crear un prospecto o en la primera visita a un cliente, parado en el local.</div>';
   return h;
@@ -4205,6 +4206,58 @@ function tgV(si){
 
 // ── GIRA UNIFICADA (semanal + tarjetas del día) ─────────────────────
 var gSemOffset=0;
+var giraVistaSemana=false;
+// Turno del dia para cada parada de la gira: '' (sin definir) | 'manana' | 'tarde'
+function cicloTurno(cid,fecha){
+  if(giraBloqueada(cid,fecha))return;
+  var g=D.gira.find(function(x){return x.cid===cid&&x.fecha===fecha;});if(!g)return;
+  var ord=['','manana','tarde'];
+  var i=ord.indexOf(g.turno||'');
+  g.turno=ord[(i+1)%ord.length];
+  fsSetGira(g);
+  renderVG();
+}
+function labelTurno(t){return t==='manana'?'Mañana':t==='tarde'?'Tarde':'Sin horario';}
+// Vista de chequeo general: los 5 dias de la semana uno al lado del otro, cada uno
+// con sus paradas separadas en Mañana / Tarde / Sin horario. Tarjetas minimas
+// (solo nombre + local) a proposito, es para ver el panorama completo de un vistazo.
+function renderGiraSemanaHTML(lunes,hoy){
+  var diasLbl=['Lunes','Martes','Miercoles','Jueves','Viernes'];
+  var h='<div class="scr"><div style="display:flex;gap:10px;overflow-x:auto;padding:4px 2px 14px">';
+  for(var i=0;i<5;i++){
+    var dia=new Date(lunes);dia.setDate(lunes.getDate()+i);
+    var diaS=fechaLocal(dia);
+    var esHoy=diaS===hoy;
+    var plan=misGira().filter(function(g){return g.fecha===diaS;}).sort(function(a,b){return(a.orden||0)-(b.orden||0);});
+    h+='<div style="min-width:210px;max-width:210px;flex-shrink:0;background:var(--s1);border:1px solid '+(esHoy?'var(--cyan)':'var(--border)')+';border-radius:var(--r);overflow:hidden">';
+    h+='<div style="padding:8px 10px;border-bottom:1px solid var(--border);background:'+(esHoy?'rgba(34,211,238,.08)':'transparent')+'">';
+    h+='<div style="font-size:12px;font-weight:800;color:'+(esHoy?'var(--cyan)':'var(--text)')+'">'+diasLbl[i]+'</div>';
+    h+='<div style="font-size:10px;color:var(--muted)">'+dia.getDate()+'/'+(dia.getMonth()+1)+' · '+plan.length+' parada'+(plan.length!==1?'s':'')+'</div>';
+    h+='</div>';
+    if(!plan.length){
+      h+='<div style="padding:14px 10px;text-align:center;font-size:11px;color:var(--muted)">Sin paradas</div>';
+    } else {
+      ['manana','tarde',''].forEach(function(turno){
+        var deLTurno=plan.filter(function(g){return (g.turno||'')===turno;});
+        if(!deLTurno.length)return;
+        h+='<div style="padding:6px 10px 2px;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">'+labelTurno(turno)+'</div>';
+        deLTurno.forEach(function(g){
+          var c=D.cli.find(function(x){return x.id===g.cid;});if(!c)return;
+          var etaCol=EC[c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo')]||'#94a3b8';
+          h+='<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-left:3px solid '+etaCol+';margin:2px 6px;background:var(--s2);border-radius:6px;cursor:pointer" onclick="abrirVisita(\''+g.cid+'\')">';
+          h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.nm)+'</div>';
+          if(c.fan)h+='<div style="font-size:11px;color:var(--cyan);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.fan)+'</div>';
+          h+='</div>';
+          h+='<button onclick="event.stopPropagation();cicloTurno(\''+g.cid+'\',\''+diaS+'\')" title="Tocar para cambiar el horario" style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:8px;font-weight:700;padding:3px 5px;cursor:pointer;flex-shrink:0">'+(g.turno==='manana'?'AM':g.turno==='tarde'?'PM':'—')+'</button>';
+          h+='</div>';
+        });
+      });
+    }
+    h+='</div>';
+  }
+  h+='</div></div>';
+  return h;
+}
 var gTab="ejec"; // compatibilidad con wFin y guardarVisitaProspecto
 var gDiaActivo='';   // fecha 'YYYY-MM-DD' del día expandido
 
@@ -4258,12 +4311,16 @@ function renderVG(){
     h+='</div>';
   }
   h+='</div>';
+  h+='<div style="padding:6px 14px;display:flex"><button class="sm" style="margin-left:auto;font-size:11px" onclick="giraVistaSemana=!giraVistaSemana;renderVG()">'+(giraVistaSemana?'&#128203; Ver por dia':'&#128197; Ver semana completa')+'</button></div>';
   // Verificar si el día activo está en esta semana; si no, seleccionar el lunes
   if(gDiaActivo<lunesS||gDiaActivo>viernesS){gDiaActivo=lunesS;}
   // Tarjetas del día activo
   var diaActivoD=new Date(gDiaActivo+'T12:00:00');
   var nomDia=diaActivoD.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
   var planActivo=misGira().filter(function(g){return g.fecha===gDiaActivo;}).sort(function(a,b){return(a.orden||0)-(b.orden||0);});
+  if(giraVistaSemana){
+    h+=renderGiraSemanaHTML(lunes,hoy);
+  } else {
   h+='<div class="scr">';
   h+='<div style="padding:10px 14px 6px;display:flex;align-items:center;gap:8px">';
   h+='<div style="font-size:13px;font-weight:700;text-transform:capitalize;flex:1">'+nomDia+(gDiaActivo===hoy?' <span style="background:rgba(34,211,238,.15);color:var(--cyan);font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px">HOY</span>':'')+'</div>';
@@ -4278,7 +4335,8 @@ function renderVG(){
     planActivo.forEach(function(g,idx){
       var c=D.cli.find(function(x){return x.id===g.cid;});if(!c)return;
       var yaVis=D.vis.some(function(v){return v.cid===g.cid&&v.fecha===gDiaActivo;});
-      h+='<div class="lrow" onclick="abrirVisita(\''+g.cid+'\')">';
+      var etaCol=EC[c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo')]||'#94a3b8';
+      h+='<div class="lrow" onclick="abrirVisita(\''+g.cid+'\')" style="border-left:4px solid '+etaCol+'">';
       h+='<div class="lnum" style="background:'+(yaVis?'var(--green)':'var(--s3)')+';color:'+(yaVis?'#000':'var(--text)')+'">'+(yaVis?'✓':idx+1)+'</div>';
       h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan?' <span class="lfan">· '+es(c.fan)+'</span>':'')+'</div>';
       h+='<div class="lsub">'+(c.dir?'📍 '+es(c.dir):es(c.ciu||c.bar||''))+'</div></div>';
@@ -4293,7 +4351,8 @@ function renderVG(){
       var yaVis=D.vis.some(function(v){return v.cid===g.cid&&v.fecha===gDiaActivo;});
       var d7=dias_fn(c.ul);
       var colVis=d7===null?'var(--red)':d7>14?'var(--red)':d7>7?'var(--orange)':'var(--green)';
-      h+='<div style="margin:0 10px 10px;border:1px solid '+(yaVis?'var(--green)':'var(--border)')+';border-radius:var(--r);background:var(--s1);overflow:hidden">';
+      var etaCol=EC[c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo')]||'#94a3b8';
+      h+='<div style="margin:0 10px 10px;border:1px solid '+(yaVis?'var(--green)':'var(--border)')+';border-left:4px solid '+etaCol+';border-radius:var(--r);background:var(--s1);overflow:hidden">';
       // Header de la tarjeta
       h+='<div style="display:flex;align-items:center;padding:10px 12px;gap:8px;border-bottom:1px solid var(--border)">';
       h+='<div style="display:flex;flex-direction:column;gap:1px;flex-shrink:0">';
@@ -4328,6 +4387,7 @@ function renderVG(){
     });
   }
   h+='</div>';
+  }
   var _vgb=document.getElementById('vGB');if(_vgb)_vgb.innerHTML=h;
 }
 // Alias para dias() con nombre diferente para usar dentro de renderVG sin conflicto de scope

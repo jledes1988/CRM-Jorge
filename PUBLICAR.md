@@ -1,58 +1,49 @@
-# CRM-Jorge — Publicar esta entrega (arregla la pantalla negra del mapa)
+# CRM-Jorge — Publicar versión 6.3
 
-## Por qué se puso negra la pantalla del mapa de Gira
+## Antes de subir
 
-Tu `app.js` y tu `index.html` en GitHub quedaron de versiones distintas: subiste
-el `app.js` nuevo pero el `index.html` viejo (le falta el bloque del mapa que
-`app.js` necesita). No es nada roto — solo hay que subir los 3 archivos de
-esta carpeta **juntos**, en la misma subida, para que queden sincronizados.
+Revisá tu carpeta de Descargas y borrá cualquier `app.js`, `index.html` o
+`estilos.css` viejo que tengas ahí, así el navegador no te guarda los
+nuevos como "app (1).js" y terminás subiendo el que no es.
 
-## Paso 0 · Limpiar el repo (una sola vez)
+## Subir a GitHub
 
-En GitHub, entrá a cada uno de estos dos archivos y borralos (ícono de tacho
-arriba a la derecha del archivo → Commit):
+1. `https://github.com/jledes1988/CRM-Jorge` → **Add file → Upload files**
+2. Arrastrá los 3 archivos de esta carpeta **sueltos** (no la carpeta entera):
+   `app.js`, `index.html`, `estilos.css`
+3. GitHub va a avisar que esos 3 nombres ya existen y se reemplazan — es lo
+   que tiene que pasar
+4. Commit changes
 
-- `INDEX~1.HTM`
-- `estilos_1.css`
+## Verificar
 
-Son copias duplicadas que no usa la app — no van a faltar.
+Ctrl+Shift+R en `https://jledes1988.github.io/CRM-Jorge` (o reinstalar el
+acceso directo en el celular). Login o Config → Debug tiene que decir
+**versión 6.3**.
 
-## Paso 1 · Subir los 3 archivos
+## Qué trae esta versión (6.3)
 
-1. Antes de descargar estos 3 archivos, revisá tu carpeta de Descargas y
-   borrá cualquier `app.js`, `index.html` o `estilos.css` viejo que tengas
-   ahí (así el navegador no te guarda el nuevo como "app (1).js").
-2. Descargá los 3 de esta entrega.
-3. En `https://github.com/jledes1988/CRM-Jorge` → **Add file → Upload files**.
-4. Arrastrá los 3 archivos **juntos, sueltos** (no una carpeta): `app.js`,
-   `index.html`, `estilos.css`.
-5. GitHub te va a avisar que esos 3 nombres ya existen y se van a reemplazar
-   — es lo que tiene que pasar.
-6. Commit changes.
-
-## Paso 2 · Verificar
-
-Refrescá `https://jledes1988.github.io/CRM-Jorge` con Ctrl+Shift+R (o
-desinstalá y reinstalá el acceso directo en el celular). En el login o en
-Config → Debug tiene que decir **versión 6.2**. Probá el botón "🗺 Mapa" en
-Gira — ya no debería ponerse negro.
-
-## Qué trae esta versión (6.2)
-
-- Fuentes de prospección editables (Config → Administrador de catálogos).
-  "Instagram" pasó a llamarse "Redes Sociales"; se sumó "Franquicia".
-- Redes Sociales / WhatsApp ya no piden confirmar GPS al terminar la visita.
-- Mensaje para franquiciados (Config) — tiene un texto de arranque, editalo.
-- Auditoría de contactos (Config): elegís un filtro y te muestra quién no
-  tiene ese dato cargado, o tiene un valor que ya no existe en la lista.
-- "Sin gestión" → botón "+ Gira" con selector de fecha.
-- Puntos dorados en el mapa para clientes que acordaron freezer pero
-  todavía no está activo.
-- Recorrido: un punto cada 2.5 minutos (antes 5).
-- Mapa de Gira en la pestaña Gira (vendedor) y en Mapa (admin/gerente),
-  hasta 8 días para adelante.
+- **Mapa de Gira: botón para cerrar.** Antes quedaba atrapado sin poder
+  volver a la lista — ya tiene un botón "✕ Cerrar mapa" siempre visible
+  arriba del mapa.
+- **Tarjetas y renglones de Gira con color de etapa.** Cada parada tiene
+  ahora un borde de color a la izquierda con el color de su etapa del
+  embudo (el mismo que usás en el resto de la app), para que puedas
+  reordenar de un vistazo poniendo primero lo más importante.
+- **Vista semanal de Gira.** Botón "📅 Ver semana completa" arriba de la
+  grilla de días: muestra Lunes a Viernes uno al lado del otro, cada uno
+  con sus paradas separadas en Mañana / Tarde / Sin horario. Las tarjetas
+  son mínimas (nombre + local) a propósito, para chequear de un vistazo
+  toda la semana. Tocando el botón "AM/PM/—" de cada tarjeta vas rotando
+  el horario asignado (sin horario → mañana → tarde → sin horario).
+- **Color de "Acordó freezer" corregido.** Antes era el mismo dorado que
+  la etapa "Contactado" y no se distinguían en el mapa. Ahora es rosa/magenta
+  y está agregado a la referencia de colores debajo del mapa.
 
 ## Pendiente de tu lado
 
-- Mensajes de WhatsApp por etapa (Config): reescribilos, quedaron en blanco.
-- Texto final del mensaje de franquiciados.
+- Mensajes de WhatsApp por etapa (Config): reescribilos si todavía no lo
+  hiciste.
+- Texto final del mensaje de franquiciados (Config).
+- Para que la vista semanal sea útil, andá tocando el botón AM/PM de cada
+  parada para asignarle mañana o tarde — es manual, no se adivina solo.
