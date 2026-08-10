@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='6.3 - 08/08/2026';
+var VERSION='6.4 - 09/08/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -650,7 +650,7 @@ function startApp(){
     document.getElementById('sGerente').classList.add('on');
     document.getElementById('vNav').style.display='none';
     var mu=document.getElementById('gMobUser');if(mu)mu.textContent=D.user.n;
-    var su=document.getElementById('gSideUserNm');if(su)su.textContent=D.user.n+' · '+(D.user.r==='gerente'?'Gerente (solo lectura)':'Admin');
+    var su=document.getElementById('gSideUserNm');if(su)su.textContent=D.user.n+' · '+(D.user.r==='gerente'?'Gerente':'Admin');
     var bCfg=document.getElementById('gbCfg');if(bCfg)bCfg.style.display=(D.user.r==='gerente'?'none':'flex');
     renderVendBtns();
     gSecActual='D';
@@ -1050,6 +1050,10 @@ function editarContacto(id){
   h+='<div class="fg"><label class="fl">Email <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="eEmail" type="email" value="'+es(c.email||'')+'"></div>';
   var fuenteEc=c.fuente||'Prospeccion directa';
   h+='<div class="fg"><label class="fl">Como llego el contacto</label><div class="chips">'+(D.cfg.fuentes||CFG.fuentes).map(function(f){return '<span class="ch'+(fuenteEc===f?' on':'')+'" data-id="'+es(f)+'" data-g="eFuente" onclick="var p=this.parentNode;p.querySelectorAll(\'.ch\').forEach(function(x){x.classList.remove(\'on\')});this.classList.add(\'on\')" style="font-size:12px;padding:5px 10px">'+es(f)+'</span>';}).join('')+'</div></div>';
+  h+='<div class="div"></div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">DATOS DE FACTURACION</div>';
+  h+='<div class="fg"><label class="fl">Horarios <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="eHorarios" placeholder="Ej: Lun a Vie 8 a 20hs" value="'+es(c.horarios||'')+'"></div>';
+  h+='<div class="fg"><label class="fl">CUIT <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="eCuit" placeholder="Ej: 20-12345678-9" value="'+es(c.cuit||'')+'"></div>';
+  h+='<div class="fg"><label class="fl">Condicion impositiva <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><select class="fi" id="eCondImp"><option value=""'+(!c.condImp?' selected':'')+'>Sin definir</option>'+['Responsable Inscripto','Monotributista','Exento','Consumidor Final'].map(function(o){return '<option'+(c.condImp===o?' selected':'')+'>'+es(o)+'</option>';}).join('')+'</select></div>';
   h+='<div class="fg"><label class="fl">Observaciones</label><textarea class="fi fta" id="eObs" rows="3">'+es(c.obs||'')+'</textarea></div>';
   h+='<button class="btn or" onclick="guardarEdicionContacto(\'' + id.replace(/'/g,"\\'") + '\')">Guardar cambios</button>';
   oMod('Editar: '+es(c.nm),h);
@@ -1086,6 +1090,9 @@ function guardarEdicionContacto(id){
   chk('trans',gc('eTr'));
   var eEmailEl=document.getElementById('eEmail');if(eEmailEl)chk('email',eEmailEl.value.trim());
   chk('fuente',gc('eFuente'));
+  var eHorEl=document.getElementById('eHorarios');if(eHorEl)chk('horarios',eHorEl.value.trim());
+  var eCuitEl=document.getElementById('eCuit');if(eCuitEl)chk('cuit',eCuitEl.value.trim());
+  var eCondEl=document.getElementById('eCondImp');if(eCondEl)chk('condImp',eCondEl.value);
   chk('obs',document.getElementById('eObs').value.trim());
   if(cambios.length){
     c._modBy=D.user?D.user.n:'?';
@@ -2162,6 +2169,20 @@ function toggleGCFo(k,v){
 var gCFo={bar:[],comp:[],frez:[],tipNeg:[],eta:[],calU:[],fuente:[]};
 function limpiarGCFo(){gCFo={bar:[],comp:[],frez:[],tipNeg:[],eta:[],calU:[],fuente:[]};renderGC();}
 
+// ── EXPORTAR CLIENTES PARA FACTURACION ─────────────────────────────────
+// Solo clientes activos (no prospectos, no eliminados), con los datos que
+// pide el alta en el sistema de facturacion.
+function exportarFacturacion(){
+  var clientes=D.cli.filter(function(c){return !c.esP&&!c.eliminado;}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  if(!clientes.length){toast('No hay clientes para exportar','err');return;}
+  var filas=[['Nombre del negocio','Direccion','Localidad','Provincia','Telefono','Horarios','Datos del cliente (nombre y apellido)','CUIT','Condicion impositiva']];
+  clientes.forEach(function(c){
+    filas.push([c.nm||'',c.dir||'',c.ciu||'',c.prov||'',c.tel||'',c.horarios||'',c.fan||'',c.cuit||'',c.condImp||'']);
+  });
+  descargarXLSX(filas,'clientes-facturacion-'+today()+'.xlsx');
+  toast('Exportados '+clientes.length+' clientes','ok');
+}
+
 // ── AUDITORIA DE CONTACTOS ────────────────────────────────────────────
 // Herramienta generica: elegis un campo y te muestra los contactos que no
 // tienen ningun valor cargado ahi, y (para los campos con lista maestra
@@ -2170,7 +2191,10 @@ var AUDIT_CAMPOS=[
   {key:'tipo',lbl:'Tipo de negocio',lista:'tipos'},
   {key:'prods',lbl:'Productos que le queremos vender',lista:'tiposProducto',arr:true},
   {key:'fuente',lbl:'Fuente (como llego el contacto)',lista:'fuentes'},
-  {key:'bar',lbl:'Barrio / Ciudad'},
+  {key:'ciu',lbl:'Ciudad / Localidad'},
+  // El barrio solo se carga para contactos de Cordoba Capital (asi funciona el formulario);
+  // para el resto NO es un dato faltante, es esperable que este vacio. Por eso se audita aparte.
+  {key:'bar',lbl:'Barrio (solo Cordoba Capital)',soloSi:function(c){return c.ciu==='Córdoba Capital';}},
   {key:'comp',lbl:'Competencia'},
   {key:'cFr',lbl:'Freezer'},
   {key:'calU',lbl:'Calificacion de ubicacion'},
@@ -2190,6 +2214,7 @@ function correrAuditoria(){
   var key=document.getElementById('audCampo').value;
   var f=AUDIT_CAMPOS.find(function(x){return x.key===key;});if(!f)return;
   var base=D.cli.filter(function(c){return !c.eliminado;});
+  if(f.soloSi)base=base.filter(f.soloSi);
   var listaValida=f.lista?(D.cfg[f.lista]||CFG[f.lista]||[]):null;
   var vacios=[],invalidos=[];
   base.forEach(function(c){
@@ -3322,6 +3347,11 @@ function renderGCfg(){
   });
   h+='</div>';
 
+  h+='<div class="card"><div class="ct">EXPORTAR CLIENTES PARA FACTURACION</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Baja un Excel con los datos de todos los clientes activos (no prospectos) para darlos de alta en el sistema de facturacion: negocio, direccion, localidad, provincia, telefono, horarios, nombre y apellido del cliente, CUIT y condicion impositiva. Esos ultimos 3 se cargan editando cada contacto.</div>';
+  h+='<button class="btn sec" onclick="exportarFacturacion()" style="margin:0">Exportar clientes (.xlsx)</button>';
+  h+='</div>';
+
   h+=auditoriaHTML();
 
   // ── MENSAJES WHATSAPP POR ETAPA ───────────────────────────────────
@@ -3333,6 +3363,7 @@ function renderGCfg(){
   h+='<code style="color:var(--cyan)">{negocio}</code> — Nombre del local<br>';
   h+='<code style="color:var(--cyan)">{ciudad}</code> — Ciudad o barrio<br>';
   h+='<code style="color:var(--cyan)">{etapa}</code> — Etapa actual del embudo<br>';
+  h+='<code style="color:var(--cyan)">{vendedor}</code> — Nombre del vendedor asignado<br>';
   h+='<span style="font-style:italic">Ejemplo: "Hola <code style=\\"color:var(--cyan)\\">{nombre}</code>, soy Jorge de Sei Tu. Quería seguir en contacto con {negocio}..."</span></div></div>';
   if(!D.cfg.msgs)D.cfg.msgs={};
   ET.concat(SA).forEach(function(et,i){
@@ -3614,7 +3645,8 @@ function envWA(id){
     .replace(/\{nombre\}/gi, c.fan||c.nm||'')   // dueño/encargado
     .replace(/\{negocio\}/gi, c.nm||'')           // nombre del local
     .replace(/\{ciudad\}/gi, c.ciu||c.bar||'')    // ciudad o barrio
-    .replace(/\{etapa\}/gi, c.etapaEmbudo||'');   // etapa del embudo
+    .replace(/\{etapa\}/gi, c.etapaEmbudo||'')    // etapa del embudo
+    .replace(/\{vendedor\}/gi, c.vend||'');       // vendedor asignado
   // Agregar link de catálogo si existe para esta etapa
   var link=(D.cfg.msgLinks&&c.esP&&c.etapaEmbudo)?D.cfg.msgLinks[c.etapaEmbudo]||D.cfg.msgLinks['todos']||'':D.cfg.msgLinks&&D.cfg.msgLinks['todos']||'';
   if(link)m=m+'\n\n'+link;
@@ -4237,10 +4269,12 @@ function renderGiraSemanaHTML(lunes,hoy){
     if(!plan.length){
       h+='<div style="padding:14px 10px;text-align:center;font-size:11px;color:var(--muted)">Sin paradas</div>';
     } else {
+      // Las 3 secciones se muestran siempre (aunque esten vacias) para que se vea
+      // la division Manana/Tarde desde el primer momento, no solo despues de etiquetar.
       ['manana','tarde',''].forEach(function(turno){
         var deLTurno=plan.filter(function(g){return (g.turno||'')===turno;});
-        if(!deLTurno.length)return;
         h+='<div style="padding:6px 10px 2px;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">'+labelTurno(turno)+'</div>';
+        if(!deLTurno.length){h+='<div style="padding:0 10px 6px;font-size:11px;color:var(--muted);font-style:italic">— sin visitas —</div>';}
         deLTurno.forEach(function(g){
           var c=D.cli.find(function(x){return x.id===g.cid;});if(!c)return;
           var etaCol=EC[c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo')]||'#94a3b8';
@@ -4399,7 +4433,8 @@ function enviarPedidoWA(id){
   var msg=(D.cfg.msgPedido||'Hola {nombre}! Nos podés pasar el pedido de {negocio}?')
     .replace(/\{nombre\}/gi,c.fan||c.nm||'')
     .replace(/\{negocio\}/gi,c.nm||'')
-    .replace(/\{ciudad\}/gi,c.ciu||c.bar||'');
+    .replace(/\{ciudad\}/gi,c.ciu||c.bar||'')
+    .replace(/\{vendedor\}/gi,c.vend||'');
   // Agregar link de catálogo si está configurado
   var linkPed=D.cfg.msgLinks&&D.cfg.msgLinks.todos?D.cfg.msgLinks.todos:'';
   if(linkPed)msg=msg+'\n\n'+linkPed;
