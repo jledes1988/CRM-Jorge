@@ -1,53 +1,41 @@
-# CRM-Jorge — Publicar versión 6.4
+# CRM-Jorge — Publicar versión 6.6
 
 ## Antes de subir
 
-Borrá de tu carpeta de Descargas cualquier `app.js`, `index.html` o
-`estilos.css` viejo, así no se guardan como "app (1).js" y subís el que no es.
+Borrá de tu carpeta de Descargas cualquier `app.js`, `index.html` o `estilos.css` viejo.
 
 ## Subir a GitHub
 
 1. `https://github.com/jledes1988/CRM-Jorge` → **Add file → Upload files**
 2. Arrastrá los 3 archivos de esta carpeta **sueltos**: `app.js`, `index.html`, `estilos.css`
-3. GitHub avisa que ya existen y se van a reemplazar — correcto
-4. Commit changes
+3. Confirmá el reemplazo → Commit changes
 
 ## Verificar
 
-Ctrl+Shift+R en `https://jledes1988.github.io/CRM-Jorge`. Login o Config → Debug tiene que decir **versión 6.4**.
+Ctrl+Shift+R en `https://jledes1988.github.io/CRM-Jorge`. Login o Config → Debug tiene que decir **versión 6.6**.
 
-## Qué trae esta versión (6.4)
+## Qué trae esta versión (6.6)
 
-- **Exportar clientes para facturación** (Config → nueva tarjeta arriba de
-  Auditoría): baja un Excel con negocio, dirección, localidad, provincia,
-  teléfono, horarios, nombre y apellido del cliente, CUIT y condición
-  impositiva. Los últimos 3 son campos nuevos — se cargan editando cada
-  contacto (aparecen en una sección nueva "DATOS DE FACTURACIÓN" al
-  final del formulario de edición). Como son datos nuevos, van a estar
-  vacíos hasta que los cargues contacto por contacto.
-- **Se sacó la leyenda "(solo lectura)"** que aparecía junto al nombre del
-  Gerente en el panel lateral.
-- **Auditoría de contactos: Barrio separado de Ciudad.** Antes "Barrio/Ciudad"
-  tiraba prácticamente todos los contactos como "sin dato" porque el barrio
-  solo se carga para los que están en Córdoba Capital — era normal que el
-  resto no lo tuviera. Ahora son dos filtros separados: "Ciudad / Localidad"
-  (aplica a todos) y "Barrio" (solo audita a los contactos de Córdoba Capital).
-- **Variable `{vendedor}`** sumada en Config → Mensajes de WhatsApp, junto a
-  `{nombre}`, `{negocio}`, `{ciudad}` y `{etapa}`. Se reemplaza por el nombre
-  del vendedor asignado al contacto.
-- **Vista semanal de Gira: división Mañana/Tarde siempre visible.** Antes
-  las secciones solo aparecían si ya había algo etiquetado — ahora se ven
-  siempre (con "— sin visitas —" si están vacías) para que sepas que tenés
-  que ir tocando el botón AM/PM de cada tarjeta.
+- **Recorrido GPS: punto al abrir la app.** Además del punto periódico, ahora
+  cada vez que el vendedor vuelve a abrir o mirar la app se marca un punto al
+  toque — antes, si abría recién al llegar al local, todo el trayecto del medio
+  quedaba sin registrar.
+- **Sucursales de un mismo negocio.** En el formulario de editar contacto hay
+  un campo nuevo "Es sucursal de": buscás por nombre entre los contactos ya
+  cargados y elegís cuál es la casa central. En la ficha de cada uno aparece
+  el vínculo (sucursal de / lista de sucursales) con links directos. En el
+  mapa, la sucursal se ve con un punto más chico del color de la casa central
+  (salvo que tenga su propio estado de freezer, que manda primero).
 
-## De la entrega anterior (6.3), ya corregido
+## De la entrega anterior (6.5), ya corregido
 
-- Mapa de Gira con botón para cerrar.
-- Color de etapa en las tarjetas de Gira.
-- Color de "Acordó freezer" cambiado a rosa/magenta (ya no se confunde con "Contactado").
+- Orden de la Gira (▲▼) sin abrir ventanas de más.
+- "Sin gestión" ya no cierra el panel al agregar a la gira — cartel de confirmación y listo.
+- Filtro "Freezer pendiente" en el mapa.
+- Cliente con freezer distinguido (celeste con borde verde).
 
-## Pendiente de tu lado
+## Pendiente de siempre
 
 - Mensajes de WhatsApp por etapa y mensaje de franquiciados (Config): texto final.
 - Cargar horarios/CUIT/condición impositiva en cada cliente antes de exportar para facturación.
-- Ir asignando Mañana/Tarde a las paradas de la Gira (botón AM/PM en cada tarjeta).
+- Ir asignando Mañana/Tarde a las paradas de la Gira.

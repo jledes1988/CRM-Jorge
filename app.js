@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='6.4 - 09/08/2026';
+var VERSION='6.6 - 13/08/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -827,11 +827,20 @@ function verInaccion(){
       h+='<div style="display:flex;gap:6px">';
       h+='<button class="sm g" onclick="cMod();abrirVisita(\''+c.id+'\')">Visita</button>';
       if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')">WhatsApp</button>';
-      h+='<button class="sm" onclick="cMod();agregarAGiraDesdeMapa(\''+c.id+'\')">+ Gira</button>';
+      h+='<button class="sm" onclick="agregarAGiraRapido(\''+c.id+'\')">+ Gira</button>';
       h+='</div></div>';
     });
   }
   oMod('Contactos sin gestion ('+inac.length+')',h);
+}
+// Version rapida para usar dentro del panel de Sin Gestion: confirma con un
+// cartel nativo (no otro modal encima) y agrega a la gira de HOY sin cerrar
+// el panel — se refresca en el mismo lugar donde estaba.
+function agregarAGiraRapido(cid){
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  if(!confirm('Agregar "'+c.nm+'" a la gira de hoy?'))return;
+  agregarAGira(cid,today());
+  verInaccion();
 }
 // Historial: desplegable por mes -> lista de dias con actividad -> detalle en modal
 function toggleHistorialVH(){
@@ -954,6 +963,20 @@ function abrirFiltros(){
 }
 
 // Ficha rapida del vendedor
+// Muestra el vinculo de sucursal (casa central) y/o la lista de sucursales
+// propias, con links para saltar directo a esa ficha.
+function sucursalesInfoHTML(c,fn){
+  var h='';
+  if(c.sucursalDe){
+    var padre=D.cli.find(function(x){return x.id===c.sucursalDe;});
+    if(padre)h+='<div style="font-size:12px;margin-top:6px"><span style="color:var(--muted)">Sucursal de:</span> <a href="javascript:void(0)" onclick="'+fn+'(\''+padre.id+'\')" style="color:var(--cyan);font-weight:700;text-decoration:none">'+es(padre.nm)+'</a></div>';
+  }
+  var hijos=D.cli.filter(function(x){return x.sucursalDe===c.id&&!x.eliminado;});
+  if(hijos.length){
+    h+='<div style="font-size:12px;margin-top:6px"><span style="color:var(--muted)">Sucursales ('+hijos.length+'):</span> '+hijos.map(function(x){return '<a href="javascript:void(0)" onclick="'+fn+'(\''+x.id+'\')" style="color:var(--cyan);font-weight:700;text-decoration:none">'+es(x.nm)+'</a>';}).join(', ')+'</div>';
+  }
+  return h;
+}
 function abrirFichaV(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
   var vs=D.vis.filter(function(v){return v.cid===id;}).slice().reverse().slice(0,5);
@@ -976,6 +999,7 @@ function abrirFichaV(id){
   h+='</div>';
   // Productos
   if(c.prods&&c.prods.length){h+='<div style="font-size:12px;color:var(--muted);margin-top:6px">Vende: '+es(c.prods.join(' · '))+'</div>';}
+  h+=sucursalesInfoHTML(c,'abrirFichaV');
   h+='</div>';
   h+='<div class="div"></div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
@@ -1040,6 +1064,13 @@ function editarContacto(id){
   h+='<div class="fg" style="position:relative"><label class="fl">Provincia</label><input class="fi" id="eProv" autocomplete="off" value="'+es(c.prov||'')+'" placeholder="Escribi para buscar..."><div id="eProvSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>';
   h+='<div class="fg" style="position:relative"><label class="fl">Ciudad</label><input class="fi" id="eCiudad" autocomplete="off" value="'+es(c.ciu||'')+'" placeholder="Escribi para buscar..."><div id="eCiudadSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>';
   h+='<div class="fg" id="eBarrioFg" style="position:relative;'+(c.ciu==='Córdoba Capital'?'':'display:none')+'"><label class="fl">Barrio</label><input class="fi" id="eBarrio" autocomplete="off" value="'+es(c.bar||'')+'" placeholder="Escribi para buscar..."><div id="eBarrioSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>';
+  var padreAct=c.sucursalDe?D.cli.find(function(x){return x.id===c.sucursalDe;}):null;
+  h+='<div class="fg" style="position:relative"><label class="fl">Es sucursal de <span style="font-size:10px;color:var(--muted)">(opcional — dejalo vacio si es un local independiente o la casa central)</span></label>';
+  h+='<input class="fi" id="eSucDe" autocomplete="off" placeholder="Escribi el nombre del local principal..." value="'+es(padreAct?padreAct.nm:'')+'">';
+  h+='<input type="hidden" id="eSucDeId" value="'+es(c.sucursalDe||'')+'">';
+  h+='<div id="eSucDeSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div>';
+  if(padreAct)h+='<button type="button" class="sm rd" style="margin-top:6px;font-size:11px" onclick="document.getElementById(\'eSucDe\').value=\'\';document.getElementById(\'eSucDeId\').value=\'\'">Quitar vinculo</button>';
+  h+='</div>';
   h+='<div class="fg"><label class="fl">Tipo de negocio</label><div class="chips">'+tH+'</div></div>';
   h+='<div class="fg"><label class="fl">Productos que le queremos vender</label><div class="chips">'+prodH+'</div></div>';
   h+='<div class="fg"><label class="fl">Competencia</label><div class="chips">'+compH+'</div></div>';
@@ -1068,7 +1099,29 @@ function editarContacto(id){
     document.getElementById('eCiudad').addEventListener('change',function(){
       var bf=document.getElementById('eBarrioFg');if(bf)bf.style.display=(this.value.trim()==='Córdoba Capital')?'block':'none';
     });
+    initAutoSucursal(id);
   },50);
+}
+// Buscador de "casa central" al marcar una sucursal: sugiere por nombre entre los
+// contactos ya cargados (excluyendose a si mismo). Guarda el ID, no solo el texto.
+function initAutoSucursal(propioId){
+  var inp=document.getElementById('eSucDe');var sugg=document.getElementById('eSucDeSugg');
+  if(!inp||!sugg)return;
+  inp.oninput=function(){
+    var q=inp.value.trim().toLowerCase();
+    document.getElementById('eSucDeId').value='';
+    if(q.length<2){sugg.style.display='none';sugg.innerHTML='';return;}
+    var matches=D.cli.filter(function(c){return c.id!==propioId&&!c.eliminado&&c.nm&&c.nm.toLowerCase().indexOf(q)>=0;}).slice(0,8);
+    if(!matches.length){sugg.style.display='none';sugg.innerHTML='';return;}
+    sugg.innerHTML=matches.map(function(c){return '<div style="padding:11px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)" data-id="'+es(c.id)+'" data-nm="'+es(c.nm)+'" onmousedown="event.preventDefault();seleccionarSucursalDe(this.dataset.id,this.dataset.nm)">'+es(c.nm)+(c.dir?' <span style="color:var(--muted)">· '+es(c.dir)+'</span>':'')+'</div>';}).join('');
+    sugg.style.display='block';
+  };
+  inp.onblur=function(){setTimeout(function(){sugg.style.display='none';},150);};
+}
+function seleccionarSucursalDe(id,nombre){
+  document.getElementById('eSucDe').value=nombre;
+  document.getElementById('eSucDeId').value=id;
+  document.getElementById('eSucDeSugg').style.display='none';
 }
 function guardarEdicionContacto(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
@@ -1093,6 +1146,13 @@ function guardarEdicionContacto(id){
   var eHorEl=document.getElementById('eHorarios');if(eHorEl)chk('horarios',eHorEl.value.trim());
   var eCuitEl=document.getElementById('eCuit');if(eCuitEl)chk('cuit',eCuitEl.value.trim());
   var eCondEl=document.getElementById('eCondImp');if(eCondEl)chk('condImp',eCondEl.value);
+  var eSucIdEl=document.getElementById('eSucDeId');
+  if(eSucIdEl){
+    var nuevoPadre=eSucIdEl.value.trim();
+    if(nuevoPadre===id){toast('Un local no puede ser sucursal de si mismo','err');}
+    else if(nuevoPadre&&D.cli.some(function(x){return x.id===nuevoPadre&&x.sucursalDe===id;})){toast('Ese local ya es sucursal de este — no se puede encadenar al reves','err');}
+    else{chk('sucursalDe',nuevoPadre);}
+  }
   chk('obs',document.getElementById('eObs').value.trim());
   if(cambios.length){
     c._modBy=D.user?D.user.n:'?';
@@ -1293,19 +1353,35 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin,filtroTipo){
     if(!c.gpsOk||!c.lat||!c.lng)return;
     if(filtroTipo==='cli'&&c.esP)return;
     if(filtroTipo==='pros'&&!c.esP)return;
-    var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
-    if(filtroEtapa&&eta!==filtroEtapa)return;
-    var col=EC[eta]||'#94a3b8';
     // Acordo el freezer pero todavia no esta activo (por firmar / por entregar):
     // se distingue con el mismo color del boton "Acordar freezer", no es cliente activo todavia.
     var coAcordado=D.com.some(function(co){return co.cid===c.id&&!co.ret&&estadoComodato(co)!=='activo';});
+    if(filtroTipo==='freezerPend'&&!coAcordado)return;
+    var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
+    if(filtroEtapa&&eta!==filtroEtapa)return;
+    var col=EC[eta]||'#94a3b8';
+    var bordeCol='#0b1220';
     if(coAcordado)col='#ec4899';
-    var m=L.circleMarker([c.lat,c.lng],{radius:9,fillColor:col,color:'#0b1220',weight:2,fillOpacity:.92});
+    // Cliente activo que ya tiene freezer nuestro entregado: se destaca con relleno celeste
+    // y borde verde, para diferenciarlo de un "Cliente Activo" que compra pero no tiene freezer.
+    if(!c.esP&&tieneFreezerNuestro(c.id)){col='#22d3ee';bordeCol='#4ade80';}
+    // Sucursal de otro local: punto mas chico, con el color de la casa central
+    // (salvo que la sucursal tenga su propio estado de freezer, que manda primero).
+    var radio=9;
+    if(c.sucursalDe){
+      radio=6;
+      if(!coAcordado&&!(!c.esP&&tieneFreezerNuestro(c.id))){
+        var padreM=D.cli.find(function(x){return x.id===c.sucursalDe;});
+        if(padreM){var etaPadreM=padreM.etapaEmbudo||(padreM.esP?'Nuevo Prospecto':'Cliente Activo');col=EC[etaPadreM]||col;}
+      }
+    }
+    var m=L.circleMarker([c.lat,c.lng],{radius:radio,fillColor:col,color:bordeCol,weight:2,fillOpacity:.92});
     var pop='<div style="font-family:inherit;min-width:170px">';
     pop+='<div style="font-weight:800;font-size:14px;margin-bottom:2px">'+es(c.nm)+'</div>';
     if(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase())pop+='<div style="font-size:12px;font-weight:700;color:#0891b2">'+es(c.fan)+'</div>';
     pop+='<div style="font-size:11px;color:#666">'+es(c.bar||c.ciu||'')+(c.tipo?' · '+es(c.tipo):'')+'</div>';
     pop+='<div style="font-size:11px;margin-top:3px"><span style="background:'+col+';color:#fff;padding:2px 8px;border-radius:10px;font-weight:700">'+es(eta)+'</span></div>';
+    if(c.sucursalDe){var padrePop=D.cli.find(function(x){return x.id===c.sucursalDe;});if(padrePop)pop+='<div style="font-size:10px;color:#888;margin-top:3px">Sucursal de '+es(padrePop.nm)+'</div>';}
     pop+='<div style="display:flex;gap:6px;margin-top:8px">';
     pop+='<button onclick="'+(esAdmin?'aFicha':'abrirFichaV')+'(\''+c.id+'\')" style="background:#0891b2;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">Ver ficha</button>';
     if(!esAdmin)pop+='<button onclick="agregarAGiraDesdeMapa(\''+c.id+'\')" style="background:#22223a;color:#4ade80;border:1px solid #4ade80;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">+ Gira</button>';
@@ -1327,6 +1403,7 @@ function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro,filtroTipo,fnFiltroT
   h+='<option value=""'+(!filtroTipo?' selected':'')+'>Todos</option>';
   h+='<option value="cli"'+(filtroTipo==='cli'?' selected':'')+'>Solo clientes</option>';
   h+='<option value="pros"'+(filtroTipo==='pros'?' selected':'')+'>Solo prospectos</option>';
+  h+='<option value="freezerPend"'+(filtroTipo==='freezerPend'?' selected':'')+'>Freezer pendiente</option>';
   h+='</select>';
   h+='<select onchange="'+fnFiltro+'(this.value)" style="'+selEstilo+'">';
   h+='<option value="">Todas las etapas</option>';
@@ -1338,6 +1415,7 @@ function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro,filtroTipo,fnFiltroT
   h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">';
   ET.forEach(function(e){h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:'+(EC[e]||'#94a3b8')+';display:inline-block"></span>'+es(e)+'</span>';});
   h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:#ec4899;display:inline-block"></span>Acordo freezer (por firmar/entregar)</span>';
+  h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:#22d3ee;border:2px solid #4ade80;box-sizing:border-box;display:inline-block"></span>Cliente con freezer nuestro</span>';
   h+='</div>';
   if(!conf)h+='<div style="font-size:11px;color:var(--orange);margin-top:6px">Todavia no hay contactos confirmados en el mapa. La ubicacion se confirma con GPS al crear un prospecto o en la primera visita a un cliente, parado en el local.</div>';
   return h;
@@ -1576,6 +1654,14 @@ function iniciarRecorrido(){
   recTimer=setInterval(tomarPuntoRecorrido,REC_INTERVALO);
 }
 function detenerRecorrido(){if(recTimer){clearInterval(recTimer);recTimer=null;}}
+// Cada vez que el vendedor vuelve a abrir/mirar la app (no solo cada X minutos por
+// temporizador) se marca un punto al toque. Es lo que mas hueco dejaba en el
+// recorrido: si abria la app recien al llegar a un local, entre medio no habia
+// quedado nada registrado porque el temporizador no llega a disparar con la
+// pantalla apagada.
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden && recTimer){tomarPuntoRecorrido();}
+});
 function tomarPuntoRecorrido(){
   if(!D.user||D.user.r!=='vendedor')return;
   if(document.hidden)return;
@@ -2296,6 +2382,7 @@ function aFicha(id){
   if(c.uv)h+='<div><div class="fl">Ultima venta</div><div style="font-size:14px;font-weight:700;color:var(--green)">'+fmt(c.uv)+'</div></div>';
   h+='</div>';
   if(c.prods&&c.prods.length)h+='<div class="fl">Vende</div><div style="font-size:13px;margin-bottom:10px">'+es(c.prods.join(' · '))+'</div>';
+  h+=sucursalesInfoHTML(c,'aFicha');
   if(c.comp){h+='<div class="fl">Competencia</div><div style="font-size:13px;margin-bottom:10px">'+es(c.comp)+'</div>';}
   if(c.obs){h+='<div class="fl">Observaciones</div><div style="font-size:13px;color:var(--muted);margin-bottom:10px">'+es(c.obs)+'</div>';}
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 8px">';
@@ -4451,7 +4538,7 @@ function moverEnGira(cid,fecha,dir){
   var tmp=dd[idx].orden;dd[idx].orden=dd[idx2].orden;dd[idx2].orden=tmp;
   fsSetGira(dd[idx]);
   fsSetGira(dd[idx2]);
-  verDiaGira(fecha);
+  renderVG();
 }
 function verDiaGira(fecha){
   var planDia=D.gira.filter(function(g){return g.fecha===fecha;}).sort(function(a,b){return(a.orden||0)-(b.orden||0);});
