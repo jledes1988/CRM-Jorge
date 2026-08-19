@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='6.6 - 13/08/2026';
+var VERSION='6.7 - 14/08/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -43,6 +43,11 @@ var AUTH_USER=null;          // usuario autenticado en Firebase (null = no hay s
 var FS_LISTENERS_ON=false;   // evita montar los listeners dos veces
 
 var FS_READY=false;          // true cuando los 7 listeners ya bajaron al menos una vez
+// CRITICO: true SOLO cuando la configuracion real bajo de Firestore.
+// Mientras sea false, D.cfg todavia tiene los valores POR DEFECTO del codigo,
+// y escribir eso en la base pisaria la configuracion del usuario (mensajes,
+// catalogos, links). Por eso ninguna escritura de config puede salir sin esto.
+var CFG_CARGADA=false;
 var DEBUG_LOG=[];            // ultimos eventos tecnicos (errores, escrituras) para el Modo Debug del admin
 var DEBUG_LASTSYNC={contactos:null,visitas:null,comodatos:null,gira:null,log:null,usuarios:null,config:null};
 function debugLog(tipo,msg){
@@ -163,9 +168,10 @@ function fsSetupListeners(){
     if(doc.exists){
       var data=doc.data();
       Object.keys(data).forEach(function(k){D.cfg[k]=data[k];});
+      CFG_CARGADA=true; // ya tenemos la config real: recien ahora se puede escribir config
     } else {
       // Primera vez: no existe el doc de config, lo creamos con los valores por defecto
-      fsDB.collection('config').doc('main').set(CFG).catch(function(e){console.error(e);});
+      fsDB.collection('config').doc('main').set(CFG).then(function(){CFG_CARGADA=true;}).catch(function(e){console.error(e);});
     }
     DEBUG_LASTSYNC.config=new Date().toISOString();
     fsOnFirstLoad();
@@ -321,6 +327,14 @@ function fsSetUsuario(u){
 function fsSetConfig(cfg){
   if(soloLectura())return Promise.resolve();
   if(!fsDB)return fsGuardaLocal();
+  // CANDADO ANTI-PISADA: si la config real todavia no bajo de Firestore, D.cfg son
+  // los valores por defecto del codigo. Escribirlos borraria los mensajes, catalogos
+  // y links que configuro el usuario. Preferimos NO guardar antes que perder datos.
+  if(!CFG_CARGADA){
+    debugLog('warn','Escritura de config BLOQUEADA: la configuracion todavia no cargo desde la base');
+    toast('Todavia no cargo la configuracion: espera unos segundos y volve a guardar','err');
+    return Promise.resolve();
+  }
   setSyncDot('pending');
   return fsDB.collection('config').doc('main').set(cfg,{merge:true})
     .then(function(){setSyncDot('ok');})
@@ -440,6 +454,7 @@ function tipoUnificado(t){return MAPA_TIPOS[t]||t;}
 // Persiste el dato en la base para que el filtro y los conteos por fuente los incluyan.
 function migrarFuente(){
   if(!D.user||D.user.r!=='admin')return;
+  if(!CFG_CARGADA)return; // sin la config real no se sabe si ya se hizo: no tocar nada
   if(D.cfg&&D.cfg.fuenteMigrada)return;
   var sinFuente=D.cli.filter(function(c){return !c.fuente;});
   sinFuente.forEach(function(c){
@@ -447,13 +462,14 @@ function migrarFuente(){
     fsSetContacto(c);
   });
   D.cfg.fuenteMigrada=true;
-  fsSetConfig(D.cfg);
+  fsSetConfig({fuenteMigrada:true}); // solo el dato que cambia, nunca toda la config
   if(sinFuente.length)logEvento('edicion','','','Fuente asignada a contactos existentes: '+sinFuente.length+' como Prospeccion directa','','');
 }
 // Migracion unica: "Instagram" paso a llamarse "Redes Sociales" (mismo significado,
 // pero ahora tambien excluye el paso de confirmar GPS al terminar una visita).
 function migrarInstagramARedesSociales(){
   if(!D.user||D.user.r!=='admin')return;
+  if(!CFG_CARGADA)return; // sin la config real no se sabe si ya se hizo: no tocar nada
   if(!D.cfg.fuentes)D.cfg.fuentes=CFG.fuentes.slice();
   if(D.cfg&&D.cfg.instagramMigrado)return;
   var afectados=D.cli.filter(function(c){return c.fuente==='Instagram';});
@@ -462,11 +478,12 @@ function migrarInstagramARedesSociales(){
   if(idx>=0){D.cfg.fuentes[idx]='Redes Sociales';}
   else if(D.cfg.fuentes.indexOf('Redes Sociales')<0){D.cfg.fuentes.unshift('Redes Sociales');}
   D.cfg.instagramMigrado=true;
-  fsSetConfig(D.cfg);
+  fsSetConfig({fuentes:D.cfg.fuentes,instagramMigrado:true}); // solo lo que cambia
   if(afectados.length)logEvento('edicion','','','Fuente renombrada: Instagram -> Redes Sociales en '+afectados.length+' contactos','','');
 }
 function migrarCategorias(){
   if(!D.user||D.user.r!=='admin')return;
+  if(!CFG_CARGADA)return; // sin la config real no se sabe si ya se hizo: no tocar nada
   // La marca lleva version: si se suman categorias al mapa, se sube el numero y vuelve a correr.
   var VER_MIGRACION=2;
   if(D.cfg&&D.cfg.tiposMigradosV>=VER_MIGRACION)return; // ya se hizo esta version
@@ -484,7 +501,7 @@ function migrarCategorias(){
   lista.sort(function(a,b){if(a==='Otro')return 1;if(b==='Otro')return -1;return a.localeCompare(b);});
   D.cfg.tipos=lista;
   D.cfg.tiposMigradosV=VER_MIGRACION;
-  fsSetConfig(D.cfg);
+  fsSetConfig({tipos:lista,tiposMigradosV:VER_MIGRACION}); // solo lo que cambia
   if(cambiados.length)logEvento('edicion','','','Categorias unificadas: '+cambiados.length+' contactos actualizados','','');
 }
 // Borra de la base las contrasenas en texto plano que quedaron del sistema viejo.
@@ -963,6 +980,33 @@ function abrirFiltros(){
 }
 
 // Ficha rapida del vendedor
+// Mini-mapa dentro de un modal para ubicar rapido un contacto, sin salir de su
+// ficha ni perder lo que estabas mirando. Muestra la direccion en grande arriba.
+var miniMapaObj=null;
+function verEnMapaMini(id){
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  if(miniMapaObj){try{miniMapaObj.remove();}catch(e){}miniMapaObj=null;}
+  var h='<div style="font-size:19px;font-weight:900;line-height:1.25;margin-bottom:3px">'+es(c.dir||'Sin direccion cargada')+'</div>';
+  var sub=[c.bar,c.ciu,c.prov].filter(Boolean).join(' · ');
+  if(sub)h+='<div style="font-size:13px;color:var(--muted);margin-bottom:12px">'+es(sub)+'</div>';
+  if(!c.gpsOk||!c.lat||!c.lng){
+    h+='<div class="empty">Todavia no tiene la ubicacion confirmada en el mapa.<br>Se confirma con GPS parado en el local.</div>';
+    oMod(es(c.nm),h);
+    return;
+  }
+  h+='<div id="miniMapa" style="width:100%;height:260px;border-radius:var(--rsm);overflow:hidden;background:var(--s2);margin-bottom:10px"></div>';
+  h+='<a class="btn sec" style="display:block;text-align:center;text-decoration:none;margin:0" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+c.lat+','+c.lng+'">Abrir en Google Maps (ir hasta aca)</a>';
+  oMod(es(c.nm),h);
+  setTimeout(function(){
+    var cont=document.getElementById('miniMapa');if(!cont)return;
+    if(typeof L==='undefined'){cont.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">El mapa necesita internet</div>';return;}
+    miniMapaObj=L.map('miniMapa',{zoomControl:true,attributionControl:false}).setView([c.lat,c.lng],16);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(miniMapaObj);
+    var etaMini=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
+    L.circleMarker([c.lat,c.lng],{radius:11,fillColor:(EC[etaMini]||'#22d3ee'),color:'#fff',weight:2,fillOpacity:.95}).addTo(miniMapaObj);
+    miniMapaObj.invalidateSize();
+  },250);
+}
 // Muestra el vinculo de sucursal (casa central) y/o la lista de sucursales
 // propias, con links para saltar directo a esa ficha.
 function sucursalesInfoHTML(c,fn){
@@ -1020,6 +1064,7 @@ function abrirFichaV(id){
   h+='<div class="div"></div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
   h+='<button class="btn" onclick="cMod();abrirVisita(\''+id+'\')" style="margin:0">Registrar visita</button>';
+  h+='<button class="btn sec" onclick="verEnMapaMini(\''+id+'\')" style="margin:0">&#128506; Ver en el mapa</button>';
   h+='<button class="btn sec" onclick="cMod();editarContacto(\''+id+'\')" style="margin:0">Editar</button>';
   if(c.tel){
     h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin:0">Enviar WhatsApp</button>';
@@ -1857,7 +1902,85 @@ function setFuenteWizard(el){
   ultimaFuenteHora=Date.now();
   if(W&&W.data)W.data.fuente=ultimaFuente;
 }
+// El boton "+" ahora pregunta primero que se va a cargar: un local nuevo (carga
+// completa, wizard de 4 pasos) o una sucursal de un negocio que ya existe
+// (carga corta: solo direccion y GPS, el resto se hereda de la casa central).
 function nuevoPros(){
+  var h='<div style="font-size:13px;color:var(--muted);margin-bottom:14px">Que vas a cargar?</div>';
+  h+='<button class="btn" onclick="cMod();nuevoProsNormal()" style="margin:0 0 10px">Local nuevo</button>';
+  h+='<button class="btn sec" onclick="nuevaSucursalPaso1()" style="margin:0">Sucursal de un negocio que ya tengo</button>';
+  oMod('Nuevo contacto',h);
+}
+// ── ALTA RAPIDA DE SUCURSAL ───────────────────────────────────────────
+var sucNueva={padre:null,g:null};
+function nuevaSucursalPaso1(){
+  var h='<div style="font-size:13px;color:var(--muted);margin-bottom:8px">De que negocio es sucursal?</div>';
+  h+='<div class="srch" style="margin:0 0 10px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="sucBusq" placeholder="Buscar por nombre..." oninput="filtrarSucursalPadre()" style="background:none;border:none;outline:none;color:var(--text);font-size:14px;flex:1;font-family:inherit;width:100%"></div>';
+  h+='<div id="sucBusqR" style="max-height:45vh;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>';
+  oMod('Nueva sucursal',h);
+  filtrarSucursalPadre();
+}
+function filtrarSucursalPadre(){
+  var el=document.getElementById('sucBusq');
+  var q=(el&&el.value||'').toLowerCase();
+  // Solo locales que no son sucursales de otro: evita cadenas de sucursal de sucursal.
+  var lista=misContactos().filter(function(c){return !c.sucursalDe;});
+  if(q)lista=lista.filter(function(c){return (c.nm||'').toLowerCase().indexOf(q)>=0||(c.fan||'').toLowerCase().indexOf(q)>=0;});
+  lista.sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  lista=lista.slice(0,40);
+  var h=lista.length?lista.map(function(c){
+    return '<div onclick="nuevaSucursalPaso2(\''+c.id+'\')" style="padding:10px;border-bottom:1px solid var(--border);cursor:pointer"><div style="font-size:14px;font-weight:700">'+es(c.nm)+(c.fan?' <span style="color:var(--cyan)">· '+es(c.fan)+'</span>':'')+'</div><div style="font-size:11px;color:var(--muted)">'+es(c.dir||c.ciu||c.bar||'')+'</div></div>';
+  }).join(''):'<div class="empty">Sin resultados</div>';
+  var cont=document.getElementById('sucBusqR');if(cont)cont.innerHTML=h;
+}
+function nuevaSucursalPaso2(padreId){
+  var p=D.cli.find(function(x){return x.id===padreId;});if(!p)return;
+  sucNueva={padre:padreId,g:null};
+  var h='<div style="font-size:12px;color:var(--muted)">Sucursal de</div>';
+  h+='<div style="font-size:17px;font-weight:800;color:var(--cyan);margin-bottom:14px">'+es(p.nm)+'</div>';
+  h+='<div class="fg"><label class="fl">Nombre de la sucursal</label><input class="fi" id="sucNm" value="'+es(p.nm+' - Sucursal')+'"></div>';
+  h+='<div class="fg"><label class="fl">Direccion *</label><input class="fi" id="sucDir" placeholder="Calle y numero"></div>';
+  h+='<div class="fg"><label class="fl">Telefono <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="sucTel" type="tel" inputmode="numeric" value="'+es(p.tel||'')+'"></div>';
+  h+='<button class="btn sec" onclick="sucursalMarcarGPS()" style="margin:0 0 6px">&#128205; Estoy en el local (marcar GPS)</button>';
+  h+='<div id="sucGpsEstado" style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px">Si no estas en el local, guardala igual y ubicala despues.</div>';
+  h+='<button class="btn" onclick="guardarNuevaSucursal()" style="margin:0">Guardar sucursal</button>';
+  oMod('Nueva sucursal',h);
+}
+function sucursalMarcarGPS(){
+  var e=document.getElementById('sucGpsEstado');if(e)e.textContent='Obteniendo ubicacion...';
+  capturarGPS(function(g){
+    var e2=document.getElementById('sucGpsEstado');
+    if(!g){if(e2)e2.innerHTML='<span style="color:var(--red)">No se pudo obtener el GPS. Verifica que este activado.</span>';return;}
+    sucNueva.g=g;
+    if(e2)e2.innerHTML='<span style="color:var(--green)">Ubicacion marcada'+(g.acc?' (precision '+g.acc+'m)':'')+'</span>';
+  });
+}
+function guardarNuevaSucursal(){
+  var p=D.cli.find(function(x){return x.id===sucNueva.padre;});
+  if(!p){toast('Elegi primero el negocio principal','err');return;}
+  var nm=(document.getElementById('sucNm').value||'').trim();
+  var dir=(document.getElementById('sucDir').value||'').trim();
+  var tel=(document.getElementById('sucTel').value||'').trim();
+  if(!nm){toast('Poné un nombre para la sucursal','err');return;}
+  if(!dir){toast('Poné la direccion de la sucursal','err');return;}
+  var tid=uid();
+  // Hereda de la casa central lo que casi siempre se repite (rubro, productos,
+  // zona, vendedor); lo propio de la sucursal es la direccion y su ubicacion.
+  var nuevo={id:tid,nm:nm,fan:p.fan||'',tel:tel,tel2:'',email:'',dir:dir,bar:p.bar||'',tipo:p.tipo||'',prov:p.prov||'',ciu:p.ciu||'',
+    esP:p.esP,etapaEmbudo:p.esP?(p.etapaEmbudo||'Nuevo Prospecto'):'Cliente Activo',
+    calU:'',trans:'',comp:p.comp||'',cFr:'',cEx:'',obs:'',uv:'',ul:'',prox:'',ing:today(),ex:{},deu:false,
+    vend:p.vend||(D.user?D.user.n:''),prods:(p.prods||[]).slice(),fuente:p.fuente||fuenteVigente(),
+    sucursalDe:p.id,eliminado:false,agendado:false};
+  if(sucNueva.g){nuevo.lat=sucNueva.g.lat;nuevo.lng=sucNueva.g.lng;nuevo.gpsAcc=sucNueva.g.acc;nuevo.gpsF=sucNueva.g.f;nuevo.gpsOk=true;}
+  D.cli.push(nuevo);
+  fsSetContacto(nuevo);
+  logEvento('prospecto',tid,nm,'Alta de sucursal de '+p.nm,'','');
+  cMod();
+  toast('Sucursal creada'+(sucNueva.g?' y ubicada en el mapa':''),'ok');
+  sucNueva={padre:null,g:null};
+  if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGC();else renderVC();
+}
+function nuevoProsNormal(){
   gpsPend=null; // La ubicacion ya NO se captura automaticamente: se confirma a mano
   // (con "Estoy en el local"), asi cargar desde casa no marca una ubicacion equivocada.
   var tid=uid();
@@ -2388,6 +2511,7 @@ function aFicha(id){
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 8px">';
   h+='<button class="btn" onclick="cMod();editarContacto(\''+id+'\')" style="margin:0">Editar</button>';
   h+='<button class="btn sec" onclick="cMod();abrirVisita(\''+id+'\')" style="margin:0">Registrar visita</button>';
+  h+='<button class="btn sec" onclick="verEnMapaMini(\''+id+'\')" style="margin:0">&#128506; Ver en el mapa</button>';
   if(c.tel){
     h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin:0">Enviar WhatsApp</button>';
     h+='<button class="btn sec" onclick="exportarVCard(\''+id+'\')" style="margin:0">📋 Agregar a agenda</button>';
@@ -4462,6 +4586,7 @@ function renderVG(){
       h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan?' <span class="lfan">· '+es(c.fan)+'</span>':'')+'</div>';
       h+='<div class="lsub">'+(c.dir?'📍 '+es(c.dir):es(c.ciu||c.bar||''))+'</div></div>';
       h+='<span class="tg '+(c.esP?'o':'g')+' ltg">'+(c.esP?'PROS':'CLI')+'</span>';
+      h+='<button class="lx" title="Pasar al dia siguiente" style="color:var(--cyan)" onclick="event.stopPropagation();pasarAlDiaSiguiente(\''+g.cid+'\',\''+gDiaActivo+'\')">▶</button>';
       h+='<button class="lx" onclick="event.stopPropagation();quitarDeGira(\''+g.cid+'\',\''+gDiaActivo+'\')">✕</button>';
       h+='</div>';
     });
@@ -4488,6 +4613,7 @@ function renderVG(){
       h+='<div style="font-size:11px;color:var(--muted)">'+es(c.tipo||'')+(c.ciu?' · '+es(c.ciu):c.bar?' · '+es(c.bar):'')+'</div>';
       h+='</div>';
       h+='<span class="tg '+(c.esP?'o':'g')+' ltg">'+(c.esP?'PROS':'CLI')+'</span>';
+      h+='<button title="Pasar al dia siguiente" onclick="pasarAlDiaSiguiente(\''+g.cid+'\',\''+gDiaActivo+'\')" style="background:none;border:none;color:var(--cyan);font-size:15px;cursor:pointer;padding:4px;flex-shrink:0">▶</button>';
       h+='<button onclick="quitarDeGira(\''+g.cid+'\',\''+gDiaActivo+'\')" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0">✕</button>';
       h+='</div>';
       // Datos clave
@@ -4538,6 +4664,27 @@ function moverEnGira(cid,fecha,dir){
   var tmp=dd[idx].orden;dd[idx].orden=dd[idx2].orden;dd[idx2].orden=tmp;
   fsSetGira(dd[idx]);
   fsSetGira(dd[idx2]);
+  renderVG();
+}
+// Pasa una parada al dia siguiente sin tener que entrar a ese dia y buscarla:
+// sirve para reprogramar rapido lo que quedo sin visitar. Si cae sabado o
+// domingo, se corre al lunes (la gira trabaja de lunes a viernes).
+function pasarAlDiaSiguiente(cid,fecha){
+  if(giraBloqueada(cid,fecha))return;
+  var d=new Date(fecha+'T12:00:00');
+  d.setDate(d.getDate()+1);
+  var sig=ajustarDiaHabil(fechaLocal(d));
+  var c=D.cli.find(function(x){return x.id===cid;});
+  if(D.gira.some(function(g){return g.cid===cid&&g.fecha===sig;})){
+    toast('Ya estaba agendado para el '+fmt(sig),'err');
+    return;
+  }
+  D.gira=D.gira.filter(function(g){return !(g.cid===cid&&g.fecha===fecha);});
+  fsDelGira(cid,fecha);
+  var ng={cid:cid,fecha:sig,orden:D.gira.filter(function(x){return x.fecha===sig;}).length};
+  D.gira.push(ng);
+  fsSetGira(ng);
+  toast((c?c.nm:'Contacto')+' pasado al '+fmt(sig),'ok');
   renderVG();
 }
 function verDiaGira(fecha){
