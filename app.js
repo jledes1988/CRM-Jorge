@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='6.7 - 14/08/2026';
+var VERSION='6.8 - 20/08/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -481,6 +481,23 @@ function migrarInstagramARedesSociales(){
   fsSetConfig({fuentes:D.cfg.fuentes,instagramMigrado:true}); // solo lo que cambia
   if(afectados.length)logEvento('edicion','','','Fuente renombrada: Instagram -> Redes Sociales en '+afectados.length+' contactos','','');
 }
+// Migracion unica: contactos que quedaron con la etapa "Cliente Activo" pero que
+// por dentro seguian marcados como prospecto (se les cambio la etapa desde el
+// desplegable de la visita, que antes no hacia la conversion). Sin esto no
+// aparecen en el filtro Clientes, ni en el dashboard, ni en la exportacion.
+function migrarClientesActivos(){
+  if(!D.user||D.user.r!=='admin')return;
+  if(!CFG_CARGADA)return; // sin la config real no se sabe si ya se hizo: no tocar nada
+  if(D.cfg&&D.cfg.clientesActivosMigradoV>=1)return;
+  var arreglados=D.cli.filter(function(c){return c.esP&&c.etapaEmbudo==='Cliente Activo'&&!c.eliminado;});
+  arreglados.forEach(function(c){c.esP=false;fsSetContacto(c);});
+  D.cfg.clientesActivosMigradoV=1;
+  fsSetConfig({clientesActivosMigradoV:1});
+  if(arreglados.length){
+    logEvento('conversion','','','Convertidos a Cliente: '+arreglados.length+' contactos que tenian la etapa Cliente Activo pero seguian como prospecto','Prospecto','Cliente Activo');
+    toast(arreglados.length+' contactos pasaron a Cliente','ok');
+  }
+}
 function migrarCategorias(){
   if(!D.user||D.user.r!=='admin')return;
   if(!CFG_CARGADA)return; // sin la config real no se sabe si ya se hizo: no tocar nada
@@ -662,6 +679,7 @@ function startApp(){
   try{migrarCategorias();}catch(e){}    // unifica categorias de negocio una sola vez (solo admin)
   try{migrarFuente();}catch(e){}        // marca los contactos existentes como Prospeccion directa (solo admin)
   try{migrarInstagramARedesSociales();}catch(e){} // renombra Instagram -> Redes Sociales (solo admin)
+  try{migrarClientesActivos();}catch(e){} // convierte los que tenian la etapa pero seguian como prospecto
   try{limpiarPassViejas();}catch(e){}   // borra de la base las contrasenas en texto plano
   if(D.user.r==='gerente'||D.user.r==='admin'){
     document.getElementById('sGerente').classList.add('on');
@@ -1331,7 +1349,10 @@ function guardarVisitaProspecto(id){
   var hoy=today();
   var v={id:uid(),cid:id,fecha:hoy,vend:D.user?D.user.n:'',tipo:'prospecto',vendio:vpVendio,obs:obs};
   var conv=false;
-  if(eta){v.eta=eta;c.etapaEmbudo=eta;}
+  // Elegir "Cliente Activo" en el desplegable tiene que convertirlo tambien por
+  // dentro. Si no, queda con la etapa puesta pero sigue contando como prospecto:
+  // no aparece en el filtro Clientes, ni en el dashboard, ni en la exportacion.
+  if(eta){v.eta=eta;c.etapaEmbudo=eta;if(eta==='Cliente Activo'&&c.esP){c.esP=false;v.conversion=true;conv=true;}}
   if(vpVendio===true){
     var fp=document.getElementById('vpFechaPed').value||hoy;
     v.fechaPedido=fp;c.uv=fp;
@@ -4162,7 +4183,11 @@ function wFin(){
   if(c){
     c.ul=v.fecha;
     if(v.vendio===true)c.uv=v.fecha;
-    if(v.eta)c.etapaEmbudo=v.eta;
+    if(v.eta){c.etapaEmbudo=v.eta;
+      // Misma regla que en la visita a prospecto: si el wizard lo dejo en
+      // "Cliente Activo", deja de ser prospecto tambien internamente.
+      if(v.eta==='Cliente Activo'&&c.esP){c.esP=false;v.conversion=true;}
+    }
     if(v.deu!==undefined)c.deu=v.deu;
     if(v.prox)v.prox=ajustarDiaHabil(v.prox);
     if(!v.prox&&v.vendio!==true){

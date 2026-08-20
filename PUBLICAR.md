@@ -1,96 +1,80 @@
-# CRM-Jorge — Publicar versión 6.7
+# CRM-Jorge — Publicar versión 6.8
 
-## ⚠️ Importante: probá esta versión antes de darla por buena
-
-Se me cayó la herramienta con la que normalmente verifico el código antes de
-entregártelo, así que esta entrega no pasó ese control automático (sí la
-revisé a mano). Cuando la subas, entrá y probá estas 4 cosas antes de seguir
-trabajando: que la app abra y aparezca el login, el botón "+", la pestaña
-Gira, y la ficha de un cliente. Si algo no abre, avisame y lo corrijo.
-
-Solo por las dudas: **antes de subir, en Config → Exportar backup**, guardate
-un respaldo. Es un minuto y te deja tranquilo.
+Esta entrega **sí pasó todos los controles** (la anterior no había podido, por
+la caída de la herramienta). Sintaxis correcta, ningún botón ni pantalla
+faltante, y además probé la corrección de clientes **simulándola sobre tu
+backup real** antes de entregártela.
 
 ## Subir a GitHub
 
 Borrá de Descargas los `app.js` / `index.html` / `estilos.css` viejos.
-Después: repo → **Add file → Upload files** → arrastrá los 3 archivos sueltos
-→ confirmá el reemplazo → Commit changes. Ctrl+Shift+R para verificar que
-diga **versión 6.7**.
+Repo → **Add file → Upload files** → los 3 archivos sueltos → Commit.
+Ctrl+Shift+R y verificá que diga **versión 6.8**.
 
 ---
 
-## 4. Por qué se te borraba la configuración (lo importante)
+## Lo nuevo de esta versión
 
-**Lo encontré, y no era casualidad.** El problema no es "la actualización":
-es una condición que se dispara justo cuando recargás la app con caché nuevo
-(o sea, después de cada actualización) y encima la conexión viene lenta.
+### Los 39 contactos que estaban descolgados
 
-Lo que pasaba, en criollo: al abrir, la app arranca con la configuración de
-fábrica escrita en el código, y enseguida se la reemplaza por la tuya cuando
-baja de la base de datos. Pero había un temporizador de seguridad: si en 8
-segundos no bajó todo, arranca igual. Si tu configuración no llegó a bajar en
-esos 8 segundos, la app quedaba con la de fábrica en memoria — y entonces
-corrían unas rutinas de mantenimiento que **guardaban esa configuración de
-fábrica en la base, encima de la tuya**. Ahí perdías los mensajes, los links
-de catálogo, los tipos de negocio que habías borrado y las marcas de freezer.
+Tenías 39 contactos con la etapa **"Cliente Activo"** en el embudo que por
+dentro seguían marcados como prospecto. Por eso el dashboard te mostraba 17
+clientes en vez de 56, y la exportación para facturación te iba a traer 14.
 
-Tenías razón en preocuparte: era exactamente el tipo de falla que podía
-escalar a algo más grave.
+**Encontré por dónde se colaban:** cuando en la visita a un prospecto se
+elegía "Cliente Activo" en el desplegable de etapa, se cambiaba la etapa pero
+no se lo convertía en cliente. La conversión solo pasaba si además se tildaba
+el casillero de "convertir". Casi todos los descolgados son de Pablo, así que
+seguramente usó el desplegable sin tildar el casillero — un camino que la app
+le dejaba usar mal.
 
-**Lo que hice (tres capas, no una):**
+Hice las dos cosas:
 
-1. **Un candado**: ahora la app marca explícitamente cuándo tu configuración
-   bajó de verdad de la base. Mientras eso no pase, **ninguna escritura de
-   configuración sale** — prefiere no guardar antes que pisarte los datos.
-2. **Las rutinas de mantenimiento ya no vuelcan la configuración entera.**
-   Antes, para cambiar un solo dato, reescribían todo. Ahora cada una escribe
-   únicamente el campo que le corresponde.
-3. **Esas rutinas no corren si la configuración no cargó**, así tampoco tocan
-   contactos por error.
+1. **Se corrigen los 39 automáticamente** la primera vez que entres como
+   admin. Vas a ver un aviso "39 contactos pasaron a Cliente". Corre una sola
+   vez y no toca a nadie más (los otros 198 prospectos quedan intactos).
+2. **Se cerró la vía.** De ahora en más, elegir "Cliente Activo" por cualquier
+   camino lo convierte en cliente, sin depender de que alguien se acuerde de
+   tildar un casillero.
 
-Además, si tocás "Guardar" en Config en un momento en que todavía no cargó,
-te va a avisar con un cartel ("esperá unos segundos y volvé a guardar") en
-vez de fallar en silencio y hacerte creer que guardaste.
+> Después de esto, tu tablero va a pasar de 17 a **56 clientes**. No es que
+> aparecieron clientes nuevos: son los que ya tenías, contados bien.
 
-**Ojo con esto:** el arreglo evita que se vuelva a romper de acá en adelante,
-pero no puede recuperar lo que ya se perdió. Cargá una última vez los
-mensajes, los links y los catálogos — esta vez deberían quedar.
+### Lo que traía la 6.7 (va incluido acá)
 
----
-
-## 1. Flecha para pasar al día siguiente (Gira)
-
-Al lado de ▲▼ ahora hay un **▶**. Lo tocás y esa parada se va al día
-siguiente, sin entrar a ese día ni buscarla. Si cae sábado o domingo, se corre
-solo al lunes. Está en las dos vistas (lista y tarjetas).
-
-## 2. "Ver en el mapa" desde la ficha
-
-Botón nuevo en la ficha del cliente (vendedor y admin). Abre una ventanita con
-la **dirección en grande** arriba y un mini-mapa marcando el punto — sin
-sacarte de donde estabas. Abajo tiene un botón para abrirlo en Google Maps si
-querés que te lleve hasta ahí.
-
-## 3. Sucursales desde el botón "+"
-
-Cambió como pediste: ahora el "+" pregunta primero **"Local nuevo"** o
-**"Sucursal de un negocio que ya tengo"**. Si elegís sucursal: buscás el
-negocio principal, ponés nombre y dirección, y te ofrece "Estoy en el local"
-para marcar el GPS ahí mismo. El resto (rubro, productos, zona, vendedor,
-teléfono) se hereda solo de la casa central.
-
-En el mapa aparece como punto más chico del color de la casa central, y al
-tocarlo dice "Sucursal de ..." con el botón para ver la ficha.
-
-> El campo "Es sucursal de" que había puesto en el formulario de edición sigue
-> estando, por si necesitás vincular un local que ya cargaste antes.
+- **Candado anti-pisada de configuración** — el arreglo grande del que
+  hablamos: ninguna escritura de configuración sale hasta que la tuya haya
+  bajado de la base, las rutinas internas escriben solo el campo que cambian,
+  y te avisa si intentás guardar antes de tiempo.
+- **Flecha ▶ en la Gira** para pasar una parada al día siguiente (probado:
+  si cae viernes, salta solo al lunes).
+- **"Ver en el mapa"** en la ficha, con la dirección en grande y mini-mapa,
+  sin sacarte de donde estabas.
+- **Sucursales desde el "+"**: elegís "Local nuevo" o "Sucursal", y en ese
+  caso solo cargás negocio principal, dirección y GPS.
 
 ---
+
+## Lo que vi en tu backup (para que lo tengas presente)
+
+- **Mensajes y links**: los mensajes por etapa están en el texto de fábrica y
+  los links de catálogo vacíos — eso es lo que se había perdido. El mensaje de
+  franquiciados que escribiste **sí sobrevivió**. Cargá los otros una última
+  vez; con el candado nuevo ya no se vuelven a borrar.
+- **Catálogos sanos**: los 11 tipos de negocio, 4 marcas y 5 productos que
+  dejaste están correctos. No los toqué.
+- **Ubicaciones**: 108 de 254 contactos están en el mapa. Quedan **146 sin
+  ubicación confirmada**, y 31 sin dirección cargada. Si querés apoyarte más
+  en el mapa para armar las giras, ahí hay trabajo pendiente de campo.
+- **Freezers**: 15 comodatos, ninguno entregado todavía (14 por firmar + 1 por
+  entregar). Me confirmaste que es correcto. Tené en cuenta que hasta que no
+  haya alguno en "activo", la barra sigue en 0 de 80 y el punto celeste de
+  "cliente con freezer" no se ve en el mapa — no es un error.
+- **Sin duplicados de teléfono.** La base está limpia en ese aspecto.
 
 ## Pendiente de tu lado
 
-- Cargar los mensajes de WhatsApp, el de franquiciados y los links de catálogo
-  (última vez).
-- Horarios / CUIT / condición impositiva de cada cliente, para el export de facturación.
+- Cargar mensajes por etapa y links de catálogo (última vez).
+- Horarios / CUIT / condición impositiva de los clientes, para el export de
+  facturación (hoy 0 de 56 lo tienen).
 - Asignar Mañana/Tarde a las paradas de la Gira.
