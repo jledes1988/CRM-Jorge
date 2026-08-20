@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='6.8 - 20/08/2026';
+var VERSION='6.9 - 20/08/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -680,6 +680,9 @@ function startApp(){
   try{migrarFuente();}catch(e){}        // marca los contactos existentes como Prospeccion directa (solo admin)
   try{migrarInstagramARedesSociales();}catch(e){} // renombra Instagram -> Redes Sociales (solo admin)
   try{migrarClientesActivos();}catch(e){} // convierte los que tenian la etapa pero seguian como prospecto
+  // Aviso de backup: se espera unos segundos para que la config real ya haya
+  // bajado (si no, parece que nunca se hizo un backup y avisaria de mas).
+  setTimeout(function(){try{if(CFG_CARGADA)chequearAvisoBackup();}catch(e){}},4000);
   try{limpiarPassViejas();}catch(e){}   // borra de la base las contrasenas en texto plano
   if(D.user.r==='gerente'||D.user.r==='admin'){
     document.getElementById('sGerente').classList.add('on');
@@ -3686,7 +3689,35 @@ function expJSON(){
   var blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
   var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='CRM-backup-'+today()+'.json';
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  // Queda registrada la fecha para poder avisar cuando pase demasiado tiempo.
+  // Se guarda tambien en el equipo por si la escritura a la base no sale.
+  D.cfg.ultimoBackup=today();
+  ls('jbk',today());
+  fsSetConfig({ultimoBackup:today()});
   toast('Backup exportado','ok');
+}
+// ── AVISO DE BACKUP ───────────────────────────────────────────────────
+// El plan gratuito de Firebase NO hace copias de seguridad automaticas: el
+// backup que exporta el admin es la unica copia que existe. Por eso, si pasa
+// mas de una semana, la app avisa al entrar en vez de depender de la memoria.
+var DIAS_AVISO_BACKUP=7;
+function diasDesdeBackup(){
+  var ref=D.cfg.ultimoBackup||lg('jbk',null);
+  if(!ref)return null; // nunca se hizo
+  return dias(ref);
+}
+function chequearAvisoBackup(){
+  if(!D.user||D.user.r!=='admin')return;
+  var d=diasDesdeBackup();
+  if(d!==null&&d<DIAS_AVISO_BACKUP)return;
+  var txt=d===null
+    ? 'Todavia no hay ningun backup guardado de este sistema.'
+    : 'El ultimo backup se hizo hace '+d+' dias.';
+  var h='<div style="font-size:14px;margin-bottom:10px">'+txt+'</div>';
+  h+='<div style="font-size:13px;color:var(--muted);margin-bottom:14px">El plan gratuito de Firebase no guarda copias de seguridad automaticas: este archivo es la unica copia que existe. Guardalo en tu Drive, no solo en la computadora.</div>';
+  h+='<button class="btn" onclick="cMod();expJSON()" style="margin:0 0 8px">Exportar backup ahora</button>';
+  h+='<button class="btn sec" onclick="cMod()" style="margin:0">Despues</button>';
+  oMod('Copia de seguridad',h);
 }
 function impJSON(inp){
   if(!inp.files||!inp.files[0])return;
