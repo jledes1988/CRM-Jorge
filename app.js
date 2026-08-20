@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='6.9 - 20/08/2026';
+var VERSION='7.0 - 20/08/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -3791,26 +3791,29 @@ function elimItemCat(cat,idx){
   renderGCfg();toast('Eliminado','ok');
 }
 
+// Cada guardado escribe SOLO su propio campo (no vuelca la configuracion entera).
+// Asi, aunque algo raro pase con el resto, no se arrastran datos viejos encima.
 function savMsgs(){
+  if(!D.cfg.msgs)D.cfg.msgs={};
   ET.concat(SA).forEach(function(et,i){var el=document.getElementById('msg'+i);if(el)D.cfg.msgs[et]=el.value;});
-  fsSetConfig(D.cfg);
+  fsSetConfig({msgs:D.cfg.msgs});
   toast('Mensajes guardados','ok');
 }
 function savMsgPedido(){
   var el=document.getElementById('msgPedidoCfg');
   if(el)D.cfg.msgPedido=el.value;
-  fsSetConfig(D.cfg);toast('Mensaje de pedido guardado','ok');
+  fsSetConfig({msgPedido:D.cfg.msgPedido});toast('Mensaje de pedido guardado','ok');
 }
 function savMsgFranquicia(){
   var el=document.getElementById('msgFranquiciaCfg');
   if(el)D.cfg.msgFranquicia=el.value;
-  fsSetConfig(D.cfg);toast('Mensaje de franquiciados guardado','ok');
+  fsSetConfig({msgFranquicia:D.cfg.msgFranquicia});toast('Mensaje de franquiciados guardado','ok');
 }
 function savLinks(){
   if(!D.cfg.msgLinks)D.cfg.msgLinks={};
   var lt=document.getElementById('linkTodos');if(lt)D.cfg.msgLinks.todos=lt.value.trim();
   ET.concat(SA).forEach(function(et,j){var el=document.getElementById('lnk'+j);if(el&&el.value!==undefined)D.cfg.msgLinks[et]=el.value.trim();});
-  fsSetConfig(D.cfg);toast('Links guardados','ok');
+  fsSetConfig({msgLinks:D.cfg.msgLinks});toast('Links guardados','ok');
 }
 function togActivo(uid2){
   var u=D.usrs.find(function(x){return x.id==uid2;});if(!u)return;
@@ -3897,12 +3900,14 @@ function envWA(id){
   var c=D.cli.find(function(x){return x.id===id;});
   if(!c){toast('Contacto no encontrado','err');return;}
   if(!c.tel){toast('Este contacto no tiene telefono','err');return;}
-  var esFranquiciaContactado=c.esP&&c.fuente==='Franquicia'&&c.etapaEmbudo==='Contactado'&&D.cfg.msgFranquicia;
+  // El mensaje sale SIEMPRE del que esta configurado para la etapa del contacto,
+  // sea prospecto o cliente. Antes, a los clientes se les mandaba un texto fijo
+  // escrito en el codigo y se ignoraba el mensaje grabado para "Cliente Activo".
+  var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
+  var esFranquiciaContactado=c.fuente==='Franquicia'&&eta==='Contactado'&&D.cfg.msgFranquicia;
   var mBase=esFranquiciaContactado
     ? D.cfg.msgFranquicia
-    : c.esP
-      ?((D.cfg.msgs&&D.cfg.msgs[c.etapaEmbudo])||MD[c.etapaEmbudo]||'Hola! Te escribo de Sei Tu Helados.')
-      :'Hola! Te escribo de Sei Tu Helados.';
+    : ((D.cfg.msgs&&D.cfg.msgs[eta])||MD[eta]||'Hola! Te escribo de Sei Tu Helados.');
   // Reemplazar variables personalizadas en el mensaje
   var m=mBase
     .replace(/\{nombre\}/gi, c.fan||c.nm||'')   // dueño/encargado
@@ -3911,7 +3916,9 @@ function envWA(id){
     .replace(/\{etapa\}/gi, c.etapaEmbudo||'')    // etapa del embudo
     .replace(/\{vendedor\}/gi, c.vend||'');       // vendedor asignado
   // Agregar link de catálogo si existe para esta etapa
-  var link=(D.cfg.msgLinks&&c.esP&&c.etapaEmbudo)?D.cfg.msgLinks[c.etapaEmbudo]||D.cfg.msgLinks['todos']||'':D.cfg.msgLinks&&D.cfg.msgLinks['todos']||'';
+  // Mismo criterio que el mensaje: primero el link propio de la etapa (sea
+  // prospecto o cliente) y, si esa etapa no tiene uno, el link general.
+  var link=(D.cfg.msgLinks&&(D.cfg.msgLinks[eta]||D.cfg.msgLinks['todos']))||'';
   if(link)m=m+'\n\n'+link;
   window.open('https://wa.me/54'+c.tel.replace(/\D/g,'')+'?text='+encodeURIComponent(m),'_blank');
 }

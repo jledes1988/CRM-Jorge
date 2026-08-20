@@ -1,94 +1,68 @@
-# CRM-Jorge — Versión 6.9 + reglas de seguridad
+# CRM-Jorge — Versión 7.0
 
-Son **dos cosas separadas**: primero subís los archivos (como siempre), y
-después, aparte, pegás las reglas nuevas en Firebase. Hacelas en ese orden.
+## Por qué te salían otros mensajes
 
----
+**No era que no se guardaran: se guardaron bien. El problema era al enviarlos.**
 
-## PARTE 1 · Subir los archivos
+En el código había una regla vieja: si el contacto era **cliente** (no
+prospecto), el WhatsApp salía siempre con un texto fijo escrito en el
+programa — *"Hola! Te escribo de Sei Tu Helados."* — y se ignoraba por
+completo el mensaje que vos hubieras grabado para "Cliente Activo".
 
-Borrá de Descargas los `app.js` / `index.html` / `estilos.css` viejos.
-Repo → **Add file → Upload files** → los 3 archivos sueltos → Commit.
-Ctrl+Shift+R y verificá que diga **versión 6.9**.
+Antes casi no se notaba porque tenías 17 clientes. Pero **ayer convertimos 39
+contactos a cliente**, así que de golpe pasaron a ser 56 los que recibían el
+texto genérico. Por eso lo viste justo ahora: lo destapó el cambio que
+hicimos ayer.
 
-### Qué trae
+Corregido: ahora el mensaje sale **siempre** del que está configurado para la
+etapa del contacto, sea prospecto o cliente. Si grabaste un mensaje para
+"Cliente Activo", ese es el que se manda.
 
-**Aviso de backup automático.** Si pasaron más de 7 días desde el último
-backup (o si nunca hiciste uno), al entrar como admin te aparece un cartel con
-el botón para exportarlo ahí mismo. Deja de depender de que te acuerdes. La
-fecha queda registrada sola cada vez que exportás.
+Lo mismo pasaba con los **links de catálogo**: a los clientes solo se les
+adjuntaba el link general y se ignoraba el específico de su etapa. También
+quedó arreglado.
 
-Lo demás ya venía de la 6.8: la corrección de los 39 contactos, el candado
-anti-pisada de configuración, la flecha ▶ en la Gira, "Ver en el mapa" en la
-ficha y las sucursales desde el "+".
+> Tus mensajes grabados están intactos, no hace falta que los vuelvas a
+> escribir. Con esta versión ya salen como los guardaste.
 
-> Nota: la 6.8 pasó todos los controles automáticos. Los agregados del aviso
-> de backup (6.9) los revisé línea por línea pero no pude correr el control
-> automático porque se me volvió a caer la herramienta. Son cambios chicos y
-> acotados. Aun así: al entrar, fijate que la app abra normal.
+## Además
 
----
-
-## PARTE 2 · Reglas de seguridad (Firebase)
-
-Esto es lo que hablamos: hoy **cualquiera de los cuatro usuarios tiene permiso
-técnico para borrar toda la base**. El "solo lectura" del Gerente es un cartel
-en la pantalla, no una cerradura en el servidor.
-
-### Cómo se ponen
-
-1. Firebase Console → proyecto **crm-jorge-63a40** → **Firestore Database**
-2. Pestaña **Reglas**
-3. **Antes de tocar nada: copiá las reglas que tenés ahora** y guardalas en un
-   bloc de notas. Son 10 líneas. Esa es tu marcha atrás.
-4. Borrá todo y pegá el contenido de `REGLAS-FIRESTORE.txt`
-5. **Publicar**
-
-### Probá inmediatamente después (importante)
-
-Apenas publiques, entrá a la app y verificá:
-
-- Que puedas **abrir un contacto** (lectura)
-- Que puedas **editar y guardar** un contacto (escritura)
-- Que puedas **guardar algo en Config** (configuración)
-- Pedile a Pablo o Chamu que **carguen un prospecto** desde su celular
-
-Si algo da error de permisos, volvé a pegar las reglas viejas que guardaste en
-el paso 3 y avisame. No te quedes con la app rota.
-
-### Qué cambia
-
-| | Antes | Ahora |
-|---|---|---|
-| Configuración (mensajes, catálogos, links) | cualquiera | solo vos |
-| Borrar contactos | cualquiera | vos, o el vendedor los suyos |
-| Borrar visitas / comodatos | cualquiera | solo vos |
-| Alterar el historial (log) | cualquiera | nadie |
-| Cargar y editar en la calle | cualquiera | vendedores y vos (igual que antes) |
-| Un Gerente que se cree después | escribía todo | solo lectura de verdad |
-
-Fijate que la configuración pasa a ser tuya y de nadie más: eso es una segunda
-cerradura contra el problema que tuvimos.
-
-### La contra, para que la tengas clara
-
-Las reglas tienen los emails escritos adentro. **Si sumás un vendedor nuevo,
-hay que agregarlo ahí** o no va a poder cargar nada. Son dos líneas y te digo
-cómo cuando pase. Es el precio de que el servidor sepa quién es quién.
+Los botones de guardar de Config (mensajes, mensaje de pedido, franquiciados,
+links) ahora **graban solo su propio campo** en vez de volcar toda la
+configuración. Es la misma lógica que aplicamos a las rutinas internas: menos
+superficie donde algo pueda pisar otra cosa.
 
 ---
 
-## Sobre los backups (resumen de lo que hablamos)
+## Subir
 
-- Tu plan de Firebase es el gratuito (Spark). **Google no guarda copias de tu
-  base.** Las funciones de recuperación existen pero requieren el plan pago.
-- O sea: **el archivo que exportás es la única copia que existe.**
-- Frecuencia recomendada: **viernes**, y siempre antes de subir una
-  actualización. Guardalo en Drive, no solo en la computadora.
-- La app ahora te lo recuerda, pero el archivo lo tenés que bajar y guardar vos.
+Borrá de Descargas los archivos viejos. Repo → **Add file → Upload files** →
+los 3 sueltos → Commit. Ctrl+Shift+R y verificá que diga **versión 7.0**.
+
+### Probá esto apenas subas
+
+1. Abrí un **cliente** (de los 56) y tocá "Enviar WhatsApp" → tiene que salir
+   el mensaje que vos grabaste para "Cliente Activo", no el genérico.
+2. Abrí un **prospecto** y probá lo mismo → el mensaje de su etapa.
+3. Si tenés un link de catálogo cargado, fijate que se adjunte.
+
+> Como la vez pasada: no pude correr el control automático porque se me cayó
+> la herramienta otra vez. Revisé los cambios línea por línea y son acotados
+> (tocan solo el envío de WhatsApp y los botones de guardar de Config), pero
+> conviene que verifiques que la app abra normal.
+
+---
+
+## Recordá
+
+- **Backup**: los viernes, en la carpeta del escritorio que armaste. Bien ahí.
+  Subilo también a Drive de vez en cuando: si se rompe el disco, la carpeta
+  del escritorio se va con él.
+- **Reglas de Firestore**: si todavía no las pegaste, están en
+  `REGLAS-FIRESTORE.txt`. Acordate de copiar las viejas antes, por las dudas.
 
 ## Pendiente de tu lado
 
-- Cargar mensajes por etapa y links de catálogo.
+- Links de catálogo (los mensajes ya están).
 - Horarios / CUIT / condición impositiva de los clientes.
 - Asignar Mañana/Tarde a las paradas de la Gira.
