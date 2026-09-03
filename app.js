@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='7.0 - 20/08/2026';
+var VERSION='7.1 - 20/08/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -55,7 +55,9 @@ function debugLog(tipo,msg){
   if(DEBUG_LOG.length>50)DEBUG_LOG=DEBUG_LOG.slice(0,50);
 }
 var FS_LOADED_COUNT=0;
-var FS_COLLECTIONS=['contactos','visitas','comodatos','gira','log','usuarios','config'];
+// El historial y el recorrido GPS ya NO se descargan al abrir la app: son las dos
+// colecciones que crecen sin techo y casi nunca se miran. Se cargan a pedido.
+var FS_COLLECTIONS=['contactos','visitas','comodatos','gira','usuarios','config'];
 
 function fsBootMsg(t){var e=document.getElementById('sBootMsg');if(e)e.textContent=t;}
 
@@ -66,6 +68,44 @@ function fsOnFirstLoad(){
     fsArrancarApp();
   }
 }
+
+// ── CARGA A PEDIDO ────────────────────────────────────────────────────
+// El historial (log) y el recorrido GPS son las colecciones que mas crecen y
+// que casi nunca se miran. Descargarlas al abrir la app consumia la mitad de
+// la cuota diaria de lecturas. Ahora se traen solo cuando se necesitan.
+var LOG_CARGADO=false;
+function cargarLogCompleto(cb){
+  if(LOG_CARGADO){if(cb)cb();return;}
+  if(!fsDB){LOG_CARGADO=true;if(cb)cb();return;}
+  setSyncDot('pending');
+  fsDB.collection('log').get().then(function(snap){
+    D.log=fsSnapToArr(snap).sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
+    LOG_CARGADO=true;setSyncDot('ok');
+    if(cb)cb();
+  }).catch(function(e){
+    setSyncDot('error');debugLog('error','log get: '+e.message);
+    toast('No se pudo cargar el historial','err');
+    if(cb)cb();
+  });
+}
+// Trae los puntos GPS de UN dia puntual (no todo el historico de recorridos).
+function cargarRecorridoDia(dia,cb){
+  if(!fsDB){if(cb)cb();return;}
+  setSyncDot('pending');
+  fsDB.collection('recorrido').where('f','==',dia).get().then(function(snap){
+    D.rec=fsSnapToArr(snap);
+    setSyncDot('ok');
+    if(cb)cb();
+  }).catch(function(e){
+    setSyncDot('error');debugLog('error','recorrido get: '+e.message);
+    toast('No se pudo cargar el recorrido','err');
+    if(cb)cb();
+  });
+}
+// Tope diario de puntos: antes se contaba sobre D.rec (que ya no se descarga).
+// Ahora se lleva la cuenta en el propio equipo, que es donde se generan.
+function puntosHoyLocal(){return Number(lg('jrec_'+today(),0))||0;}
+function sumarPuntoHoyLocal(){ls('jrec_'+today(),puntosHoyLocal()+1);}
 
 // Convierte snapshot de coleccion en array, usando doc.id como id del registro
 function fsSnapToArr(snap){
@@ -88,8 +128,10 @@ function fsSetupListeners(){
   },8000);
 
   // Wrapper que SIEMPRE llama fsOnFirstLoad, incluso con error
-  function safeSnap(colName,onSuccess,onError){
-    fsDB.collection(colName).onSnapshot(
+  function safeSnap(colName,onSuccess,queryFn){
+    var ref=fsDB.collection(colName);
+    if(queryFn)ref=queryFn(ref);
+    ref.onSnapshot(
       function(snap){
         try{onSuccess(snap);}catch(e){debugLog('error',colName+' parse: '+e.message);}
         DEBUG_LASTSYNC[colName]=new Date().toISOString();
@@ -102,6 +144,13 @@ function fsSetupListeners(){
     );
   }
 
+  // Cuanto historial se trae. El admin necesita mas para los informes; el vendedor
+  // trabaja con lo reciente. Asi el volumen deja de crecer para siempre.
+  var _esAdminSes=!!(AUTH_USER&&AUTH_USER.email==='jorge.ledesmagd@gmail.com');
+  function _hace(n){var d=new Date();d.setDate(d.getDate()-n);return fechaLocal(d);}
+  var DESDE_VIS=_hace(_esAdminSes?365:120);
+  var DESDE_GIRA=_hace(45);
+
   safeSnap('contactos',function(snap){
     D.cli=fsSnapToArr(snap);
     normalizarDatos();
@@ -111,7 +160,7 @@ function fsSetupListeners(){
   safeSnap('visitas',function(snap){
     D.vis=fsSnapToArr(snap);
     if(FS_READY)refrescarVistaActual();
-  });
+  },function(ref){return ref.where('fecha','>=',DESDE_VIS);});
 
   safeSnap('comodatos',function(snap){
     D.com=fsSnapToArr(snap);
@@ -121,16 +170,9 @@ function fsSetupListeners(){
   safeSnap('gira',function(snap){
     D.gira=fsSnapToArr(snap);
     if(FS_READY)refrescarVistaActual();
-  });
+  },function(ref){return ref.where('fecha','>=',DESDE_GIRA);});
 
-  safeSnap('recorrido',function(snap){
-    D.rec=fsSnapToArr(snap);
-    if(FS_READY&&recorridoActivo&&recorridoActivo.vend)refrescarVistaActual();
-  });
-
-  safeSnap('log',function(snap){
-    D.log=fsSnapToArr(snap).sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
-  });
+  // recorrido y log: NO se suscriben aca. Ver cargarRecorridoDia() y cargarLogCompleto().
 
   var USUARIOS_DEFAULT=[
     {id:1,n:'JL',u:'jl',email:'jorge.ledesmagd@gmail.com',r:'admin',activo:true,creado:'2026-06-01',ua:''},
@@ -1656,8 +1698,16 @@ function barraRecorridoHTML(){
   h+='</div>';
   return h;
 }
-function setRecorridoVend(v){recorridoActivo.vend=v;if(!recorridoActivo.dia)recorridoActivo.dia=today();giraVerActiva={vend:'',dia:''};renderGM();}
-function setRecorridoDia(d){recorridoActivo.dia=d;renderGM();}
+function setRecorridoVend(v){
+  recorridoActivo.vend=v;
+  if(!recorridoActivo.dia)recorridoActivo.dia=today();
+  giraVerActiva={vend:'',dia:''};
+  if(v)cargarRecorridoDia(recorridoActivo.dia,renderGM);else renderGM();
+}
+function setRecorridoDia(d){
+  recorridoActivo.dia=d;
+  if(recorridoActivo.vend)cargarRecorridoDia(d,renderGM);else renderGM();
+}
 function salirRecorrido(){recorridoActivo={vend:'',dia:''};renderGM();}
 function pintarRecorrido(mapa,capaVieja,vend,dia){
   if(capaVieja)mapa.removeLayer(capaVieja);
@@ -1735,8 +1785,7 @@ function tomarPuntoRecorrido(){
   if(!D.user||D.user.r!=='vendedor')return;
   if(document.hidden)return;
   var hoy=today();
-  var hoyPts=D.rec.filter(function(p){return p.vend===D.user.u&&p.f===hoy;});
-  if(hoyPts.length>=REC_MAX_DIA)return;
+  if(puntosHoyLocal()>=REC_MAX_DIA)return;
   capturarGPS(function(g){
     if(!g)return;
     if(recUltimaPos){
@@ -1745,6 +1794,7 @@ function tomarPuntoRecorrido(){
     }
     var pt={id:D.user.u+'_'+Date.now(),vend:D.user.u,lat:g.lat,lng:g.lng,f:hoy,t:Date.now()};
     D.rec.push(pt);
+    sumarPuntoHoyLocal();
     recUltimaPos={lat:g.lat,lng:g.lng};
     fsAddRecorrido(pt);
   });
@@ -3685,6 +3735,13 @@ function abrirDebug(){
   oMod('Modo Debug',h);
 }
 function expJSON(){
+  // El historial ya no se descarga al abrir la app, asi que hay que traerlo
+  // ahora para que el backup salga completo y no a medias.
+  if(!LOG_CARGADO){
+    toast('Preparando backup completo...','ok');
+    cargarLogCompleto(function(){expJSON();});
+    return;
+  }
   var backup={cli:D.cli,vis:D.vis,com:D.com,gira:D.gira,log:D.log,cfg:D.cfg,usrs:D.usrs,fecha:new Date().toISOString()};
   var blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
   var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='CRM-backup-'+today()+'.json';
@@ -4104,8 +4161,19 @@ function pintarGiraPlanVendedor(mapa,capaVieja,vendUsuario,dia){
 function logDeContacto(cid){
   return D.log.filter(function(e){return e.cid===cid;}).slice().reverse();
 }
+// Carga el historial y vuelve a abrir la ficha para mostrarlo ya cargado.
+function verHistorialContacto(cid){
+  cargarLogCompleto(function(){
+    if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))aFicha(cid);else abrirFichaV(cid);
+  });
+}
 // HTML del historial de trazabilidad
 function htmlLog(cid,limit){
+  // Si todavia no se trajo el historial, se ofrece cargarlo en vez de bajarlo
+  // siempre: es la coleccion mas pesada y la que menos se consulta.
+  if(!LOG_CARGADO){
+    return '<button class="sm" onclick="verHistorialContacto(\''+cid+'\')" style="font-size:11px">Ver historial de cambios</button>';
+  }
   var entries=logDeContacto(cid).slice(0,limit||20);
   if(!entries.length)return '<div style="color:var(--muted);font-size:12px">Sin historial registrado</div>';
   var tipoCol={visita:'var(--cyan)',etapa:'var(--purple)',conversion:'var(--green)',prospecto:'var(--orange)',venta:'var(--green)',comodato:'var(--yellow)',reasignacion:'var(--orange)',modificacion:'var(--muted)'};
