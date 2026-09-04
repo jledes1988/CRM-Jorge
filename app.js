@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='7.1 - 20/08/2026';
+var VERSION='7.2 - 03/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -454,7 +454,67 @@ function calcInaccion(){
   out.sort(function(a,b){return(b.dias===null?9999:b.dias)-(a.dias===null?9999:a.dias);});
   return out;
 }
+// ── SEGUIMIENTO PENDIENTE (la segunda visita) ────────────────────────
+// El dato duro del negocio: los prospectos que compraron recibieron 2,7 visitas
+// y los que no compraron, 1,3. El 71% se visito UNA sola vez y quedo ahi.
+// Esta lista junta a los que ya tuvieron su primera visita y estan esperando
+// la siguiente, ordenados por los que hace mas tiempo que esperan.
+function visitasDe(cid){
+  return D.vis.filter(function(v){return v.cid===cid;});
+}
+function calcSeguimiento(){
+  var mc=misContactos();
+  var out=[];
+  mc.forEach(function(c){
+    if(!c.esP)return; // solo prospectos
+    var eta=c.etapaEmbudo||'Nuevo Prospecto';
+    if(eta==='No Le Interesa'||eta==='Perdido')return;
+    var n=visitasDe(c.id).length;
+    if(n===0)return;              // sin primera visita todavia
+    if(n>=3)return;               // ya viene con seguimiento
+    var d=dias(c.ul);
+    var venc=c.prox&&c.prox<today(); // tenia fecha agendada y paso
+    // Entra si la cita vencio, o si hace mas de 7 dias que no se lo toca
+    if(!venc&&(d===null||d<7))return;
+    out.push({c:c,visitas:n,dias:d,prox:c.prox||'',vencida:!!venc});
+  });
+  out.sort(function(a,b){return (b.dias===null?9999:b.dias)-(a.dias===null?9999:a.dias);});
+  return out;
+}
+function verSeguimiento(){
+  var lista=calcSeguimiento();
+  var h='';
+  if(!lista.length){h='<div class="empty">No hay seguimientos pendientes. Muy bien!</div>';}
+  else{
+    h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Ya los visitaste una vez y estan esperando la siguiente. Del que mas espera al que menos.</div>';
+    lista.forEach(function(it){
+      var c=it.c;
+      var col=it.dias===null?'var(--red)':it.dias>20?'var(--red)':it.dias>12?'var(--orange)':'var(--yellow)';
+      h+='<div class="cc" style="margin-bottom:8px;border-left:4px solid '+col+'">';
+      h+='<div style="margin-bottom:8px"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
+      if(c.fan)h+='<div style="font-size:13px;font-weight:700;color:var(--cyan)">'+es(c.fan)+'</div>';
+      h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">'+es(c.etapaEmbudo||'')+' &middot; '+it.visitas+' visita'+(it.visitas!==1?'s':'')+' &middot; <span style="color:'+col+'">'+(it.dias===null?'sin fecha':'hace '+it.dias+' dias')+'</span>'+(it.vencida?' &middot; <span style="color:var(--red)">cita vencida</span>':'')+'</div>';
+      if(c.dir)h+='<div style="font-size:11px;color:var(--muted)">&#128205; '+es(c.dir)+'</div>';
+      h+='</div>';
+      h+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
+      h+='<button class="sm g" onclick="agregarAGiraRapido(\''+c.id+'\',\'seg\')">+ Gira de hoy</button>';
+      h+='<button class="sm" onclick="cMod();abrirVisita(\''+c.id+'\')">Visitar</button>';
+      if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')">WhatsApp</button>';
+      h+='</div></div>';
+    });
+  }
+  oMod('Esperando segunda visita ('+lista.length+')',h);
+}
 function es(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+// Formatea un importe en pesos, con separador de miles.
+function plata(n){
+  n=Number(n)||0;
+  return '$'+n.toLocaleString('es-AR',{maximumFractionDigits:0});
+}
+// Suma lo facturado por un contacto (solo visitas con monto cargado)
+function facturadoDe(cid){
+  return D.vis.reduce(function(t,v){return t+((v.cid===cid&&v.vendio===true&&v.monto)?Number(v.monto):0);},0);
+}
 function h2r(h){return parseInt(h.slice(1,3),16)+','+parseInt(h.slice(3,5),16)+','+parseInt(h.slice(5,7),16);}
 function toast(m,t){var el=document.getElementById('toast');el.textContent=m;el.className='on';el.style.background=t==='err'?'rgba(248,113,113,.2)':t==='ok'?'rgba(74,222,128,.2)':'rgba(34,211,238,.15)';el.style.color=t==='err'?'var(--red)':t==='ok'?'var(--green)':'var(--cyan)';setTimeout(function(){el.className='';},2500);}
 // Exporta filas (array de arrays, primera fila = encabezados) a un .xlsx real.
@@ -811,6 +871,14 @@ function renderVH(){
   var misVis=D.vis.filter(function(v){return !D.user||v.vend===D.user.n;});
   var h='';
 
+  // Seguimiento pendiente: la segunda visita es donde se define la venta
+  var seg=calcSeguimiento();
+  if(seg.length){
+    h+='<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:var(--rsm);padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="verSeguimiento()">';
+    h+='<div><div style="font-size:13px;font-weight:700;color:var(--yellow)">&#128260; '+seg.length+' esperando segunda visita</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Los que ya visitaste una vez. Aca se define la venta.</div></div>';
+    h+='<span style="color:var(--yellow);font-size:20px">&rsaquo;</span></div>';
+  }
+
   // Alertas de inaccion (prospectos/clientes que se estan pasando por alto)
   var inac=calcInaccion();
   if(inac.length){
@@ -916,11 +984,12 @@ function verInaccion(){
 // Version rapida para usar dentro del panel de Sin Gestion: confirma con un
 // cartel nativo (no otro modal encima) y agrega a la gira de HOY sin cerrar
 // el panel — se refresca en el mismo lugar donde estaba.
-function agregarAGiraRapido(cid){
+function agregarAGiraRapido(cid,volverA){
   var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
   if(!confirm('Agregar "'+c.nm+'" a la gira de hoy?'))return;
   agregarAGira(cid,today());
-  verInaccion();
+  // Vuelve al panel desde el que se lo agrego, sin cerrarlo
+  if(volverA==='seg')verSeguimiento();else verInaccion();
 }
 // Historial: desplegable por mes -> lista de dias con actividad -> detalle en modal
 function toggleHistorialVH(){
@@ -1368,6 +1437,7 @@ function abrirVisitaProspecto(id){
   h+='<div id="vpNo" onclick="togVP(false)" style="padding:16px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:16px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">NO</div></div></div>';
   h+='<div id="vpVentaBox" style="display:none">';
   h+='<div class="fg"><label class="fl">Fecha de la venta</label><input class="fi" type="date" id="vpFechaPed" value="'+today()+'"></div>';
+  h+='<div class="fg"><label class="fl">Monto de la venta <span style="font-size:10px;color:var(--muted)">(opcional, sin puntos ni comas)</span></label><input class="fi" id="vpMonto" type="number" inputmode="numeric" min="0" step="1" placeholder="Ej: 45000"></div>';
   h+='<div class="fg"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px;font-weight:700">Convertir a Cliente Activo</span><label class="sw"><input type="checkbox" id="vpConv" checked><span class="sl3"></span></label></div><div style="font-size:12px;color:var(--muted);margin-top:4px">Si se convierte, pasa a la lista de clientes activos</div></div></div>';
   h+='<div class="fg"><label class="fl">Mover en el embudo</label>';
   h+='<select class="fi" id="vpEta"><option value="">Mantener etapa actual ('+es(c.etapaEmbudo||'Nuevo Prospecto')+')</option>';
@@ -1401,6 +1471,8 @@ function guardarVisitaProspecto(id){
   if(vpVendio===true){
     var fp=document.getElementById('vpFechaPed').value||hoy;
     v.fechaPedido=fp;c.uv=fp;
+    var mEl=document.getElementById('vpMonto');
+    if(mEl&&mEl.value!=='')v.monto=Number(mEl.value)||0;
     conv=document.getElementById('vpConv')&&document.getElementById('vpConv').checked;
     if(conv){c.esP=false;c.etapaEmbudo='Cliente Activo';v.eta='Cliente Activo';v.conversion=true;}
   }
@@ -2170,6 +2242,18 @@ function renderGD(){
     h+='<div class="sb"'+click+'><div class="sn" style="color:'+k.c+'">'+k.n+'</div><div class="sl2">'+es(k.l)+'</div></div>';
   });
   h+='</div>';
+  // Facturacion del periodo: solo cuenta las ventas que tienen monto cargado.
+  // Si hay ventas sin monto se avisa, para que el numero no se lea como total real.
+  var conMonto=ventas.filter(function(v){return v.monto;});
+  var totalFact=conMonto.reduce(function(t,v){return t+Number(v.monto||0);},0);
+  var ticket=conMonto.length?Math.round(totalFact/conMonto.length):0;
+  h+='<div class="sg" style="margin-bottom:14px">';
+  h+='<div class="sb"><div class="sn" style="color:var(--green);font-size:22px">'+plata(totalFact)+'</div><div class="sl2">Facturado en el periodo</div></div>';
+  h+='<div class="sb"><div class="sn" style="color:var(--cyan);font-size:22px">'+plata(ticket)+'</div><div class="sl2">Ticket promedio</div></div>';
+  h+='</div>';
+  if(ventas.length>conMonto.length){
+    h+='<div style="font-size:11px;color:var(--orange);margin:-6px 0 14px">&#9888; '+(ventas.length-conMonto.length)+' de '+ventas.length+' ventas del periodo no tienen monto cargado: la facturacion real es mayor.</div>';
+  }
   // Ranking vendedores
   if(vendedores.length){
     var rvh='<div class="bc">';
@@ -2455,6 +2539,58 @@ function limpiarGCFo(){gCFo={bar:[],comp:[],frez:[],tipNeg:[],eta:[],calU:[],fue
 // ── EXPORTAR CLIENTES PARA FACTURACION ─────────────────────────────────
 // Solo clientes activos (no prospectos, no eliminados), con los datos que
 // pide el alta en el sistema de facturacion.
+// ── SINCERAR CLIENTES SIN NINGUNA COMPRA ─────────────────────────────
+// Quedaron marcados como "Cliente Activo" contactos que nunca registraron un
+// pedido (en su mayoria por una conversion masiva anterior). Eso infla el
+// tablero. A diferencia de aquella vez, esta herramienta MUESTRA la lista
+// primero y recien despues aplica el cambio, uno por uno o todos juntos.
+function clientesSinCompra(){
+  return D.cli.filter(function(c){
+    return !c.esP && !c.eliminado && !c.uv;
+  }).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+}
+function revisarClientesSinCompra(){
+  var lista=clientesSinCompra();
+  var h='';
+  if(!lista.length){
+    h='<div class="empty">Todos los clientes tienen al menos una compra registrada.</div>';
+    oMod('Clientes sin compras',h);return;
+  }
+  h='<div style="font-size:13px;margin-bottom:8px">Estos <b>'+lista.length+'</b> figuran como Cliente Activo pero <b>nunca registraron un pedido</b>.</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Al devolverlos a prospecto pasan a la etapa Negociacion y vuelven a aparecer en el seguimiento. No se borra nada: si despues cargas una venta, se convierten solos.</div>';
+  h+='<button class="btn or" onclick="devolverTodosAProspecto()" style="margin:0 0 12px">Devolver los '+lista.length+' a prospecto</button>';
+  lista.forEach(function(c){
+    h+='<div style="display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted)">'+es(c.vend||'sin vendedor')+(c.ul?' &middot; ult. visita '+fmt(c.ul):' &middot; sin visitas')+'</div></div>';
+    h+='<button class="sm" onclick="devolverAProspecto(\''+c.id+'\')" style="font-size:10px;padding:3px 8px">Devolver</button>';
+    h+='</div>';
+  });
+  oMod('Clientes sin compras ('+lista.length+')',h);
+}
+function devolverAProspecto(id){
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  c.esP=true;
+  c.etapaEmbudo='Negociacion';
+  c._modBy=D.user?D.user.n:'?';c._modAt=new Date().toISOString();
+  fsSetContacto(c);
+  logEvento('etapa',c.id,c.nm,'Devuelto a prospecto: figuraba como cliente sin ninguna compra','Cliente Activo','Negociacion');
+  revisarClientesSinCompra();
+}
+function devolverTodosAProspecto(){
+  var lista=clientesSinCompra();
+  if(!lista.length)return;
+  if(!confirm('Devolver '+lista.length+' contactos a prospecto (etapa Negociacion)?\n\nSon los que figuran como cliente pero nunca registraron un pedido. Se puede revertir cargando una venta.'))return;
+  lista.forEach(function(c){
+    c.esP=true;c.etapaEmbudo='Negociacion';
+    c._modBy=D.user?D.user.n:'?';c._modAt=new Date().toISOString();
+    fsSetContacto(c);
+  });
+  logEvento('etapa','','','Sincerados '+lista.length+' contactos: figuraban como cliente sin ninguna compra','Cliente Activo','Negociacion');
+  toast(lista.length+' contactos devueltos a prospecto','ok');
+  cMod();
+  if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGC();else renderVC();
+}
 function exportarFacturacion(){
   var clientes=D.cli.filter(function(c){return !c.esP&&!c.eliminado;}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   if(!clientes.length){toast('No hay clientes para exportar','err');return;}
@@ -2577,6 +2713,8 @@ function aFicha(id){
   if(c.trans)h+='<div><div class="fl">Transito</div><div style="font-size:14px;font-weight:700">'+es(c.trans)+'</div></div>';
   if(c.ul)h+='<div><div class="fl">Ultima visita</div><div style="font-size:14px;font-weight:700">'+fmt(c.ul)+'</div></div>';
   if(c.uv)h+='<div><div class="fl">Ultima venta</div><div style="font-size:14px;font-weight:700;color:var(--green)">'+fmt(c.uv)+'</div></div>';
+  var _fact=facturadoDe(id);
+  if(_fact)h+='<div><div class="fl">Facturado (con monto cargado)</div><div style="font-size:14px;font-weight:700;color:var(--green)">'+plata(_fact)+'</div></div>';
   h+='</div>';
   if(c.prods&&c.prods.length)h+='<div class="fl">Vende</div><div style="font-size:13px;margin-bottom:10px">'+es(c.prods.join(' · '))+'</div>';
   h+=sucursalesInfoHTML(c,'aFicha');
@@ -2609,7 +2747,7 @@ function aFicha(id){
   vs.forEach(function(v){
     h+='<div class="vh"><div class="vhd">'+fmt(v.fecha)+(v.vend?' · '+es(v.vend):'')+'</div>';
     if(v.tipo==='cliente'){
-      h+='<div class="vhr">'+(v.vendio===true?'Venta realizada':v.vendio===false?'Sin venta':'Sin dato de venta')+'</div>';
+      h+='<div class="vhr">'+(v.vendio===true?('Venta realizada'+(v.monto?' &middot; <span style="color:var(--green)">'+plata(v.monto)+'</span>':'')):v.vendio===false?'Sin venta':'Sin dato de venta')+'</div>';
       if(v.vendio===false&&v.razones)h+='<div class="vhx">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>';
       if(v.iE)h+='<div class="vhx">Local ext: '+es(v.iE)+(v.iI?' · int: '+es(v.iI):'')+'</div>';
       if(v.frfX&&v.frfX!=='OK')h+='<div class="vhx" style="color:var(--orange)">Freezer ext: '+es(v.frfX)+'</div>';
@@ -3637,6 +3775,11 @@ function renderGCfg(){
   h+='<button class="btn sec" onclick="exportarFacturacion()" style="margin:0">Exportar clientes (.xlsx)</button>';
   h+='</div>';
 
+  h+='<div class="card"><div class="ct">CLIENTES SIN NINGUNA COMPRA</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Contactos marcados como Cliente Activo que nunca registraron un pedido. Infla el tablero y la exportacion para facturacion. Podes revisarlos y devolverlos a prospecto.</div>';
+  h+='<button class="btn sec" onclick="revisarClientesSinCompra()" style="margin:0">Revisar</button>';
+  h+='</div>';
+
   h+=auditoriaHTML();
 
   // ── MENSAJES WHATSAPP POR ETAPA ───────────────────────────────────
@@ -4562,10 +4705,10 @@ function aVisita(id){
     {sub:'Venta',
      render:function(){
        var rzH=rz.map(function(r){return ch(r,r,'nv',true,'');}).join('');
-       return '<div style="font-size:20px;font-weight:800;margin-bottom:14px">Venta</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px"><div id="bS" onclick="tgV(true)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">SI</div><div id="bN" onclick="tgV(false)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">NO</div></div><div id="nvS" style="display:none"><div class="ct">Motivo (podes elegir varios)</div><div class="chips">'+rzH+'</div><div id="nvO" style="display:none;margin-top:8px"><input class="fi" id="otroT" placeholder="Especifica el motivo..."></div></div><div class="fg" style="margin-top:14px"><label class="fl">Notas de la visita</label><textarea class="fi fta" id="ntV" placeholder="Observaciones, acuerdos..."></textarea></div><div class="fg"><label class="fl">Proxima visita</label><input class="fi" type="date" id="prV"></div><div class="sr"><span style="font-weight:700;color:var(--red)">Marcar como deudor</span><label class="sw"><input type="checkbox" id="chD"><span class="sl3"></span></label></div>';
+       return '<div style="font-size:20px;font-weight:800;margin-bottom:14px">Venta</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px"><div id="bS" onclick="tgV(true)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">SI</div><div id="bN" onclick="tgV(false)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">NO</div></div><div id="nvSi" style="display:none"><div class="fg"><label class="fl">Monto de la venta <span style="font-size:10px;color:var(--muted)">(opcional, sin puntos ni comas)</span></label><input class="fi" id="mtoV" type="number" inputmode="numeric" min="0" step="1" placeholder="Ej: 45000"></div></div><div id="nvS" style="display:none"><div class="ct">Motivo (podes elegir varios)</div><div class="chips">'+rzH+'</div><div id="nvO" style="display:none;margin-top:8px"><input class="fi" id="otroT" placeholder="Especifica el motivo..."></div></div><div class="fg" style="margin-top:14px"><label class="fl">Notas de la visita</label><textarea class="fi fta" id="ntV" placeholder="Observaciones, acuerdos..."></textarea></div><div class="fg"><label class="fl">Proxima visita</label><input class="fi" type="date" id="prV"></div><div class="sr"><span style="font-weight:700;color:var(--red)">Marcar como deudor</span><label class="sw"><input type="checkbox" id="chD"><span class="sl3"></span></label></div>';
      },
      init:function(){if(W.data.vendio===true)tgV(true);else if(W.data.vendio===false)tgV(false);},
-     sv:function(d){d.nt=document.getElementById('ntV').value;d.prox=document.getElementById('prV').value;d.deu=document.getElementById('chD').checked;if(d.vendio===false){d.razones=gcs('nv');var ot=document.getElementById('otroT');if(ot&&ot.value)d.otroM=ot.value;}}}
+     sv:function(d){d.nt=document.getElementById('ntV').value;d.prox=document.getElementById('prV').value;d.deu=document.getElementById('chD').checked;var _m=document.getElementById('mtoV');if(_m&&_m.value!==''&&d.vendio===true)d.monto=Number(_m.value)||0;if(d.vendio===false){d.razones=gcs('nv');var ot=document.getElementById('otroT');if(ot&&ot.value)d.otroM=ot.value;}}}
   ].filter(function(s){return !s.skip;}); // saca el paso freezer si no corresponde
   wInit(c.nm,steps,id,'cliente',false);
 }
@@ -4575,6 +4718,7 @@ function tgV(si){
   if(bS){bS.style.background=si?'rgba(74,222,128,.2)':'var(--s2)';bS.style.borderColor=si?'var(--green)':'var(--border)';bS.style.color=si?'var(--green)':'var(--muted)';}
   if(bN){bN.style.background=!si?'rgba(248,113,113,.2)':'var(--s2)';bN.style.borderColor=!si?'var(--red)':'var(--border)';bN.style.color=!si?'var(--red)':'var(--muted)';}
   if(sec)sec.style.display=si?'none':'block';
+  var secSi=document.getElementById('nvSi');if(secSi)secSi.style.display=si?'block':'none';
   setTimeout(function(){var op=document.querySelector('[data-id="Otro"][data-g="nv"]');if(op&&!op._ok){op._ok=true;op.addEventListener('click',function(){var r=document.getElementById('nvO');if(r)r.style.display=op.classList.contains('on')?'block':'none';});}},50);
 }
 
