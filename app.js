@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='7.2 - 03/09/2026';
+var VERSION='7.4 - 05/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -25,7 +25,53 @@ var ARG_CIU={
 var ARG_BARRIOS=['Alberdi','Alta Cordoba','Altamira','Altos de la Quintas','Argüello','Barra de Argüello','Bella Vista','Bimaco','Bo.13 de Diciembre','Bo.Ameghino','Bo.Calasanz Norte','Bo.Calasanz Sur','Bo.Centro','Bo.Cerro Chico','Bo.Cofico','Bo.Colinas de Velez Sarsfield','Bo.Don Bosco','Bo.General Paz','Bo.Jardin Espinosa','Bo.Jardin Hipico','Bo.Los Granados','Bo.Maipu','Bo.Muller','Bo.Naciones Unidas','Bo.Nueva Córdoba','Bo.Observatorio','Bo.Primero de Mayo','Bo.Residencial America','Bo.San Ignacio','Bo.San Lorenzo','Bo.San Vicente','Bo.Urca','Bo.Vallescondido','Bo.Velez Sarsfield','Bo.Villa Azalais','Bo.Villa Cornu','Bo.Villa del Parque','Bo.Villa Eucaristica','Bo.Villa Paez','Bo.Villa Progreso','Bo.Villa San Martin','Bo.Yapeyú','Casas Brujas','Centro','Cerro de las Rosas','Ciudad de los Cuartetos','Cofico','Colinas de Villa Allende','Country El Bosque','Country Los Cedros','Country Los Manantiales','Country Villa Allende','Estacion Juarez Celman','Ferreyra','General Bustos','General Fotheringham','General Paz','Guiñazú','Ituzaingo','Jardin','Jose Ignacio Diaz','Juniors','La Calera','La Floresta','Las Palmas','Lomas del Chateau','Los Bulevares','Los Cedros','Los Chasquis','Los Paraísos','Las Rosas','Manantiales','Marqués de Sobremonte','Mendiolaza','Miguel Cerro','Monte Cristo','Muller','Nicolas Avellaneda','Nuevo Cordoba','Palermo','Parque Capital','Parque Costanero','Parque Liceo','Parque San Martin','Parque Velez Sarsfield','Paso de los Andes','Patria Grande','Patricios','Pinar de Atenas','Pueyrredon','Quebrada Las Rosas','Quintas del Este','Quintas del Norte','Quintas del Sur','Ricardo Rojas','Rivadavia','Sagrada Familia','San Ignacio','San Juan Bautista','San Martin','San Roque','Santa Isabel','Santa Rita','Villa Acacias','Villa Allende','Villa Belgrano','Villa Bustos','Villa Cabrera','Villa Centenario','Villa Cornú','Villa del Prado','Villa Dolores','Villa Eucaristica','Villa Flores','Villa Fortabat','Villa Italia','Villa La Florida','Villa Libertad','Villa Maipú','Villa Martelli','Villa Páez','Villa Parque','Villa Poeta Lugones','Villa Progreso','Villa Rivera Indarte','Villa Rivadavia','Villa Sarmiento','Villa Sol','Villa Urquiza','Villa Warcalde','Yapeyú','Arguello','Colinas de Villa Allende'];
 
 var CFG={msgPedido:'Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!',barrios:['Nueva Cordoba','Cofico','Alta Cordoba','Alberdi','General Paz','Cerro de las Rosas','Urca','Villa Belgrano','Centro','Otro'],tipos:['Kiosco/Drugs/Almacén','Autoservicio','Supermercado','Minimercado','Mayorista','Bar/Resto','Parrilla','Cafeteria','Heladeria','Panaderia','Confiteria','Rotiseria','Estacion de servicio','Club/Escuela','Salón/Catering','Camping','Hotel','Hostel','Complejo turistico','Balneario','Distribuidor','Farmacia','Otro'],marcas:['Frare','Bambi','Ugarte','Propio','Otro'],razones:['Sin plata','Freezer lleno','Freezer roto','Sin tiempo','Sin interes','Precio','Otro'],fuentes:['Redes Sociales','WhatsApp','Referido','Prospeccion directa','Franquicia'],tiposProducto:['Helados','Panificacion','Fiambres y quesos','Bebidas','Congelados','Almacen','Golosinas','Lacteos','Otros'],msgs:Object.assign({},MD)};
-var D={user:null,usrs:[{id:1,n:'JL',u:'jl',email:'jorge.ledesmagd@gmail.com',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',email:'jledes.tf@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:3,n:'Chamu',u:'chamu',email:'jorge_500_df@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:4,n:'Pablo',u:'pablo',email:'pablodellacasa13@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],rec:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
+var PRODUCTOS_DEF=[
+  {id:'i01',n:'P de Agua',u:'caja x36',p:19758,linea:'Impulsivos',sab:[{s:'Frutilla',a:'paf'},{s:'Uva',a:'pau'},{s:'Limon',a:'pa limon'}]},
+  {id:'i02',n:'P Picolle / Seitufan',u:'caja x24',p:15031,linea:'Impulsivos',sab:[{s:'Frutilla',a:'piccole fru'},{s:'Anana',a:'piccole anana'},{s:'Naranja',a:'piccole nar'}]},
+  {id:'i03',n:'Frutifrozen',u:'caja x24',p:21473,linea:'Impulsivos',sab:[{s:'Frutilla',a:'pal frutifrocen'}]},
+  {id:'i04',n:'Palito Crema',u:'caja x24',p:17556,linea:'Impulsivos',sab:[{s:'Chocolate',a:'pal crema choco'},{s:'Super Crema',a:'pal crema super'},{s:'Frutilla',a:'pal crema fru'}]},
+  {id:'i05',n:'P Granizado',u:'caja x24',p:20050,linea:'Impulsivos',sab:[{s:'Americana',a:'pal granizado'}]},
+  {id:'i06',n:'P Light Funcion',u:'caja x24',p:33827,linea:'Impulsivos',sab:[{s:'',a:'pal light'}]},
+  {id:'i07',n:'P Bombon',u:'caja x24',p:26134,linea:'Impulsivos',sab:[{s:'',a:'pal bmb'}]},
+  {id:'i08',n:'P Bombon Croc',u:'caja x24',p:27623,linea:'Impulsivos',sab:[{s:'',a:'pal bmb croc'}]},
+  {id:'i09',n:'Copa x 220',u:'caja x12',p:25143,linea:'Impulsivos',sab:[{s:'Frutilla',a:'copa 220 fru'},{s:'Cookie',a:'copa 220 cookie'},{s:'Almendras',a:'copa 220 almendras'},{s:'Blanco DDL',a:'copa 220 blanco'}]},
+  {id:'i10',n:'Copita x 110',u:'caja x24',p:26286,linea:'Impulsivos',sab:[{s:'',a:'copita 110'}]},
+  {id:'i11',n:'Cono Tu (Flama)',u:'caja x14',p:28035,linea:'Impulsivos',sab:[{s:'Dulce de Leche',a:'cono tu ddl'},{s:'Americana',a:'cono tu amer'}]},
+  {id:'i12',n:'Pack Bomboncitos',u:'caja x8',p:48874,linea:'Impulsivos',sab:[{s:'Surtido',a:'bombocito surtido'},{s:'Americana',a:'bombocito amer'},{s:'Dulce de Leche',a:'bombocito ddl'},{s:'Menta',a:'bombocito menta'},{s:'Pistacho',a:'bombocito pistacho'}]},
+  {id:'i13',n:'Carita',u:'caja x20',p:20007,linea:'Impulsivos',sab:[{s:'Crema del Cielo',a:'carita cielo'},{s:'Frutilla',a:'carita frut'},{s:'Americana',a:'carita amer'},{s:'Dulce de Leche',a:'carita ddl'}]},
+  {id:'i14',n:'Sei Bom',u:'caja x16',p:27623,linea:'Impulsivos',sab:[{s:'Blanco',a:'pal seibom blanco'},{s:'Almendras',a:'pal seibom almendras'},{s:'Cookie',a:'pal seibom cookie'}]},
+  {id:'i15',n:'Sei Bom Pistacho',u:'caja x14',p:42765,linea:'Impulsivos',sab:[{s:'',a:'pal seibom pistacho'}]},
+  {id:'i16',n:'Frisky / Palito Extra Acido',u:'caja x24',p:19314,linea:'Impulsivos',sab:[{s:'',a:'pal acid'}]},
+  {id:'p01',n:'Pack Almendrado x8',u:'caja x6',p:47133,linea:'Postres',sab:[{s:'',a:'almendrado'}]},
+  {id:'p02',n:'Pack Tricolor x8',u:'caja x6',p:47133,linea:'Postres',sab:[{s:'',a:'tricolor'}]},
+  {id:'p03',n:'Pack Suizo x8',u:'caja x6',p:53049,linea:'Postres',sab:[{s:'',a:'suizo'}]},
+  {id:'p04',n:'Pack Escoces Cla y Nev x8',u:'caja x6',p:58991,linea:'Postres',sab:[{s:'',a:'escoces cla y nev'}]},
+  {id:'p05',n:'Pack Escoces Pistacho x8',u:'caja x6',p:58991,linea:'Postres',sab:[{s:'',a:'escoces pistacho'}]},
+  {id:'p06',n:'Mini Torta Cookies x8',u:'caja x6',p:58991,linea:'Postres',sab:[{s:'',a:'mini torta cookies'}]},
+  {id:'p07',n:'Pack Alfajor x8',u:'caja x6',p:58991,linea:'Postres',sab:[{s:'Clasico',a:'alfajor clasico'},{s:'Blanco',a:'alfajor blanco'}]},
+  {id:'p08',n:'Pack Alfajor Seichoc x8',u:'caja x6',p:79301,linea:'Postres',sab:[{s:'',a:'alfajor seichoc'}]},
+  {id:'p09',n:'Pack Barrita Sin TACC x8',u:'caja x6',p:53305,linea:'Postres',sab:[{s:'',a:'barrita sin tacc'}]},
+  {id:'p10',n:'Pack Tricolor Diet Fun',u:'caja x8',p:73398,linea:'Postres',sab:[{s:'',a:'tricolor diet'}]},
+  {id:'p11',n:'Torta Isabella / Cookies',u:'caja x6',p:61777,linea:'Postres',sab:[{s:'Frutilla y Vainilla',a:'torta isabella fru'},{s:'Chocolate y Vainilla',a:'torta isabella choco'},{s:'Cookies',a:'torta cookies'}]},
+  {id:'p12',n:'Torta Bombon / Lemon Pie',u:'caja x6',p:61777,linea:'Postres',sab:[{s:'Bombon',a:'torta bombon'},{s:'Lemon Pie',a:'torta lemon pie'}]},
+  {id:'p13',n:'Pack 0,750 Lts',u:'caja x8',p:48324,linea:'Postres',sab:[{s:'Choc y Vainilla',a:'pote choco vain'},{s:'Frutilla y Americana',a:'pote fru amer'},{s:'Choc y DDL',a:'pote choco ddl'},{s:'Limon',a:'pote limon'},{s:'Pistacho y Choc',a:'pote pist choco'}]},
+  {id:'p14',n:'Pack Cookies Premium 0,750 Lts',u:'caja x8',p:48435,linea:'Postres',sab:[{s:'Frutilla a la Crema',a:'premium fru'},{s:'Super Chocolate',a:'premium choco'},{s:'DDL Granizado',a:'premium ddl'},{s:'Crema Cookies con DDL',a:'premium cookies'}]},
+  {id:'p15',n:'Pack Pote Dubai 360cc',u:'caja x12',p:54337,linea:'Postres',sab:[{s:'Pistacho y Chocolate',a:'pote dubai'}]},
+  {id:'p16',n:'Pack 0,750 Lts Vegano',u:'caja x6',p:36256,linea:'Postres',sab:[{s:'Choc con Almendras y Vainilla',a:'pote vegano'}]},
+  {id:'p17',n:'Pack Pote Cormillot 360cc',u:'caja x12',p:58684,linea:'Postres',sab:[{s:'Frutilla y Vainilla',a:'cormillot fru'},{s:'Chocolate y Vainilla',a:'cormillot choco'}]},
+  {id:'p18',n:'Baldes x3 Lt',u:'unidad',p:11508,linea:'Postres',sab:[{s:'Americana',a:'balde3 amer'},{s:'DDL',a:'balde3 ddl'},{s:'Chocolate',a:'balde3 choco'},{s:'Frutilla',a:'balde3 fru'},{s:'Banana',a:'balde3 banana'},{s:'Flan',a:'balde3 flan'},{s:'Granizado',a:'balde3 granizado'},{s:'Tramontana',a:'balde3 tramontana'},{s:'Tiramisu',a:'balde3 tiramisu'}]},
+  {id:'p19',n:'Baldes x5 Lt',u:'unidad',p:16180,linea:'Postres',sab:[{s:'Americana',a:'balde5 amer'},{s:'DDL',a:'balde5 ddl'},{s:'Chocolate',a:'balde5 choco'},{s:'Frutilla',a:'balde5 fru'},{s:'Banana',a:'balde5 banana'},{s:'Flan',a:'balde5 flan'},{s:'Granizado',a:'balde5 granizado'}]},
+  {id:'p20',n:'Pote Frambuesas x12',u:'caja x12',p:76429,linea:'Postres',sab:[{s:'',a:'frambuesa'}]},
+  {id:'p21',n:'Baldes x2 Lt',u:'caja x9',p:103585,linea:'Postres',sab:[{s:'Pistacho',a:'balde2 pistacho'},{s:'Flan',a:'balde2 flan'},{s:'Crema Cookies',a:'balde2 cookies'}]},
+  {id:'p22',n:'Pote Tutto 3 Lts',u:'unidad',p:9900,linea:'Postres',sab:[{s:'',a:'pote tutto'}]},
+  {id:'l01',n:'Lata Comun',u:'lata',p:39295,linea:'Granel',sab:[{s:'Chocolate',a:'lata comun choco'},{s:'Dulce de Leche',a:'lata comun ddl'},{s:'Frutilla',a:'lata comun fru'},{s:'Americana',a:'lata comun amer'},{s:'Vainilla',a:'lata comun vain'}]},
+  {id:'l02',n:'Lata Especial',u:'lata',p:44707,linea:'Granel',sab:[{s:'Granizado',a:'lata esp granizado'},{s:'Tramontana',a:'lata esp tramontana'},{s:'Flan',a:'lata esp flan'}]},
+  {id:'l03',n:'Lata Super Especial',u:'lata',p:49719,linea:'Granel',sab:[{s:'Pistacho',a:'lata super pistacho'},{s:'Crema Cookies',a:'lata super cookies'},{s:'Tiramisu',a:'lata super tiramisu'}]},
+  {id:'l04',n:'Lata Licencias',u:'lata',p:52207,linea:'Granel',sab:[{s:'Licencia 1',a:'lata lic 1'},{s:'Licencia 2',a:'lata lic 2'}]}
+];
+// Materiales que se entregan en comodato: van en el pedido pero NO suman al total.
+var MATERIALES_DEF=['freezer + comodato','veleta','totem c/display','caja material pop','saltarines','cenefa','cartel impulsivos sei tu','display'];
+var D={user:null,usrs:[{id:1,n:'JL',u:'jl',email:'jorge.ledesmagd@gmail.com',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',email:'jledes.tf@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:3,n:'Chamu',u:'chamu',email:'jorge_500_df@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:4,n:'Pablo',u:'pablo',email:'pablodellacasa13@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],rec:[],ped:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
 
 // ════════════════════════════════════════════════════════════════════
 // FIREBASE / FIRESTORE - FUENTE UNICA DE DATOS EN TIEMPO REAL
@@ -57,7 +103,7 @@ function debugLog(tipo,msg){
 var FS_LOADED_COUNT=0;
 // El historial y el recorrido GPS ya NO se descargan al abrir la app: son las dos
 // colecciones que crecen sin techo y casi nunca se miran. Se cargan a pedido.
-var FS_COLLECTIONS=['contactos','visitas','comodatos','gira','usuarios','config'];
+var FS_COLLECTIONS=['contactos','visitas','comodatos','gira','pedidos','usuarios','config'];
 
 function fsBootMsg(t){var e=document.getElementById('sBootMsg');if(e)e.textContent=t;}
 
@@ -171,6 +217,11 @@ function fsSetupListeners(){
     D.gira=fsSnapToArr(snap);
     if(FS_READY)refrescarVistaActual();
   },function(ref){return ref.where('fecha','>=',DESDE_GIRA);});
+
+  safeSnap('pedidos',function(snap){
+    D.ped=fsSnapToArr(snap);
+    if(FS_READY)refrescarVistaActual();
+  },function(ref){return ref.where('fecha','>=',DESDE_VIS);});
 
   // recorrido y log: NO se suscriben aca. Ver cargarRecorridoDia() y cargarLogCompleto().
 
@@ -327,6 +378,20 @@ function fsDelComodato(id){
   return fsDB.collection('comodatos').doc(id).delete()
     .then(function(){setSyncDot('ok');})
     .catch(function(e){setSyncDot('error');});
+}
+// ── PEDIDOS ───────────────────────────────────────────────────────────
+function fsSetPedido(p){
+  if(soloLectura())return Promise.resolve();
+  if(!fsDB)return fsGuardaLocal();
+  setSyncDot('pending');
+  return fsDB.collection('pedidos').doc(p.id).set(p)
+    .then(function(){setSyncDot('ok');})
+    .catch(function(e){setSyncDot('error');debugLog('error','pedido write: '+e.message);toast('No se pudo guardar el pedido','err');});
+}
+function fsDelPedido(id){
+  if(soloLectura())return Promise.resolve();
+  if(!fsDB)return fsGuardaLocal();
+  return fsDB.collection('pedidos').doc(id).delete().catch(function(e){debugLog('error','pedido del: '+e.message);});
 }
 function fsSetGira(g){
   if(soloLectura())return Promise.resolve();
@@ -1197,6 +1262,7 @@ function abrirFichaV(id){
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
   h+='<button class="btn" onclick="cMod();abrirVisita(\''+id+'\')" style="margin:0">Registrar visita</button>';
   h+='<button class="btn sec" onclick="verEnMapaMini(\''+id+'\')" style="margin:0">&#128506; Ver en el mapa</button>';
+  h+='<button class="btn" onclick="cMod();abrirPedido(\''+id+'\')" style="margin:0;background:var(--green);color:#000">&#128230; Tomar pedido</button>';
   h+='<button class="btn sec" onclick="cMod();editarContacto(\''+id+'\')" style="margin:0">Editar</button>';
   if(c.tel){
     h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin:0">Enviar WhatsApp</button>';
@@ -2544,29 +2610,45 @@ function limpiarGCFo(){gCFo={bar:[],comp:[],frez:[],tipNeg:[],eta:[],calU:[],fue
 // pedido (en su mayoria por una conversion masiva anterior). Eso infla el
 // tablero. A diferencia de aquella vez, esta herramienta MUESTRA la lista
 // primero y recien despues aplica el cambio, uno por uno o todos juntos.
-function clientesSinCompra(){
+var reclasF={vend:'',soloSin:true};
+function clientesReclas(){
   return D.cli.filter(function(c){
-    return !c.esP && !c.eliminado && !c.uv;
+    if(c.esP||c.eliminado)return false;
+    if(reclasF.vend&&c.vend!==reclasF.vend)return false;
+    if(reclasF.soloSin&&c.uv)return false;
+    return true;
   }).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
 }
+function setReclasVend(v){reclasF.vend=v;revisarClientesSinCompra();}
+function togReclasSin(){reclasF.soloSin=!reclasF.soloSin;revisarClientesSinCompra();}
 function revisarClientesSinCompra(){
-  var lista=clientesSinCompra();
-  var h='';
+  var lista=clientesReclas();
+  var vends=D.usrs.filter(function(u){return u.r==='vendedor';});
+  var estilo='background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);padding:7px 10px;font-size:13px;width:100%';
+  var h='<div class="fg"><label class="fl">Vendedor</label><select id="reclasV" onchange="setReclasVend(this.value)" style="'+estilo+'">';
+  h+='<option value="">Todos</option>';
+  vends.forEach(function(u){h+='<option value="'+es(u.n)+'"'+(reclasF.vend===u.n?' selected':'')+'>'+es(u.n)+'</option>';});
+  h+='</select></div>';
+  h+='<div class="sr" style="margin-bottom:10px"><span style="font-size:13px">Solo los que nunca registraron un pedido</span><label class="sw"><input type="checkbox" '+(reclasF.soloSin?'checked':'')+' onchange="togReclasSin()"><span class="sl3"></span></label></div>';
   if(!lista.length){
-    h='<div class="empty">Todos los clientes tienen al menos una compra registrada.</div>';
-    oMod('Clientes sin compras',h);return;
+    h+='<div class="empty">No hay clientes que coincidan con ese filtro.</div>';
+    oMod('Reclasificar clientes',h);return;
   }
-  h='<div style="font-size:13px;margin-bottom:8px">Estos <b>'+lista.length+'</b> figuran como Cliente Activo pero <b>nunca registraron un pedido</b>.</div>';
-  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Al devolverlos a prospecto pasan a la etapa Negociacion y vuelven a aparecer en el seguimiento. No se borra nada: si despues cargas una venta, se convierten solos.</div>';
-  h+='<button class="btn or" onclick="devolverTodosAProspecto()" style="margin:0 0 12px">Devolver los '+lista.length+' a prospecto</button>';
+  var conCompra=lista.filter(function(c){return c.uv;}).length;
+  h+='<div style="font-size:13px;margin-bottom:6px"><b>'+lista.length+'</b> cliente'+(lista.length!==1?'s':'')+' seleccionado'+(lista.length!==1?'s':'')+'</div>';
+  if(conCompra){
+    h+='<div style="font-size:12px;color:var(--orange);margin-bottom:10px">&#9888; '+conCompra+' de ellos SI tienen compras registradas. Al pasarlos a prospecto las ventas quedan en el historial, pero dejan de contar como clientes.</div>';
+  }
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Pasan a etapa Negociacion y vuelven al seguimiento. Si despues les cargas un pedido, se convierten en clientes solos.</div>';
+  h+='<button class="btn or" onclick="devolverTodosAProspecto()" style="margin:0 0 12px">Pasar los '+lista.length+' a prospecto</button>';
   lista.forEach(function(c){
     h+='<div style="display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
     h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div>';
-    h+='<div style="font-size:11px;color:var(--muted)">'+es(c.vend||'sin vendedor')+(c.ul?' &middot; ult. visita '+fmt(c.ul):' &middot; sin visitas')+'</div></div>';
-    h+='<button class="sm" onclick="devolverAProspecto(\''+c.id+'\')" style="font-size:10px;padding:3px 8px">Devolver</button>';
+    h+='<div style="font-size:11px;color:var(--muted)">'+es(c.vend||'sin vendedor')+(c.uv?' &middot; <span style="color:var(--green)">compro '+fmt(c.uv)+'</span>':' &middot; sin compras')+'</div></div>';
+    h+='<button class="sm" onclick="devolverAProspecto(\''+c.id+'\')" style="font-size:10px;padding:3px 8px">Pasar</button>';
     h+='</div>';
   });
-  oMod('Clientes sin compras ('+lista.length+')',h);
+  oMod('Reclasificar clientes ('+lista.length+')',h);
 }
 function devolverAProspecto(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
@@ -2578,18 +2660,299 @@ function devolverAProspecto(id){
   revisarClientesSinCompra();
 }
 function devolverTodosAProspecto(){
-  var lista=clientesSinCompra();
+  var lista=clientesReclas();
   if(!lista.length)return;
-  if(!confirm('Devolver '+lista.length+' contactos a prospecto (etapa Negociacion)?\n\nSon los que figuran como cliente pero nunca registraron un pedido. Se puede revertir cargando una venta.'))return;
+  var conCompra=lista.filter(function(c){return c.uv;}).length;
+  var msg='Pasar '+lista.length+' contactos a prospecto (etapa Negociacion)?';
+  if(conCompra)msg+='\n\nOJO: '+conCompra+' de ellos tienen compras registradas.';
+  if(!confirm(msg))return;
   lista.forEach(function(c){
     c.esP=true;c.etapaEmbudo='Negociacion';
     c._modBy=D.user?D.user.n:'?';c._modAt=new Date().toISOString();
     fsSetContacto(c);
   });
-  logEvento('etapa','','','Sincerados '+lista.length+' contactos: figuraban como cliente sin ninguna compra','Cliente Activo','Negociacion');
-  toast(lista.length+' contactos devueltos a prospecto','ok');
+  logEvento('etapa','','','Reclasificados '+lista.length+' contactos de cliente a prospecto'+(reclasF.vend?' (vendedor '+reclasF.vend+')':''),'Cliente Activo','Negociacion');
+  toast(lista.length+' pasaron a prospecto','ok');
   cMod();
   if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGC();else renderVC();
+}
+// ══ TOMA DE PEDIDOS ═════════════════════════════════════════════════
+// El formato de salida replica el que se usa en el grupo de fabrica:
+// encabezado del cliente, materiales en comodato (sin costo) y despues
+// el pedido, con las abreviaciones de cada producto+sabor.
+function productos(){ return (D.cfg.productos&&D.cfg.productos.length)?D.cfg.productos:PRODUCTOS_DEF; }
+function materiales(){ return (D.cfg.materiales&&D.cfg.materiales.length)?D.cfg.materiales:MATERIALES_DEF; }
+function pedidosDe(cid){ return D.ped.filter(function(p){return p.cid===cid;}).sort(function(a,b){return(b.fecha||'').localeCompare(a.fecha||'');}); }
+function esPrimerPedido(cid){ return pedidosDe(cid).length===0; }
+
+var pedActual={cid:null,items:{},mats:{},notaPago:'',notaConv:'',obs:''};
+
+function abrirPedido(cid){
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  pedActual={cid:cid,items:{},mats:{},notaPago:'',notaConv:'',obs:''};
+  renderPedido();
+}
+function setPedLinea(l){pedActual.linea=l;renderPedido();}
+function setPedQty(key,v){
+  var n=Math.max(0,Number(v)||0);
+  if(n===0)delete pedActual.items[key];else pedActual.items[key]=n;
+  var t=document.getElementById('pedTotal');if(t)t.innerHTML=totalPedidoHTML();
+}
+function togMat(m){
+  if(pedActual.mats[m])delete pedActual.mats[m];else pedActual.mats[m]=1;
+  renderPedido();
+}
+function totalPedido(){
+  var tot=0;
+  productos().forEach(function(p){
+    (p.sab||[]).forEach(function(sb,i){
+      var k=p.id+'|'+i;
+      if(pedActual.items[k])tot+=pedActual.items[k]*Number(p.p||0);
+    });
+  });
+  return tot;
+}
+function totalPedidoHTML(){
+  var n=Object.keys(pedActual.items).length;
+  return '<span style="font-size:12px;color:var(--muted)">'+n+' renglon'+(n!==1?'es':'')+'</span> <span style="font-size:20px;font-weight:900;color:var(--green);margin-left:8px">'+plata(totalPedido())+'</span>';
+}
+function renderPedido(){
+  var c=D.cli.find(function(x){return x.id===pedActual.cid;});if(!c)return;
+  var lineas=['Impulsivos','Postres','Granel'];
+  if(!pedActual.linea)pedActual.linea=lineas[0];
+  var h='<div style="font-size:15px;font-weight:800">'+es(c.nm)+'</div>';
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">'+(esPrimerPedido(c.id)?'Primer pedido: se manda el encabezado completo':'Ya tuvo pedidos: encabezado corto')+'</div>';
+  // Materiales en comodato
+  h+='<div class="card" style="margin-bottom:10px"><div class="ct">MATERIALES EN COMODATO (sin costo)</div><div class="chips">';
+  materiales().forEach(function(m){
+    var on=!!pedActual.mats[m];
+    h+='<span class="ch'+(on?' on':'')+'" onclick="togMat(this.getAttribute(\'data-m\'))" data-m="'+es(m)+'" style="font-size:11px;padding:5px 9px">'+es(m)+'</span>';
+  });
+  h+='</div></div>';
+  // Tabs de linea
+  h+='<div style="display:flex;gap:6px;margin-bottom:8px">';
+  lineas.forEach(function(l){
+    h+='<button class="fb'+(pedActual.linea===l?' on':'')+'" onclick="setPedLinea(\''+l+'\')">'+l+'</button>';
+  });
+  h+='</div>';
+  // Productos de la linea, un renglon por sabor
+  h+='<div style="max-height:44vh;overflow-y:auto;-webkit-overflow-scrolling:touch">';
+  var hay=false;
+  productos().filter(function(p){return p.linea===pedActual.linea;}).forEach(function(p){
+    hay=true;
+    h+='<div style="margin-bottom:8px"><div style="font-size:12px;font-weight:800">'+es(p.n)+' <span style="font-weight:400;color:var(--muted)">'+es(p.u)+' · '+plata(p.p)+'</span></div>';
+    (p.sab||[]).forEach(function(sb,i){
+      var k=p.id+'|'+i;
+      var val=pedActual.items[k]||'';
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:3px 0 3px 8px">';
+      h+='<span style="flex:1;font-size:12px;color:var(--text)">'+es(sb.s||'(sin sabor)')+' <span style="color:var(--muted);font-size:10px">'+es(sb.a||'')+'</span></span>';
+      h+='<input type="number" min="0" inputmode="numeric" value="'+val+'" onchange="setPedQty(\''+k+'\',this.value)" style="width:62px;background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px;text-align:center;font-size:14px">';
+      h+='</div>';
+    });
+    h+='</div>';
+  });
+  if(!hay)h+='<div class="empty">No hay productos en esta linea</div>';
+  h+='</div>';
+  // Notas
+  h+='<div class="fg" style="margin-top:10px"><label class="fl">Forma de pago (va en negrita al pie)</label><input class="fi" id="pedPago" value="'+es(pedActual.notaPago)+'" placeholder="Ej: FIRMA, PAGA LOS LUNES"></div>';
+  h+='<div class="fg"><label class="fl">Convenio particular con el cliente <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="pedConv" value="'+es(pedActual.notaConv)+'" placeholder="Ej: entrega en efectivo o transf la mitad"></div>';
+  h+='<div class="fg"><label class="fl">Aclaraciones <span style="font-size:10px;color:var(--muted)">(ej: que productos acepta cambiar)</span></label><textarea class="fi fta" id="pedObs" rows="2" placeholder="Ej: carita cielo y seibom blanco los puede cambiar por otro">'+es(pedActual.obs)+'</textarea></div>';
+  h+='<div id="pedTotal" style="text-align:right;margin:10px 0">'+totalPedidoHTML()+'</div>';
+  h+='<button class="btn" onclick="guardarPedido()" style="margin:0 0 8px">Guardar pedido</button>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h+='<button class="btn sec" onclick="pedidoAFabrica()" style="margin:0">Copiar para fabrica</button>';
+  h+='<button class="btn sec" onclick="pedidoAlCliente()" style="margin:0">Enviar al cliente</button>';
+  h+='</div>';
+  oMod('Tomar pedido',h);
+}
+function leerNotas(){
+  var a=document.getElementById('pedPago'),b=document.getElementById('pedConv'),c=document.getElementById('pedObs');
+  if(a)pedActual.notaPago=a.value;
+  if(b)pedActual.notaConv=b.value;
+  if(c)pedActual.obs=c.value;
+}
+// Arma las lineas del pedido con la abreviacion de cada producto+sabor
+function lineasPedido(){
+  var out=[];
+  productos().forEach(function(p){
+    (p.sab||[]).forEach(function(sb,i){
+      var k=p.id+'|'+i, q=pedActual.items[k];
+      if(q)out.push(q+' '+(sb.a||((p.n+' '+(sb.s||'')).trim())));
+    });
+  });
+  return out;
+}
+function textoFabrica(){
+  var c=D.cli.find(function(x){return x.id===pedActual.cid;});if(!c)return '';
+  leerNotas();
+  var L=[];
+  if(esPrimerPedido(c.id)){
+    L.push('Nombre del negocio: '+(c.nm||''));
+    L.push('Direccion: '+(c.dir||''));
+    L.push('Localidad: '+(c.ciu||''));
+    L.push('Provincia: '+(c.prov||''));
+    L.push('Horarios: '+(c.horarios||''));
+    L.push('Datos del cliente: '+(c.fan||''));
+    L.push('Cuit: '+(c.cuit||''));
+    L.push('Condicion impositiva: '+(c.condImp||''));
+    L.push('Cel: '+(c.tel||''));
+  } else {
+    L.push(c.nm||'');
+    L.push(c.dir||'');
+    L.push('Horarios: '+(c.horarios||''));
+  }
+  var mats=Object.keys(pedActual.mats);
+  if(mats.length){L.push('');mats.forEach(function(m){L.push('1 '+m);});}
+  var li=lineasPedido();
+  if(li.length){L.push('');L.push('pedido');li.forEach(function(x){L.push(x);});}
+  if(pedActual.obs){L.push('');L.push(pedActual.obs);}
+  if(pedActual.notaPago){L.push('');L.push(pedActual.notaPago.toUpperCase());}
+  if(pedActual.notaConv){L.push(pedActual.notaConv);}
+  return L.join('\n');
+}
+function pedidoAFabrica(){
+  var t=textoFabrica();
+  if(!t){toast('Cargá algo primero','err');return;}
+  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Copialo y pegalo en el grupo de pedidos.</div>';
+  h+='<textarea class="fi fta" id="pedTxt" rows="16" style="font-size:12px;font-family:monospace">'+es(t)+'</textarea>';
+  h+='<button class="btn" onclick="copiarTexto(\'pedTxt\')" style="margin:10px 0 6px">Copiar al portapapeles</button>';
+  h+='<button class="btn sec" onclick="renderPedido()" style="margin:0">Volver al pedido</button>';
+  oMod('Pedido para fabrica',h);
+}
+function copiarTexto(id){
+  var el=document.getElementById(id);if(!el)return;
+  el.select();
+  try{document.execCommand('copy');toast('Copiado','ok');}
+  catch(e){toast('Copialo a mano','err');}
+}
+function pedidoAlCliente(){
+  var c=D.cli.find(function(x){return x.id===pedActual.cid;});if(!c)return;
+  if(!c.tel){toast('Este contacto no tiene telefono','err');return;}
+  leerNotas();
+  var li=lineasPedido();
+  if(!li.length){toast('Cargá el pedido primero','err');return;}
+  var m='Hola '+(c.fan||c.nm||'')+'! Te paso el detalle de tu pedido de Sei Tu:\n\n'+li.join('\n')+'\n\nTotal: '+plata(totalPedido());
+  if(pedActual.notaPago)m+='\n\n'+pedActual.notaPago;
+  window.open('https://wa.me/54'+c.tel.replace(/\D/g,'')+'?text='+encodeURIComponent(m),'_blank');
+}
+function guardarPedido(){
+  var c=D.cli.find(function(x){return x.id===pedActual.cid;});if(!c)return;
+  leerNotas();
+  var li=lineasPedido();
+  if(!li.length){toast('Cargá al menos un producto','err');return;}
+  var items=[];
+  productos().forEach(function(p){
+    (p.sab||[]).forEach(function(sb,i){
+      var k=p.id+'|'+i,q=pedActual.items[k];
+      if(q)items.push({id:p.id,n:p.n,s:sb.s||'',a:sb.a||'',u:p.u,p:Number(p.p||0),q:q});
+    });
+  });
+  var tot=totalPedido();
+  var ped={id:uid(),cid:c.id,cliente:c.nm,fecha:today(),vend:D.user?D.user.n:'',
+    items:items,total:tot,mats:Object.keys(pedActual.mats),
+    notaPago:pedActual.notaPago,notaConv:pedActual.notaConv,obs:pedActual.obs};
+  D.ped.push(ped);
+  fsSetPedido(ped);
+  // El pedido es una venta: actualiza la ultima compra del cliente
+  c.uv=ped.fecha;
+  if(c.esP){c.esP=false;c.etapaEmbudo='Cliente Activo';}
+  fsSetContacto(c);
+  logEvento('venta',c.id,c.nm,'Pedido cargado por '+plata(tot),'','');
+  toast('Pedido guardado: '+plata(tot),'ok');
+  cMod();
+  if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGC();else renderVC();
+}
+// ── EDITOR DEL CATALOGO ───────────────────────────────────────────────
+// Todo editable sin tocar codigo: precios, productos, sabores y abreviaciones.
+function guardarCatalogo(){
+  D.cfg.productos=productos();
+  fsSetConfig({productos:D.cfg.productos});
+}
+function abrirCatalogo(){
+  var ps=productos();
+  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">'+ps.length+' productos. Tocá uno para editar precio, sabores y abreviaciones.</div>';
+  h+='<button class="btn sec" onclick="nuevoProducto()" style="margin:0 0 12px">+ Producto nuevo</button>';
+  ['Impulsivos','Postres','Granel'].forEach(function(l){
+    var dl=ps.filter(function(p){return p.linea===l;});
+    if(!dl.length)return;
+    h+='<div style="font-size:11px;font-weight:700;color:var(--cyan);text-transform:uppercase;margin:12px 0 6px">'+l+' ('+dl.length+')</div>';
+    dl.forEach(function(p){
+      h+='<div onclick="editarProducto(\''+p.id+'\')" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer">';
+      h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(p.n)+'</div>';
+      h+='<div style="font-size:11px;color:var(--muted)">'+es(p.u)+' · '+(p.sab||[]).length+' sabor'+((p.sab||[]).length!==1?'es':'')+'</div></div>';
+      h+='<div style="font-size:13px;font-weight:700;color:var(--green)">'+plata(p.p)+'</div>';
+      h+='<span style="color:var(--muted)">&rsaquo;</span></div>';
+    });
+  });
+  oMod('Catalogo de productos',h);
+}
+function nuevoProducto(){
+  var ps=productos().slice();
+  ps.push({id:'x'+Date.now(),n:'Producto nuevo',u:'caja',p:0,linea:'Impulsivos',sab:[{s:'',a:''}]});
+  D.cfg.productos=ps;guardarCatalogo();
+  editarProducto(ps[ps.length-1].id);
+}
+function editarProducto(pid){
+  var p=productos().find(function(x){return x.id===pid;});if(!p)return;
+  var h='<div class="fg"><label class="fl">Nombre</label><input class="fi" id="cpN" value="'+es(p.n)+'"></div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h+='<div class="fg"><label class="fl">Unidad</label><input class="fi" id="cpU" value="'+es(p.u)+'" placeholder="caja x24"></div>';
+  h+='<div class="fg"><label class="fl">Precio</label><input class="fi" id="cpP" type="number" min="0" value="'+Number(p.p||0)+'"></div>';
+  h+='</div>';
+  h+='<div class="fg"><label class="fl">Linea</label><select class="fi" id="cpL">'+['Impulsivos','Postres','Granel'].map(function(l){return '<option'+(p.linea===l?' selected':'')+'>'+l+'</option>';}).join('')+'</select></div>';
+  h+='<div class="div"></div><div class="fl">SABORES <span style="font-size:10px;color:var(--muted)">(cada uno con su abreviacion para el pedido)</span></div>';
+  h+='<div id="cpSab">';
+  (p.sab||[]).forEach(function(sb,i){
+    h+='<div style="display:flex;gap:6px;margin-bottom:6px" data-i="'+i+'">';
+    h+='<input class="fi cpS" style="flex:1;margin:0" value="'+es(sb.s||'')+'" placeholder="Sabor">';
+    h+='<input class="fi cpA" style="flex:1;margin:0" value="'+es(sb.a||'')+'" placeholder="Abreviacion">';
+    h+='<button class="sm rd" onclick="quitarSabor(\''+pid+'\','+i+')" style="font-size:11px;padding:3px 8px">&#215;</button>';
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<button class="sm g" onclick="agregarSabor(\''+pid+'\')" style="font-size:11px;margin-bottom:12px">+ Sabor</button>';
+  h+='<button class="btn" onclick="guardarProducto(\''+pid+'\')" style="margin:0 0 8px">Guardar</button>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h+='<button class="btn sec" onclick="abrirCatalogo()" style="margin:0">Volver</button>';
+  h+='<button class="btn red" onclick="borrarProducto(\''+pid+'\')" style="margin:0">Eliminar</button>';
+  h+='</div>';
+  oMod('Editar producto',h);
+}
+function leerSaboresForm(){
+  var ss=document.querySelectorAll('#cpSab .cpS'), aa=document.querySelectorAll('#cpSab .cpA');
+  var out=[];
+  for(var i=0;i<ss.length;i++)out.push({s:ss[i].value.trim(),a:aa[i].value.trim()});
+  return out;
+}
+function agregarSabor(pid){
+  var p=productos().find(function(x){return x.id===pid;});if(!p)return;
+  p.sab=leerSaboresForm();p.sab.push({s:'',a:''});
+  D.cfg.productos=productos();guardarCatalogo();editarProducto(pid);
+}
+function quitarSabor(pid,i){
+  var p=productos().find(function(x){return x.id===pid;});if(!p)return;
+  p.sab=leerSaboresForm();p.sab.splice(i,1);
+  if(!p.sab.length)p.sab=[{s:'',a:''}];
+  D.cfg.productos=productos();guardarCatalogo();editarProducto(pid);
+}
+function guardarProducto(pid){
+  var ps=productos();
+  var p=ps.find(function(x){return x.id===pid;});if(!p)return;
+  p.n=document.getElementById('cpN').value.trim()||p.n;
+  p.u=document.getElementById('cpU').value.trim();
+  p.p=Number(document.getElementById('cpP').value)||0;
+  p.linea=document.getElementById('cpL').value;
+  p.sab=leerSaboresForm().filter(function(x){return x.s||x.a;});
+  if(!p.sab.length)p.sab=[{s:'',a:p.n}];
+  D.cfg.productos=ps;guardarCatalogo();
+  toast('Producto guardado','ok');
+  abrirCatalogo();
+}
+function borrarProducto(pid){
+  var p=productos().find(function(x){return x.id===pid;});if(!p)return;
+  if(!confirm('Eliminar "'+p.n+'" del catalogo?'))return;
+  D.cfg.productos=productos().filter(function(x){return x.id!==pid;});
+  guardarCatalogo();toast('Producto eliminado','ok');abrirCatalogo();
 }
 function exportarFacturacion(){
   var clientes=D.cli.filter(function(c){return !c.esP&&!c.eliminado;}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
@@ -2718,12 +3081,21 @@ function aFicha(id){
   h+='</div>';
   if(c.prods&&c.prods.length)h+='<div class="fl">Vende</div><div style="font-size:13px;margin-bottom:10px">'+es(c.prods.join(' · '))+'</div>';
   h+=sucursalesInfoHTML(c,'aFicha');
+  var _peds=pedidosDe(id);
+  if(_peds.length){
+    var _tp=_peds.reduce(function(t,p){return t+Number(p.total||0);},0);
+    h+='<div class="fl" style="margin-top:10px">Pedidos ('+_peds.length+') &middot; total '+plata(_tp)+'</div>';
+    _peds.slice(0,5).forEach(function(p){
+      h+='<div style="font-size:12px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05)">'+fmt(p.fecha)+' &middot; <span style="color:var(--green);font-weight:700">'+plata(p.total)+'</span> &middot; <span style="color:var(--muted)">'+(p.items?p.items.length:0)+' renglones</span></div>';
+    });
+  }
   if(c.comp){h+='<div class="fl">Competencia</div><div style="font-size:13px;margin-bottom:10px">'+es(c.comp)+'</div>';}
   if(c.obs){h+='<div class="fl">Observaciones</div><div style="font-size:13px;color:var(--muted);margin-bottom:10px">'+es(c.obs)+'</div>';}
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 8px">';
   h+='<button class="btn" onclick="cMod();editarContacto(\''+id+'\')" style="margin:0">Editar</button>';
   h+='<button class="btn sec" onclick="cMod();abrirVisita(\''+id+'\')" style="margin:0">Registrar visita</button>';
   h+='<button class="btn sec" onclick="verEnMapaMini(\''+id+'\')" style="margin:0">&#128506; Ver en el mapa</button>';
+  h+='<button class="btn" onclick="cMod();abrirPedido(\''+id+'\')" style="margin:0;background:var(--green);color:#000">&#128230; Tomar pedido</button>';
   if(c.tel){
     h+='<button class="btn sec" onclick="envWA(\''+id+'\')" style="margin:0">Enviar WhatsApp</button>';
     h+='<button class="btn sec" onclick="exportarVCard(\''+id+'\')" style="margin:0">📋 Agregar a agenda</button>';
@@ -3775,8 +4147,13 @@ function renderGCfg(){
   h+='<button class="btn sec" onclick="exportarFacturacion()" style="margin:0">Exportar clientes (.xlsx)</button>';
   h+='</div>';
 
-  h+='<div class="card"><div class="ct">CLIENTES SIN NINGUNA COMPRA</div>';
-  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Contactos marcados como Cliente Activo que nunca registraron un pedido. Infla el tablero y la exportacion para facturacion. Podes revisarlos y devolverlos a prospecto.</div>';
+  h+='<div class="card"><div class="ct">CATALOGO DE PRODUCTOS Y PRECIOS</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Precios, productos, sabores y las abreviaciones que se usan en el pedido a fabrica. Todo editable.</div>';
+  h+='<button class="btn sec" onclick="abrirCatalogo()" style="margin:0">Abrir catalogo</button>';
+  h+='</div>';
+
+  h+='<div class="card"><div class="ct">RECLASIFICAR CLIENTES</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Pasar contactos de Cliente Activo a prospecto. Filtra por vendedor y elegis si incluis a los que ya compraron. Siempre muestra la lista antes de aplicar.</div>';
   h+='<button class="btn sec" onclick="revisarClientesSinCompra()" style="margin:0">Revisar</button>';
   h+='</div>';
 
@@ -3885,7 +4262,7 @@ function expJSON(){
     cargarLogCompleto(function(){expJSON();});
     return;
   }
-  var backup={cli:D.cli,vis:D.vis,com:D.com,gira:D.gira,log:D.log,cfg:D.cfg,usrs:D.usrs,fecha:new Date().toISOString()};
+  var backup={cli:D.cli,vis:D.vis,com:D.com,gira:D.gira,ped:D.ped,log:D.log,cfg:D.cfg,usrs:D.usrs,fecha:new Date().toISOString()};
   var blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
   var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='CRM-backup-'+today()+'.json';
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
@@ -4900,7 +5277,7 @@ function renderVG(){
       h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--border)">';
       h+='<button onclick="abrirVisita(\''+g.cid+'\')" style="padding:12px;background:none;border:none;border-right:1px solid var(--border);color:var(--cyan);font-size:12px;font-weight:700;cursor:pointer">'+(yaVis?'✓ Ver visita':'Registrar visita')+'</button>';
       if(c.tel){
-        h+='<button onclick="enviarPedidoWA(\''+g.cid+'\')" style="padding:12px;background:none;border:none;color:var(--green);font-size:12px;font-weight:700;cursor:pointer">📦 Pedido WA</button>';
+        h+='<button onclick="abrirPedido(\''+g.cid+'\')" style="padding:12px;background:none;border:none;color:var(--green);font-size:12px;font-weight:700;cursor:pointer">📦 Tomar pedido</button>';
       } else {
         h+='<div style="padding:12px;text-align:center;font-size:11px;color:var(--muted)">Sin teléfono</div>';
       }
