@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='7.5 - 05/09/2026';
+var VERSION='7.6 - 06/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -686,6 +686,46 @@ function migrarClientesPabloAProspecto(){
     toast(lista.length+' contactos de Pablo pasaron a prospecto','ok');
   }
 }
+// ── REGLA: cliente sin pedido vuelve a prospecto ─────────────────────
+// Un contacto es Cliente Activo porque COMPRA. Si pasa mucho tiempo sin un
+// pedido registrado deja de serlo y vuelve al embudo como prospecto en
+// Negociacion, para trabajarlo de nuevo. Apenas se le carga un pedido vuelve
+// a ser cliente solo (eso ya lo hace guardarPedido).
+// Referencia: la fecha del ultimo pedido. Si nunca se le registro ninguno se
+// usa la fecha de ingreso, para no castigar al cliente recien dado de alta.
+var DIAS_RECAIDA_DEF=45;
+function diasRecaida(){
+  var n=D.cfg&&D.cfg.diasRecaida;
+  return (n!=null&&!isNaN(n)&&n>0)?n:DIAS_RECAIDA_DEF;
+}
+// Lista de clientes que hoy caerian con el plazo configurado. Se usa tanto
+// para aplicar la regla como para mostrar el impacto en Config antes de nada.
+function clientesEnRecaida(){
+  var lim=diasRecaida();
+  return D.cli.filter(function(c){
+    if(c.esP||c.eliminado)return false;
+    var ref=c.uv||c.ing;
+    if(!ref)return false;            // sin ninguna fecha no hay como juzgarlo: no se toca
+    var d=dias(ref);
+    return d!==null&&d>=lim;
+  });
+}
+function revisarClientesInactivos(){
+  if(!D.user||D.user.r!=='admin')return;   // una sola cabeza escribe, para no duplicar
+  if(!CFG_CARGADA)return;                  // sin la config real no se sabe el plazo elegido
+  var lista=clientesEnRecaida();
+  if(!lista.length)return;
+  var lim=diasRecaida();
+  lista.forEach(function(c){
+    var ref=c.uv||c.ing;
+    var motivo=c.uv?('sin pedidos desde '+fmt(c.uv)):('nunca registro un pedido, ingreso '+fmt(c.ing));
+    c.esP=true;c.etapaEmbudo='Negociacion';
+    c._modBy='Sistema';c._modAt=new Date().toISOString();
+    fsSetContacto(c);
+    logEvento('etapa',c.id,c.nm,'Volvio a prospecto por la regla de '+lim+' dias ('+motivo+')','Cliente Activo','Negociacion');
+  });
+  toast(lista.length+(lista.length===1?' cliente volvio':' clientes volvieron')+' a prospecto: '+lim+' dias sin pedido','ok');
+}
 function migrarCategorias(){
   if(!D.user||D.user.r!=='admin')return;
   if(!CFG_CARGADA)return; // sin la config real no se sabe si ya se hizo: no tocar nada
@@ -869,6 +909,7 @@ function startApp(){
   try{migrarInstagramARedesSociales();}catch(e){} // renombra Instagram -> Redes Sociales (solo admin)
   try{migrarClientesActivos();}catch(e){} // convierte los que tenian la etapa pero seguian como prospecto
   try{migrarClientesPabloAProspecto();}catch(e){} // los contactos de Pablo vuelven a prospecto (decision comercial)
+  try{revisarClientesInactivos();}catch(e){}   // cliente sin pedido en X dias vuelve a prospecto (solo admin)
   // Aviso de backup: se espera unos segundos para que la config real ya haya
   // bajado (si no, parece que nunca se hizo un backup y avisaria de mas).
   setTimeout(function(){try{if(CFG_CARGADA)chequearAvisoBackup();}catch(e){}},4000);
@@ -2835,27 +2876,11 @@ function textoFabrica(){
 function pedidoAFabrica(){
   var t=textoFabrica();
   if(!t){toast('Cargá algo primero','err');return;}
-  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Mandalo al grupo "Pedidos y clientes nuevos".</div>';
+  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Copialo y pegalo en el grupo "Pedidos y clientes nuevos".</div>';
   h+='<textarea class="fi fta" id="pedTxt" rows="14" style="font-size:12px;font-family:monospace">'+es(t)+'</textarea>';
-  h+='<button class="btn" onclick="compartirPedido()" style="margin:10px 0 6px;background:#25D366;color:#000">Enviar por WhatsApp</button>';
-  h+='<button class="btn sec" onclick="copiarTexto(\'pedTxt\')" style="margin:0 0 6px">Solo copiar</button>';
+  h+='<button class="btn" onclick="copiarTexto(\'pedTxt\')" style="margin:10px 0 6px">Copiar al portapapeles</button>';
   h+='<button class="btn sec" onclick="renderPedido()" style="margin:0">Volver al pedido</button>';
   oMod('Pedido para fabrica',h);
-}
-// WhatsApp no permite mandar un mensaje directo a un grupo con un link: los
-// wa.me son solo para chats de una persona. Por eso se usa el menu de
-// compartir del celular, que deja elegir WhatsApp y ahi el grupo, con el
-// texto ya cargado. En la computadora se copia y se abre WhatsApp Web.
-function compartirPedido(){
-  var t=textoFabrica();
-  if(!t){toast('Cargá algo primero','err');return;}
-  if(navigator.share){
-    navigator.share({text:t}).catch(function(){});
-    return;
-  }
-  copiarTexto('pedTxt');
-  toast('Copiado: pegalo en el grupo','ok');
-  window.open('https://web.whatsapp.com/','_blank');
 }
 function copiarTexto(id){
   var el=document.getElementById(id);if(!el)return;
@@ -4219,6 +4244,17 @@ function renderGCfg(){
   h+='<div style="display:flex;gap:8px;align-items:center"><input class="fi" type="number" min="1" max="1000" id="cfgMeta" value="'+((D.cfg&&D.cfg.metaFreezers)||80)+'" style="width:100px;margin:0;text-align:center;font-size:16px;font-weight:700"><button class="btn sec" onclick="guardarMeta()" style="margin:0">Guardar</button></div>';
   h+='</div>';
 
+  h+='<div class="card"><div class="ct">CLIENTE SIN PEDIDO VUELVE A PROSPECTO</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Un Cliente Activo que pasa esta cantidad de dias sin un pedido registrado vuelve al embudo como prospecto, en etapa Negociacion. Se aplica solo al entrar como admin. Apenas se le carga un pedido vuelve a ser cliente.</div>';
+  h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="fi" type="number" min="7" max="365" id="cfgRecaida" value="'+diasRecaida()+'" style="width:90px;margin:0;text-align:center;font-size:16px;font-weight:700"><span style="font-size:12px;color:var(--muted)">dias</span><button class="btn sec" onclick="guardarRecaida()" style="margin:0">Guardar y aplicar</button></div>';
+  var enRec=clientesEnRecaida();
+  if(enRec.length){
+    h+='<div style="font-size:11px;color:var(--yellow);margin-top:10px;line-height:1.5"><b>'+enRec.length+' cliente'+(enRec.length===1?'':'s')+' caeria'+(enRec.length===1?'':'n')+' con este plazo:</b><br>'+enRec.map(function(c){return es(c.nm)+' ('+(c.uv?'ultimo pedido '+fmt(c.uv):'sin pedidos, ingreso '+fmt(c.ing))+')';}).join('<br>')+'</div>';
+  } else {
+    h+='<div style="font-size:11px;color:var(--muted);margin-top:10px">Ningun cliente cae con este plazo.</div>';
+  }
+  h+='</div>';
+
   h+='<div class="card"><div class="ct">ALERTAS DE INACCION POR ETAPA</div>';
   h+='<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Dias sin gestion antes de que un contacto se marque como "sin gestionar" (alerta en HOY y badge en el Embudo). Y cada cuantos dias se sugiere la proxima visita automatica.</div>';
   h+='<div style="display:grid;grid-template-columns:1fr auto auto;gap:8px 10px;align-items:center">';
@@ -4448,6 +4484,18 @@ function guardarMeta(){
   D.cfg.metaFreezers=m;
   fsSetConfig(D.cfg);
   toast('Meta actualizada a '+m+' freezers','ok');
+  renderGCfg();
+}
+function guardarRecaida(){
+  if(soloLectura())return;
+  var el=document.getElementById('cfgRecaida');
+  var n=parseInt(el&&el.value,10);
+  if(isNaN(n)||n<7||n>365){toast('Poné un numero entre 7 y 365 dias','err');return;}
+  D.cfg.diasRecaida=n;
+  fsSetConfig({diasRecaida:n});   // delta: nunca se pisa el resto de la config
+  logEvento('edicion','','','Plazo sin pedido para volver a prospecto: '+n+' dias','','');
+  toast('Guardado: '+n+' dias','ok');
+  try{revisarClientesInactivos();}catch(e){}   // se aplica en el momento
   renderGCfg();
 }
 function guardarUmbrales(){
