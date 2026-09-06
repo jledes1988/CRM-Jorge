@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='7.4 - 05/09/2026';
+var VERSION='7.5 - 05/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -665,6 +665,27 @@ function migrarClientesActivos(){
     toast(arreglados.length+' contactos pasaron a Cliente','ok');
   }
 }
+// Migracion unica: Pablo quedo inactivo y se decidio que todos sus contactos
+// dejan de figurar como clientes y vuelven a prospecto (etapa Negociacion),
+// incluidos los que tenian compras registradas. Las ventas siguen en el
+// historial: si alguna vez se les carga un pedido, vuelven a ser clientes.
+function migrarClientesPabloAProspecto(){
+  if(!D.user||D.user.r!=='admin')return;
+  if(!CFG_CARGADA)return; // sin la config real no se sabe si ya se hizo
+  if(D.cfg&&D.cfg.pabloProspectosV>=1)return;
+  var lista=D.cli.filter(function(c){return !c.esP&&!c.eliminado&&c.vend==='Pablo';});
+  lista.forEach(function(c){
+    c.esP=true;c.etapaEmbudo='Negociacion';
+    c._modBy=D.user?D.user.n:'?';c._modAt=new Date().toISOString();
+    fsSetContacto(c);
+  });
+  D.cfg.pabloProspectosV=1;
+  fsSetConfig({pabloProspectosV:1});
+  if(lista.length){
+    logEvento('etapa','','','Contactos de Pablo pasados de cliente a prospecto: '+lista.length,'Cliente Activo','Negociacion');
+    toast(lista.length+' contactos de Pablo pasaron a prospecto','ok');
+  }
+}
 function migrarCategorias(){
   if(!D.user||D.user.r!=='admin')return;
   if(!CFG_CARGADA)return; // sin la config real no se sabe si ya se hizo: no tocar nada
@@ -847,6 +868,7 @@ function startApp(){
   try{migrarFuente();}catch(e){}        // marca los contactos existentes como Prospeccion directa (solo admin)
   try{migrarInstagramARedesSociales();}catch(e){} // renombra Instagram -> Redes Sociales (solo admin)
   try{migrarClientesActivos();}catch(e){} // convierte los que tenian la etapa pero seguian como prospecto
+  try{migrarClientesPabloAProspecto();}catch(e){} // los contactos de Pablo vuelven a prospecto (decision comercial)
   // Aviso de backup: se espera unos segundos para que la config real ya haya
   // bajado (si no, parece que nunca se hizo un backup y avisaria de mas).
   setTimeout(function(){try{if(CFG_CARGADA)chequearAvisoBackup();}catch(e){}},4000);
@@ -2813,11 +2835,27 @@ function textoFabrica(){
 function pedidoAFabrica(){
   var t=textoFabrica();
   if(!t){toast('Cargá algo primero','err');return;}
-  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Copialo y pegalo en el grupo de pedidos.</div>';
-  h+='<textarea class="fi fta" id="pedTxt" rows="16" style="font-size:12px;font-family:monospace">'+es(t)+'</textarea>';
-  h+='<button class="btn" onclick="copiarTexto(\'pedTxt\')" style="margin:10px 0 6px">Copiar al portapapeles</button>';
+  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Mandalo al grupo "Pedidos y clientes nuevos".</div>';
+  h+='<textarea class="fi fta" id="pedTxt" rows="14" style="font-size:12px;font-family:monospace">'+es(t)+'</textarea>';
+  h+='<button class="btn" onclick="compartirPedido()" style="margin:10px 0 6px;background:#25D366;color:#000">Enviar por WhatsApp</button>';
+  h+='<button class="btn sec" onclick="copiarTexto(\'pedTxt\')" style="margin:0 0 6px">Solo copiar</button>';
   h+='<button class="btn sec" onclick="renderPedido()" style="margin:0">Volver al pedido</button>';
   oMod('Pedido para fabrica',h);
+}
+// WhatsApp no permite mandar un mensaje directo a un grupo con un link: los
+// wa.me son solo para chats de una persona. Por eso se usa el menu de
+// compartir del celular, que deja elegir WhatsApp y ahi el grupo, con el
+// texto ya cargado. En la computadora se copia y se abre WhatsApp Web.
+function compartirPedido(){
+  var t=textoFabrica();
+  if(!t){toast('Cargá algo primero','err');return;}
+  if(navigator.share){
+    navigator.share({text:t}).catch(function(){});
+    return;
+  }
+  copiarTexto('pedTxt');
+  toast('Copiado: pegalo en el grupo','ok');
+  window.open('https://web.whatsapp.com/','_blank');
 }
 function copiarTexto(id){
   var el=document.getElementById(id);if(!el)return;
@@ -2861,6 +2899,85 @@ function guardarPedido(){
   toast('Pedido guardado: '+plata(tot),'ok');
   cMod();
   if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGC();else renderVC();
+}
+// ── GESTION DE PEDIDOS YA CARGADOS ────────────────────────────────────
+// Sirve para corregir un pedido mal cargado, descontar lo que no se entrego
+// (entrega parcial) o anularlo. Asi el cliente no queda con productos que
+// nunca le llegaron y los numeros sirven para sacar conclusiones.
+function recalcularUltimaCompra(cid){
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  var ps=pedidosDe(cid);
+  var vs=D.vis.filter(function(v){return v.cid===cid&&v.vendio===true&&v.fecha;});
+  var fechas=ps.map(function(p){return p.fecha;}).concat(vs.map(function(v){return v.fecha;})).filter(Boolean).sort();
+  c.uv=fechas.length?fechas[fechas.length-1]:'';
+  fsSetContacto(c);
+}
+function verPedido(pid){
+  var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
+  var h='<div style="font-size:15px;font-weight:800">'+es(p.cliente||'')+'</div>';
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:12px">'+fmt(p.fecha)+(p.vend?' · '+es(p.vend):'')+'</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Corregí las cantidades si algo no se entregó. Poné 0 en lo que no llegó.</div>';
+  (p.items||[]).forEach(function(it,i){
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(it.n)+(it.s?' · '+es(it.s):'')+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted)">'+es(it.u||'')+' · '+plata(it.p)+' c/u</div></div>';
+    h+='<input type="number" min="0" class="pedEdQ" data-i="'+i+'" value="'+Number(it.q||0)+'" style="width:62px;background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px;text-align:center;font-size:14px">';
+    h+='</div>';
+  });
+  if(p.mats&&p.mats.length)h+='<div style="font-size:11px;color:var(--muted);margin-top:8px">Comodato: '+es(p.mats.join(', '))+'</div>';
+  h+='<div style="text-align:right;margin:12px 0;font-size:18px;font-weight:900;color:var(--green)">'+plata(p.total)+'</div>';
+  h+='<button class="btn" onclick="guardarCambiosPedido(\''+pid+'\')" style="margin:0 0 8px">Guardar correcciones</button>';
+  h+='<button class="btn red" onclick="eliminarPedido(\''+pid+'\')" style="margin:0">Eliminar este pedido</button>';
+  oMod('Pedido del '+fmt(p.fecha),h);
+}
+function guardarCambiosPedido(pid){
+  var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
+  var ins=document.querySelectorAll('.pedEdQ');
+  for(var k=0;k<ins.length;k++){
+    var i=Number(ins[k].getAttribute('data-i'));
+    if(p.items[i])p.items[i].q=Math.max(0,Number(ins[k].value)||0);
+  }
+  p.items=p.items.filter(function(it){return it.q>0;});
+  if(!p.items.length){
+    if(confirm('Quedó sin productos. ¿Eliminamos el pedido?')){eliminarPedido(pid);return;}
+  }
+  p.total=p.items.reduce(function(t,it){return t+(it.q*Number(it.p||0));},0);
+  p._modBy=D.user?D.user.n:'?';p._modAt=new Date().toISOString();
+  fsSetPedido(p);
+  logEvento('venta',p.cid,p.cliente,'Pedido corregido: quedo en '+plata(p.total),'','');
+  toast('Pedido actualizado: '+plata(p.total),'ok');
+  cMod();
+  if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGC();else renderVC();
+}
+function eliminarPedido(pid){
+  var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
+  if(!confirm('Eliminar el pedido del '+fmt(p.fecha)+' por '+plata(p.total)+'?\n\nNo se puede deshacer.'))return;
+  var cid=p.cid;
+  D.ped=D.ped.filter(function(x){return x.id!==pid;});
+  fsDelPedido(pid);
+  recalcularUltimaCompra(cid);
+  logEvento('venta',cid,p.cliente,'Pedido eliminado ('+plata(p.total)+')','','');
+  toast('Pedido eliminado','ok');
+  cMod();
+  if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGC();else renderVC();
+}
+// Lista general de pedidos, para revisar y corregir sin entrar cliente por cliente
+function verTodosLosPedidos(){
+  var ps=D.ped.slice().sort(function(a,b){return(b.fecha||'').localeCompare(a.fecha||'');});
+  var h='';
+  if(!ps.length){h='<div class="empty">Todavia no hay pedidos cargados.</div>';}
+  else{
+    var tot=ps.reduce(function(t,p){return t+Number(p.total||0);},0);
+    h='<div style="font-size:13px;margin-bottom:10px">'+ps.length+' pedidos · <b style="color:var(--green)">'+plata(tot)+'</b></div>';
+    ps.slice(0,80).forEach(function(p){
+      h+='<div onclick="verPedido(\''+p.id+'\')" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer">';
+      h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(p.cliente||'')+'</div>';
+      h+='<div style="font-size:11px;color:var(--muted)">'+fmt(p.fecha)+' · '+(p.items?p.items.length:0)+' renglones'+(p.vend?' · '+es(p.vend):'')+'</div></div>';
+      h+='<div style="font-size:13px;font-weight:700;color:var(--green)">'+plata(p.total)+'</div>';
+      h+='<span style="color:var(--muted)">&rsaquo;</span></div>';
+    });
+  }
+  oMod('Pedidos cargados',h);
 }
 // ── EDITOR DEL CATALOGO ───────────────────────────────────────────────
 // Todo editable sin tocar codigo: precios, productos, sabores y abreviaciones.
@@ -3086,7 +3203,7 @@ function aFicha(id){
     var _tp=_peds.reduce(function(t,p){return t+Number(p.total||0);},0);
     h+='<div class="fl" style="margin-top:10px">Pedidos ('+_peds.length+') &middot; total '+plata(_tp)+'</div>';
     _peds.slice(0,5).forEach(function(p){
-      h+='<div style="font-size:12px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05)">'+fmt(p.fecha)+' &middot; <span style="color:var(--green);font-weight:700">'+plata(p.total)+'</span> &middot; <span style="color:var(--muted)">'+(p.items?p.items.length:0)+' renglones</span></div>';
+      h+='<div onclick="cMod();verPedido(\''+p.id+'\')" style="font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer">'+fmt(p.fecha)+' &middot; <span style="color:var(--green);font-weight:700">'+plata(p.total)+'</span> &middot; <span style="color:var(--muted)">'+(p.items?p.items.length:0)+' renglones</span> <span style="color:var(--cyan);float:right">corregir &rsaquo;</span></div>';
     });
   }
   if(c.comp){h+='<div class="fl">Competencia</div><div style="font-size:13px;margin-bottom:10px">'+es(c.comp)+'</div>';}
@@ -4145,6 +4262,11 @@ function renderGCfg(){
   h+='<div class="card"><div class="ct">EXPORTAR CLIENTES PARA FACTURACION</div>';
   h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Baja un Excel con los datos de todos los clientes activos (no prospectos) para darlos de alta en el sistema de facturacion: negocio, direccion, localidad, provincia, telefono, horarios, nombre y apellido del cliente, CUIT y condicion impositiva. Esos ultimos 3 se cargan editando cada contacto.</div>';
   h+='<button class="btn sec" onclick="exportarFacturacion()" style="margin:0">Exportar clientes (.xlsx)</button>';
+  h+='</div>';
+
+  h+='<div class="card"><div class="ct">PEDIDOS CARGADOS</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Revisar, corregir cantidades (si no se entrego todo) o eliminar pedidos mal cargados. Al corregir, el total y la ultima compra del cliente se recalculan solos.</div>';
+  h+='<button class="btn sec" onclick="verTodosLosPedidos()" style="margin:0">Ver pedidos</button>';
   h+='</div>';
 
   h+='<div class="card"><div class="ct">CATALOGO DE PRODUCTOS Y PRECIOS</div>';
