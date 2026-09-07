@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='7.6 - 06/09/2026';
+var VERSION='7.7 - 07/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -42,27 +42,27 @@ var PRODUCTOS_DEF=[
   {id:'i14',n:'Sei Bom',u:'caja x16',p:27623,linea:'Impulsivos',sab:[{s:'Blanco',a:'pal seibom blanco'},{s:'Almendras',a:'pal seibom almendras'},{s:'Cookie',a:'pal seibom cookie'}]},
   {id:'i15',n:'Sei Bom Pistacho',u:'caja x14',p:42765,linea:'Impulsivos',sab:[{s:'',a:'pal seibom pistacho'}]},
   {id:'i16',n:'Frisky / Palito Extra Acido',u:'caja x24',p:19314,linea:'Impulsivos',sab:[{s:'',a:'pal acid'}]},
-  {id:'p01',n:'Pack Almendrado x8',u:'caja x6',p:47133,linea:'Postres',sab:[{s:'',a:'almendrado'}]},
-  {id:'p02',n:'Pack Tricolor x8',u:'caja x6',p:47133,linea:'Postres',sab:[{s:'',a:'tricolor'}]},
-  {id:'p03',n:'Pack Suizo x8',u:'caja x6',p:53049,linea:'Postres',sab:[{s:'',a:'suizo'}]},
-  {id:'p04',n:'Pack Escoces Cla y Nev x8',u:'caja x6',p:58991,linea:'Postres',sab:[{s:'',a:'escoces cla y nev'}]},
-  {id:'p05',n:'Pack Escoces Pistacho x8',u:'caja x6',p:58991,linea:'Postres',sab:[{s:'',a:'escoces pistacho'}]},
-  {id:'p06',n:'Mini Torta Cookies x8',u:'caja x6',p:58991,linea:'Postres',sab:[{s:'',a:'mini torta cookies'}]},
-  {id:'p07',n:'Pack Alfajor x8',u:'caja x6',p:58991,linea:'Postres',sab:[{s:'Clasico',a:'alfajor clasico'},{s:'Blanco',a:'alfajor blanco'}]},
-  {id:'p08',n:'Pack Alfajor Seichoc x8',u:'caja x6',p:79301,linea:'Postres',sab:[{s:'',a:'alfajor seichoc'}]},
-  {id:'p09',n:'Pack Barrita Sin TACC x8',u:'caja x6',p:53305,linea:'Postres',sab:[{s:'',a:'barrita sin tacc'}]},
-  {id:'p10',n:'Pack Tricolor Diet Fun',u:'caja x8',p:73398,linea:'Postres',sab:[{s:'',a:'tricolor diet'}]},
-  {id:'p11',n:'Torta Isabella / Cookies',u:'caja x6',p:61777,linea:'Postres',sab:[{s:'Frutilla y Vainilla',a:'torta isabella fru'},{s:'Chocolate y Vainilla',a:'torta isabella choco'},{s:'Cookies',a:'torta cookies'}]},
-  {id:'p12',n:'Torta Bombon / Lemon Pie',u:'caja x6',p:61777,linea:'Postres',sab:[{s:'Bombon',a:'torta bombon'},{s:'Lemon Pie',a:'torta lemon pie'}]},
-  {id:'p13',n:'Pack 0,750 Lts',u:'caja x8',p:48324,linea:'Postres',sab:[{s:'Choc y Vainilla',a:'pote choco vain'},{s:'Frutilla y Americana',a:'pote fru amer'},{s:'Choc y DDL',a:'pote choco ddl'},{s:'Limon',a:'pote limon'},{s:'Pistacho y Choc',a:'pote pist choco'}]},
-  {id:'p14',n:'Pack Cookies Premium 0,750 Lts',u:'caja x8',p:48435,linea:'Postres',sab:[{s:'Frutilla a la Crema',a:'premium fru'},{s:'Super Chocolate',a:'premium choco'},{s:'DDL Granizado',a:'premium ddl'},{s:'Crema Cookies con DDL',a:'premium cookies'}]},
-  {id:'p15',n:'Pack Pote Dubai 360cc',u:'caja x12',p:54337,linea:'Postres',sab:[{s:'Pistacho y Chocolate',a:'pote dubai'}]},
-  {id:'p16',n:'Pack 0,750 Lts Vegano',u:'caja x6',p:36256,linea:'Postres',sab:[{s:'Choc con Almendras y Vainilla',a:'pote vegano'}]},
-  {id:'p17',n:'Pack Pote Cormillot 360cc',u:'caja x12',p:58684,linea:'Postres',sab:[{s:'Frutilla y Vainilla',a:'cormillot fru'},{s:'Chocolate y Vainilla',a:'cormillot choco'}]},
+  {id:'p01',n:'Pack Almendrado x8',u:'caja x6',p:47133,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'almendrado'}]},
+  {id:'p02',n:'Pack Tricolor x8',u:'caja x6',p:47133,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'tricolor'}]},
+  {id:'p03',n:'Pack Suizo x8',u:'caja x6',p:53049,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'suizo'}]},
+  {id:'p04',n:'Pack Escoces Cla y Nev x8',u:'caja x6',p:58991,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'escoces cla y nev'}]},
+  {id:'p05',n:'Pack Escoces Pistacho x8',u:'caja x6',p:58991,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'escoces pistacho'}]},
+  {id:'p06',n:'Mini Torta Cookies x8',u:'caja x6',p:58991,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'mini torta cookies'}]},
+  {id:'p07',n:'Pack Alfajor x8',u:'caja x6',p:58991,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'Clasico',a:'alfajor clasico'},{s:'Blanco',a:'alfajor blanco'}]},
+  {id:'p08',n:'Pack Alfajor Seichoc x8',u:'caja x6',p:79301,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'alfajor seichoc'}]},
+  {id:'p09',n:'Pack Barrita Sin TACC x8',u:'caja x6',p:53305,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'barrita sin tacc'}]},
+  {id:'p10',n:'Pack Tricolor Diet Fun',u:'caja x8',p:73398,fr:8,fu:'unidad',linea:'Postres',sab:[{s:'',a:'tricolor diet'}]},
+  {id:'p11',n:'Torta Isabella / Cookies',u:'caja x6',p:61777,fr:6,fu:'unidad',linea:'Postres',sab:[{s:'Frutilla y Vainilla',a:'torta isabella fru'},{s:'Chocolate y Vainilla',a:'torta isabella choco'},{s:'Cookies',a:'torta cookies'}]},
+  {id:'p12',n:'Torta Bombon / Lemon Pie',u:'caja x6',p:61777,fr:6,fu:'unidad',linea:'Postres',sab:[{s:'Bombon',a:'torta bombon'},{s:'Lemon Pie',a:'torta lemon pie'}]},
+  {id:'p13',n:'Pack 0,750 Lts',u:'caja x8',p:48324,fr:8,fu:'unidad',linea:'Postres',sab:[{s:'Choc y Vainilla',a:'pote choco vain'},{s:'Frutilla y Americana',a:'pote fru amer'},{s:'Choc y DDL',a:'pote choco ddl'},{s:'Limon',a:'pote limon'},{s:'Pistacho y Choc',a:'pote pist choco'}]},
+  {id:'p14',n:'Pack Cookies Premium 0,750 Lts',u:'caja x8',p:48435,fr:8,fu:'unidad',linea:'Postres',sab:[{s:'Frutilla a la Crema',a:'premium fru'},{s:'Super Chocolate',a:'premium choco'},{s:'DDL Granizado',a:'premium ddl'},{s:'Crema Cookies con DDL',a:'premium cookies'}]},
+  {id:'p15',n:'Pack Pote Dubai 360cc',u:'caja x12',p:54337,fr:12,fu:'unidad',linea:'Postres',sab:[{s:'Pistacho y Chocolate',a:'pote dubai'}]},
+  {id:'p16',n:'Pack 0,750 Lts Vegano',u:'caja x6',p:36256,fr:6,fu:'unidad',linea:'Postres',sab:[{s:'Choc con Almendras y Vainilla',a:'pote vegano'}]},
+  {id:'p17',n:'Pack Pote Cormillot 360cc',u:'caja x12',p:58684,fr:12,fu:'unidad',linea:'Postres',sab:[{s:'Frutilla y Vainilla',a:'cormillot fru'},{s:'Chocolate y Vainilla',a:'cormillot choco'}]},
   {id:'p18',n:'Baldes x3 Lt',u:'unidad',p:11508,linea:'Postres',sab:[{s:'Americana',a:'balde3 amer'},{s:'DDL',a:'balde3 ddl'},{s:'Chocolate',a:'balde3 choco'},{s:'Frutilla',a:'balde3 fru'},{s:'Banana',a:'balde3 banana'},{s:'Flan',a:'balde3 flan'},{s:'Granizado',a:'balde3 granizado'},{s:'Tramontana',a:'balde3 tramontana'},{s:'Tiramisu',a:'balde3 tiramisu'}]},
   {id:'p19',n:'Baldes x5 Lt',u:'unidad',p:16180,linea:'Postres',sab:[{s:'Americana',a:'balde5 amer'},{s:'DDL',a:'balde5 ddl'},{s:'Chocolate',a:'balde5 choco'},{s:'Frutilla',a:'balde5 fru'},{s:'Banana',a:'balde5 banana'},{s:'Flan',a:'balde5 flan'},{s:'Granizado',a:'balde5 granizado'}]},
-  {id:'p20',n:'Pote Frambuesas x12',u:'caja x12',p:76429,linea:'Postres',sab:[{s:'',a:'frambuesa'}]},
-  {id:'p21',n:'Baldes x2 Lt',u:'caja x9',p:103585,linea:'Postres',sab:[{s:'Pistacho',a:'balde2 pistacho'},{s:'Flan',a:'balde2 flan'},{s:'Crema Cookies',a:'balde2 cookies'}]},
+  {id:'p20',n:'Pote Frambuesas x12',u:'caja x12',p:76429,fr:12,fu:'unidad',linea:'Postres',sab:[{s:'',a:'frambuesa'}]},
+  {id:'p21',n:'Baldes x2 Lt',u:'caja x9',p:103585,fr:9,fu:'unidad',linea:'Postres',sab:[{s:'Pistacho',a:'balde2 pistacho'},{s:'Flan',a:'balde2 flan'},{s:'Crema Cookies',a:'balde2 cookies'}]},
   {id:'p22',n:'Pote Tutto 3 Lts',u:'unidad',p:9900,linea:'Postres',sab:[{s:'',a:'pote tutto'}]},
   {id:'l01',n:'Lata Comun',u:'lata',p:39295,linea:'Granel',sab:[{s:'Chocolate',a:'lata comun choco'},{s:'Dulce de Leche',a:'lata comun ddl'},{s:'Frutilla',a:'lata comun fru'},{s:'Americana',a:'lata comun amer'},{s:'Vainilla',a:'lata comun vain'}]},
   {id:'l02',n:'Lata Especial',u:'lata',p:44707,linea:'Granel',sab:[{s:'Granizado',a:'lata esp granizado'},{s:'Tramontana',a:'lata esp tramontana'},{s:'Flan',a:'lata esp flan'}]},
@@ -551,8 +551,10 @@ function verSeguimiento(){
   var h='';
   if(!lista.length){h='<div class="empty">No hay seguimientos pendientes. Muy bien!</div>';}
   else{
-    h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Ya los visitaste una vez y estan esperando la siguiente. Del que mas espera al que menos.</div>';
-    lista.forEach(function(it){
+    h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Ya los visitaste una vez y estan esperando la siguiente. Agrupados por barrio, empezando por la zona con mas pendientes.</div>';
+    agruparPorBarrio(lista).forEach(function(g){
+    h+=encabezadoBarrio(g);
+    g.items.forEach(function(it){
       var c=it.c;
       var col=it.dias===null?'var(--red)':it.dias>20?'var(--red)':it.dias>12?'var(--orange)':'var(--yellow)';
       h+='<div class="cc" style="margin-bottom:8px;border-left:4px solid '+col+'">';
@@ -566,6 +568,7 @@ function verSeguimiento(){
       h+='<button class="sm" onclick="cMod();abrirVisita(\''+c.id+'\')">Visitar</button>';
       if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')">WhatsApp</button>';
       h+='</div></div>';
+    });
     });
   }
   oMod('Esperando segunda visita ('+lista.length+')',h);
@@ -686,6 +689,30 @@ function migrarClientesPabloAProspecto(){
     toast(lista.length+' contactos de Pablo pasaron a prospecto','ok');
   }
 }
+// Repara la inconsistencia que dejo el bug viejo: contactos con etapa de
+// prospecto pero marcados por dentro como clientes. Pasaba porque poner
+// "Cliente Activo" convertia pero volver atras no revertia, asi que quedaban
+// trabados contando como clientes para siempre (Kiosco vale, 6yS).
+// Solo toca a los que nunca registraron una compra: al que compro no se lo mueve.
+function repararEsP(){
+  if(!D.user||D.user.r!=='admin')return;
+  if(!CFG_CARGADA)return;
+  var rotos=D.cli.filter(function(c){
+    if(c.esP||c.eliminado)return false;
+    var eta=c.etapaEmbudo||'';
+    if(!eta||eta==='Cliente Activo')return false;   // coherente: es cliente
+    if(c.uv)return false;                            // tiene compras: no se toca
+    return !D.ped.some(function(p){return p.cid===c.id;});
+  });
+  if(!rotos.length)return;
+  rotos.forEach(function(c){
+    c.esP=true;
+    c._modBy='Sistema';c._modAt=new Date().toISOString();
+    fsSetContacto(c);
+    logEvento('etapa',c.id,c.nm,'Corregido: figuraba como cliente pero su etapa era '+(c.etapaEmbudo||'?')+' y nunca registro una compra','Cliente Activo',c.etapaEmbudo||'');
+  });
+  toast(rotos.length+(rotos.length===1?' contacto trabado como cliente se corrigio':' contactos trabados como clientes se corrigieron'),'ok');
+}
 // ── REGLA: cliente sin pedido vuelve a prospecto ─────────────────────
 // Un contacto es Cliente Activo porque COMPRA. Si pasa mucho tiempo sin un
 // pedido registrado deja de serlo y vuelve al embudo como prospecto en
@@ -725,6 +752,29 @@ function revisarClientesInactivos(){
     logEvento('etapa',c.id,c.nm,'Volvio a prospecto por la regla de '+lim+' dias ('+motivo+')','Cliente Activo','Negociacion');
   });
   toast(lista.length+(lista.length===1?' cliente volvio':' clientes volvieron')+' a prospecto: '+lim+' dias sin pedido','ok');
+}
+// Los productos que ya estaban guardados en la base no tienen los campos de
+// fraccion. Se los copiamos del catalogo por defecto, respetando lo que Jorge
+// haya editado (nombres, precios y sabores no se tocan).
+function migrarFraccionProductos(){
+  if(!D.user||D.user.r!=='admin')return;
+  if(!CFG_CARGADA)return;
+  if(D.cfg&&D.cfg.fraccionMigradaV>=1)return;
+  var ps=D.cfg.productos;
+  if(ps&&ps.length){
+    var def={};PRODUCTOS_DEF.forEach(function(p){def[p.id]=p;});
+    var n=0;
+    ps.forEach(function(p){
+      if(p.fr!==undefined)return;          // ya lo tiene o Jorge lo definio
+      var d=def[p.id];
+      if(d&&d.fr){p.fr=d.fr;p.fu=d.fu;n++;}
+    });
+    if(n){D.cfg.productos=ps;fsSetConfig({productos:ps,fraccionMigradaV:1});}
+    else fsSetConfig({fraccionMigradaV:1});
+  } else {
+    fsSetConfig({fraccionMigradaV:1});     // usa PRODUCTOS_DEF, que ya viene con fraccion
+  }
+  D.cfg.fraccionMigradaV=1;
 }
 function migrarCategorias(){
   if(!D.user||D.user.r!=='admin')return;
@@ -909,6 +959,8 @@ function startApp(){
   try{migrarInstagramARedesSociales();}catch(e){} // renombra Instagram -> Redes Sociales (solo admin)
   try{migrarClientesActivos();}catch(e){} // convierte los que tenian la etapa pero seguian como prospecto
   try{migrarClientesPabloAProspecto();}catch(e){} // los contactos de Pablo vuelven a prospecto (decision comercial)
+  try{repararEsP();}catch(e){}                // destraba los que quedaron como clientes por el bug viejo
+  try{migrarFraccionProductos();}catch(e){}   // suma la fraccion al catalogo ya guardado
   try{revisarClientesInactivos();}catch(e){}   // cliente sin pedido en X dias vuelve a prospecto (solo admin)
   // Aviso de backup: se espera unos segundos para que la config real ya haya
   // bajado (si no, parece que nunca se hizo un backup y avisaria de mas).
@@ -1087,14 +1139,37 @@ function renderVH(){
   var _vhb=document.getElementById('vHB');if(_vhb)_vhb.innerHTML=h;
   if(histVHOpen)renderHistorialVH();
 }
+// Agrupa una lista de {c:contacto,...} por barrio y devuelve los grupos con
+// mas contactos primero: asi la gira se arma por zona y no cruzando la ciudad.
+function agruparPorBarrio(items){
+  var mapa={};
+  items.forEach(function(it){
+    var b=(it.c.bar||'').trim()||'Sin barrio';
+    if(!mapa[b])mapa[b]=[];
+    mapa[b].push(it);
+  });
+  var gs=Object.keys(mapa).map(function(b){return {barrio:b,items:mapa[b]};});
+  gs.sort(function(a,b){
+    if(a.barrio==='Sin barrio')return 1;
+    if(b.barrio==='Sin barrio')return -1;
+    if(b.items.length!==a.items.length)return b.items.length-a.items.length;
+    return a.barrio.localeCompare(b.barrio);
+  });
+  return gs;
+}
+function encabezadoBarrio(g){
+  return '<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px"><div style="font-size:12px;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:.4px">&#128205; '+es(g.barrio)+'</div><div style="font-size:11px;color:var(--muted)">'+g.items.length+'</div><div style="flex:1;height:1px;background:var(--border)"></div></div>';
+}
 // Panel de contactos en inaccion (abre modal)
 function verInaccion(){
   var inac=calcInaccion();
   var h='';
   if(!inac.length){h='<div class="empty">Sin contactos en inaccion. Buen trabajo!</div>';}
   else{
-    h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Del mas urgente al menos urgente</div>';
-    inac.forEach(function(it){
+    h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Agrupados por barrio, empezando por la zona con mas pendientes. Adentro de cada barrio, del mas urgente al menos.</div>';
+    agruparPorBarrio(inac).forEach(function(g){
+    h+=encabezadoBarrio(g);
+    g.items.forEach(function(it){
       var c=it.c;
       h+='<div class="cc" style="margin-bottom:8px">';
       h+='<div style="margin-bottom:8px"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
@@ -1105,6 +1180,7 @@ function verInaccion(){
       if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')">WhatsApp</button>';
       h+='<button class="sm" onclick="agregarAGiraRapido(\''+c.id+'\')">+ Gira</button>';
       h+='</div></div>';
+    });
     });
   }
   oMod('Contactos sin gestion ('+inac.length+')',h);
@@ -1474,19 +1550,30 @@ function guardarEdicionContacto(id){
 var vEFil='Todos';
 var vEChartOpen=false;
 function setVEF(v){vEFil=v||'Todos';renderVE();}
+// La etapa manda sobre la marca interna de cliente. Antes esto era de ida
+// nomas: poner "Cliente Activo" convertia, pero volver a Negociacion NO
+// revertia, y el contacto quedaba contando como cliente para siempre sin
+// forma de arreglarlo desde la app (le paso a Kiosco vale y a 6yS).
+// Devuelve 'alta', 'baja' o '' segun lo que haya cambiado.
+function sincronizarEsP(c,eta){
+  if(eta==='Cliente Activo'){ if(c.esP){c.esP=false;return 'alta';} return ''; }
+  if(!c.esP)  { c.esP=true; return 'baja'; }
+  return '';
+}
 function cambiarEtapa(id,eta){
   if(!eta)return;
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
   var ant=c.etapaEmbudo;
   c.etapaEmbudo=eta;
-  var conv=false;
-  if(eta==='Cliente Activo'&&c.esP){c.esP=false;conv=true;}
+  var camb=sincronizarEsP(c,eta);
+  var conv=camb==='alta';
+  var baja=camb==='baja';
   c._modBy=D.user?D.user.n:'?';
   c._modAt=new Date().toISOString();
-  logEvento(conv?'conversion':'etapa',c.id,c.nm,(conv?'Prospecto convertido a Cliente Activo':'Etapa: '+ant+' -> '+eta),ant,eta);
+  logEvento(conv?'conversion':'etapa',c.id,c.nm,(conv?'Prospecto convertido a Cliente Activo':(baja?'Dejo de ser cliente y volvio al embudo: '+ant+' -> '+eta:'Etapa: '+ant+' -> '+eta)),ant,eta);
   fsSetContacto(c);
   renderVE();
-  toast(es(c.nm)+' '+( conv?'convertido a Cliente Activo':'movido a '+es(eta)),'ok');
+  toast(es(c.nm)+' '+(conv?'convertido a Cliente Activo':(baja?'volvio a prospecto en '+es(eta):'movido a '+es(eta))),'ok');
 }
 
 // ── GIRA ─────────────────────────────────────────────────────────────
@@ -1596,7 +1683,7 @@ function guardarVisitaProspecto(id){
   // Elegir "Cliente Activo" en el desplegable tiene que convertirlo tambien por
   // dentro. Si no, queda con la etapa puesta pero sigue contando como prospecto:
   // no aparece en el filtro Clientes, ni en el dashboard, ni en la exportacion.
-  if(eta){v.eta=eta;c.etapaEmbudo=eta;if(eta==='Cliente Activo'&&c.esP){c.esP=false;v.conversion=true;conv=true;}}
+  if(eta){v.eta=eta;c.etapaEmbudo=eta;if(sincronizarEsP(c,eta)==='alta'){v.conversion=true;conv=true;}}
   if(vpVendio===true){
     var fp=document.getElementById('vpFechaPed').value||hoy;
     v.fechaPedido=fp;c.uv=fp;
@@ -1801,7 +1888,7 @@ function renderVCo(){
   var misIds={};misContactos(true).forEach(function(c){misIds[c.id]=true;});
   var cs=D.com.filter(function(co){return misIds[co.cid];});
 
-  top.innerHTML='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+['pend','act','ret','all'].map(function(f){return '<span class="fb'+(vCoF2===f?' on':'')+'" onclick="vCoF2=\''+f+'\';renderVCo()">'+(f==='pend'?'Pendientes':f==='act'?'Activos':f==='ret'?'Retirados':'Todos')+'</span>';}).join('')+'<button class="btn" onclick="nuevoAcuerdoFreezer()" style="margin:0 0 0 auto;width:auto;padding:8px 14px;font-size:13px;background:linear-gradient(90deg,#fbbf24,#22d3ee);color:#0b1220;font-weight:800">❄ Acordar freezer</button></div>';
+  top.innerHTML='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+['pend','act','ret','cae','all'].map(function(f){return '<span class="fb'+(vCoF2===f?' on':'')+'" onclick="vCoF2=\''+f+'\';renderVCo()">'+(f==='pend'?'Pendientes':f==='act'?'Activos':f==='ret'?'Retirados':f==='cae'?'Caidos':'Todos')+'</span>';}).join('')+'<button class="btn" onclick="nuevoAcuerdoFreezer()" style="margin:0 0 0 auto;width:auto;padding:8px 14px;font-size:13px;background:linear-gradient(90deg,#fbbf24,#22d3ee);color:#0b1220;font-weight:800">❄ Acordar freezer</button></div>';
 
   var nAct=cs.filter(function(co){return estadoComodato(co)==='activo';}).length;
   var nFirm=cs.filter(function(co){return estadoComodato(co)==='por_firmar';}).length;
@@ -1817,8 +1904,9 @@ function renderVCo(){
   if(vCoF2==='pend')lista=cs.filter(function(co){var e=estadoComodato(co);return e==='por_firmar'||e==='por_entregar';});
   else if(vCoF2==='act')lista=cs.filter(function(co){return estadoComodato(co)==='activo';});
   else if(vCoF2==='ret')lista=cs.filter(function(co){return estadoComodato(co)==='ret';});
+  else if(vCoF2==='cae')lista=cs.filter(function(co){return estadoComodato(co)==='cancel';});
 
-  var ordenEst={por_firmar:0,por_entregar:1,activo:2,ret:3};
+  var ordenEst={por_firmar:0,por_entregar:1,activo:2,ret:3,cancel:4};
   lista.sort(function(a,b){var ea=ordenEst[estadoComodato(a)],eb=ordenEst[estadoComodato(b)];if(ea!==eb)return ea-eb;return (a.fe||'').localeCompare(b.fe||'');});
 
   if(!lista.length){h+='<div class="empty">Sin freezers en esta vista</div>';cont.innerHTML=h;return;}
@@ -1827,7 +1915,7 @@ function renderVCo(){
   lista.forEach(function(co){
     var e=estadoComodato(co);
     if(e!==estadoAnterior){
-      var titulos={por_firmar:'⏳ POR FIRMAR',por_entregar:'📦 POR ENTREGAR',activo:'✅ ACTIVOS',ret:'❌ RETIRADOS'};
+      var titulos={por_firmar:'⏳ POR FIRMAR',por_entregar:'📦 POR ENTREGAR',activo:'✅ ACTIVOS',ret:'❌ RETIRADOS',cancel:'⛔ ACUERDOS CAIDOS'};
       h+='<div style="padding:12px 14px 6px;font-size:12px;font-weight:800;color:'+colorEstadoCom(e)+'">'+titulos[e]+'</div>';
       estadoAnterior=e;
     }
@@ -1837,13 +1925,16 @@ function renderVCo(){
     if(e==='por_firmar')h+='<div style="font-size:11px;color:'+(vencido?'var(--red)':'var(--muted)')+';margin-top:2px">'+(vencido?'⚠ Volver a buscar firma: ':'Volver a buscar firma: ')+fmt(co.fe)+'</div>';
     else if(e==='por_entregar')h+='<div style="font-size:11px;color:'+(vencido?'var(--red)':'var(--muted)')+';margin-top:2px">'+(vencido?'⚠ Entrega vencida: ':'Entrega pactada: ')+fmt(co.fe)+'</div>';
     else if(e==='activo')h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">Entregado: '+fmt(co.fe)+'</div>';
+    else if(e==='cancel')h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">Se cayo el '+fmt(co.fcancel)+(co.motivoCancel?' · '+es(co.motivoCancel):'')+'</div>';
     else h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">Retiro: '+fmt(co.fr)+'</div>';
     h+='</div><span class="tg" style="background:rgba('+h2r(colorEstadoCom(e))+',.15);color:'+colorEstadoCom(e)+'">'+labelEstadoCom(e)+'</span></div>';
     h+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
     if(e==='por_firmar')h+='<button class="sm g" onclick="avanzarComodatoV(\''+co.id+'\',\'por_entregar\')">✍ Marcar firmado</button>';
     if(e==='por_entregar')h+='<button class="sm g" onclick="avanzarComodatoV(\''+co.id+'\',\'activo\')">📦 Marcar entregado</button>';
     if(e==='activo')h+='<button class="sm" onclick="retCoV(\''+co.id+'\')" style="color:var(--orange)">Registrar retiro</button>';
-    if(e==='por_firmar'||e==='por_entregar')h+='<button class="sm" onclick="editarPendiente(\''+co.id+'\')" style="color:var(--cyan)">Editar fecha</button>';
+    if(e==='por_firmar'||e==='por_entregar')h+='<button class="sm" onclick="caerComodato(\''+co.id+'\',\'v\')" style="color:var(--muted)">Se cayo el acuerdo</button>';
+    if(e==='cancel')h+='<button class="sm g" onclick="revivirComodato(\''+co.id+'\',\'v\')">Volver a ponerlo en juego</button>';
+    if(e!=='ret'&&e!=='cancel')h+='<button class="sm" onclick="editarPendiente(\''+co.id+'\')" style="color:var(--cyan)">Editar</button>';
     h+='</div></div>';
   });
   cont.innerHTML=h;
@@ -2143,11 +2234,35 @@ function chequearDupVivo(){
   var h='<div style="background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.3);border-radius:var(--rsm);padding:10px 12px;margin-bottom:4px">';
   h+='<div style="font-size:12px;font-weight:700;color:var(--orange);margin-bottom:5px">&#9888; Puede que este contacto ya exista</div>';
   dups.slice(0,3).forEach(function(d){
-    h+='<div style="font-size:12px;margin-bottom:3px"><b>'+es(d.c.nm)+'</b>'+(d.c.fan&&normTxt(d.c.fan)!==normTxt(d.c.nm)?' ('+es(d.c.fan)+')':'')+' — <span style="color:var(--muted)">'+d.motivo+(d.c.vend?', vendedor '+es(d.c.vend):'')+(d.c.eliminado?' · EN PAPELERA':'')+'</span></div>';
+    var eta=d.c.etapaEmbudo||'';
+    // Por que no aparece en la lista: o esta en la papelera, o quedo fuera del
+    // embudo (No Le Interesa / Perdido), que las vistas esconden por defecto.
+    var oculto=d.c.eliminado?'EN PAPELERA':((eta==='No Le Interesa'||eta==='Perdido')?('marcado como '+eta+': por eso no aparece en la lista'):'');
+    h+='<div style="font-size:12px;margin-bottom:3px"><b>'+es(d.c.nm)+'</b>'+(d.c.fan&&normTxt(d.c.fan)!==normTxt(d.c.nm)?' ('+es(d.c.fan)+')':'')+' — <span style="color:var(--muted)">'+d.motivo+(d.c.vend?', vendedor '+es(d.c.vend):'')+'</span>'+(oculto?' <span style="color:var(--orange)">· '+es(oculto)+'</span>':'')+'</div>';
+    if(oculto)h+='<div style="margin:2px 0 6px"><button class="sm g" onclick="reactivarContacto(\''+d.c.id+'\')" style="font-size:11px">Reactivarlo en vez de cargarlo de nuevo</button></div>';
   });
   h+='<div style="font-size:11px;color:var(--muted);margin-top:4px">Podes seguir igual si es un local distinto.</div>';
   h+='</div>';
   cont.innerHTML=h;
+}
+// Saca de la papelera / del limbo a un contacto que ya existia, en vez de
+// cargar un duplicado. Vuelve al embudo en Contactado, que es donde estaba
+// antes de que se lo descartara.
+function reactivarContacto(cid){
+  if(soloLectura())return;
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  if(!confirm('Reactivar "'+c.nm+'"?\n\nVuelve al embudo en Contactado y podes seguir trabajandolo.'))return;
+  var ant=(c.eliminado?'papelera':(c.etapaEmbudo||''));
+  c.eliminado=false;
+  c.etapaEmbudo='Contactado';
+  if(!c.esP)c.esP=true;
+  if(!c.vend&&D.user)c.vend=D.user.n;
+  c._modBy=D.user?D.user.n:'?';c._modAt=new Date().toISOString();
+  fsSetContacto(c);
+  logEvento('etapa',c.id,c.nm,'Contacto reactivado desde el aviso de duplicado',ant,'Contactado');
+  cMod();
+  toast(es(c.nm)+' reactivado en Contactado','ok');
+  if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGC();else renderVC();
 }
 // Fuente del lead: recuerda la ultima elegida durante esta sesion, para cargar
 // tandas del mismo origen (ej: varias consultas de Instagram) sin re-seleccionar.
@@ -2748,17 +2863,39 @@ function materiales(){ return (D.cfg.materiales&&D.cfg.materiales.length)?D.cfg.
 function pedidosDe(cid){ return D.ped.filter(function(p){return p.cid===cid;}).sort(function(a,b){return(b.fecha||'').localeCompare(a.fecha||'');}); }
 function esPrimerPedido(cid){ return pedidosDe(cid).length===0; }
 
-var pedActual={cid:null,items:{},mats:{},notaPago:'',notaConv:'',obs:''};
+// Fraccion de un producto: cuantas sub-unidades entran en la caja cerrada y
+// como se llaman. Ej: un pack de postres viene en caja de 6 cajitas x8, y las
+// frambuesas en caja de 12 potes que tambien se venden sueltos.
+function fracDe(p){
+  var fr=Number(p&&p.fr)||0;
+  if(fr<2)return null;
+  return {fr:fr,fu:(p.fu||'unidad'),pu:Math.round(Number(p.p||0)/fr)};
+}
+// "caja" -> "cajas", "unidad" -> "unidades". Solo la primera palabra.
+function plu(u,n){
+  if(n===1||!u)return u;
+  var ps=String(u).split(' ');
+  ps[0]=/[aeiou]$/i.test(ps[0])?ps[0]+'s':ps[0]+'es';
+  return ps.join(' ');
+}
+var pedActual={cid:null,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:''};
 
 function abrirPedido(cid){
   var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
-  pedActual={cid:cid,items:{},mats:{},notaPago:'',notaConv:'',obs:''};
+  pedActual={cid:cid,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:''};
   renderPedido();
 }
 function setPedLinea(l){pedActual.linea=l;renderPedido();}
 function setPedQty(key,v){
   var n=Math.max(0,Number(v)||0);
   if(n===0)delete pedActual.items[key];else pedActual.items[key]=n;
+  var t=document.getElementById('pedTotal');if(t)t.innerHTML=totalPedidoHTML();
+}
+// Cantidad de fracciones sueltas (cajitas o unidades) de un renglon
+function setPedFrac(key,v){
+  var n=Math.max(0,Number(v)||0);
+  if(!pedActual.frac)pedActual.frac={};
+  if(n===0)delete pedActual.frac[key];else pedActual.frac[key]=n;
   var t=document.getElementById('pedTotal');if(t)t.innerHTML=totalPedidoHTML();
 }
 function togMat(m){
@@ -2768,15 +2905,17 @@ function togMat(m){
 function totalPedido(){
   var tot=0;
   productos().forEach(function(p){
+    var fq=fracDe(p);
     (p.sab||[]).forEach(function(sb,i){
       var k=p.id+'|'+i;
       if(pedActual.items[k])tot+=pedActual.items[k]*Number(p.p||0);
+      if(fq&&pedActual.frac&&pedActual.frac[k])tot+=pedActual.frac[k]*fq.pu;
     });
   });
   return tot;
 }
 function totalPedidoHTML(){
-  var n=Object.keys(pedActual.items).length;
+  var n=Object.keys(pedActual.items).length+Object.keys(pedActual.frac||{}).length;
   return '<span style="font-size:12px;color:var(--muted)">'+n+' renglon'+(n!==1?'es':'')+'</span> <span style="font-size:20px;font-weight:900;color:var(--green);margin-left:8px">'+plata(totalPedido())+'</span>';
 }
 function renderPedido(){
@@ -2803,13 +2942,18 @@ function renderPedido(){
   var hay=false;
   productos().filter(function(p){return p.linea===pedActual.linea;}).forEach(function(p){
     hay=true;
+    var fq=fracDe(p);
     h+='<div style="margin-bottom:8px"><div style="font-size:12px;font-weight:800">'+es(p.n)+' <span style="font-weight:400;color:var(--muted)">'+es(p.u)+' · '+plata(p.p)+'</span></div>';
+    if(fq)h+='<div style="font-size:10px;color:var(--cyan);padding-left:8px">Suelto: '+es(plu(fq.fu,2))+' · '+plata(fq.pu)+' c/u ('+fq.fr+' por caja)</div>';
+    if(fq)h+='<div style="display:flex;gap:8px;padding-left:8px;margin-top:3px"><span style="flex:1"></span><span style="width:62px;text-align:center;font-size:9px;color:var(--muted);text-transform:uppercase">Cajas</span><span style="width:62px;text-align:center;font-size:9px;color:var(--muted);text-transform:uppercase">'+es(plu(fq.fu,2))+'</span></div>';
     (p.sab||[]).forEach(function(sb,i){
       var k=p.id+'|'+i;
       var val=pedActual.items[k]||'';
+      var valF=(pedActual.frac&&pedActual.frac[k])||'';
       h+='<div style="display:flex;align-items:center;gap:8px;padding:3px 0 3px 8px">';
       h+='<span style="flex:1;font-size:12px;color:var(--text)">'+es(sb.s||'(sin sabor)')+' <span style="color:var(--muted);font-size:10px">'+es(sb.a||'')+'</span></span>';
       h+='<input type="number" min="0" inputmode="numeric" value="'+val+'" onchange="setPedQty(\''+k+'\',this.value)" style="width:62px;background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px;text-align:center;font-size:14px">';
+      if(fq)h+='<input type="number" min="0" inputmode="numeric" value="'+valF+'" onchange="setPedFrac(\''+k+'\',this.value)" style="width:62px;background:var(--s2);border:1px solid var(--cyan);border-radius:6px;color:var(--text);padding:5px;text-align:center;font-size:14px">';
       h+='</div>';
     });
     h+='</div>';
@@ -2838,9 +2982,13 @@ function leerNotas(){
 function lineasPedido(){
   var out=[];
   productos().forEach(function(p){
+    var fq=fracDe(p);
     (p.sab||[]).forEach(function(sb,i){
       var k=p.id+'|'+i, q=pedActual.items[k];
-      if(q)out.push(q+' '+(sb.a||((p.n+' '+(sb.s||'')).trim())));
+      var ab=sb.a||((p.n+' '+(sb.s||'')).trim());
+      if(q)out.push(q+' '+ab);
+      var qf=(pedActual.frac&&pedActual.frac[k])||0;
+      if(fq&&qf)out.push(qf+' '+plu(fq.fu,qf)+' '+ab);
     });
   });
   return out;
@@ -2905,9 +3053,12 @@ function guardarPedido(){
   if(!li.length){toast('Cargá al menos un producto','err');return;}
   var items=[];
   productos().forEach(function(p){
+    var fq=fracDe(p);
     (p.sab||[]).forEach(function(sb,i){
       var k=p.id+'|'+i,q=pedActual.items[k];
       if(q)items.push({id:p.id,n:p.n,s:sb.s||'',a:sb.a||'',u:p.u,p:Number(p.p||0),q:q});
+      var qf=(pedActual.frac&&pedActual.frac[k])||0;
+      if(fq&&qf)items.push({id:p.id,n:p.n,s:sb.s||'',a:sb.a||'',u:plu(fq.fu,qf),p:fq.pu,q:qf,fr:true});
     });
   });
   var tot=totalPedido();
@@ -3021,7 +3172,7 @@ function abrirCatalogo(){
     dl.forEach(function(p){
       h+='<div onclick="editarProducto(\''+p.id+'\')" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer">';
       h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(p.n)+'</div>';
-      h+='<div style="font-size:11px;color:var(--muted)">'+es(p.u)+' · '+(p.sab||[]).length+' sabor'+((p.sab||[]).length!==1?'es':'')+'</div></div>';
+      h+='<div style="font-size:11px;color:var(--muted)">'+es(p.u)+' · '+(p.sab||[]).length+' sabor'+((p.sab||[]).length!==1?'es':'')+(Number(p.fr)>1?' · suelto x '+es(p.fu||'unidad'):'')+'</div></div>';
       h+='<div style="font-size:13px;font-weight:700;color:var(--green)">'+plata(p.p)+'</div>';
       h+='<span style="color:var(--muted)">&rsaquo;</span></div>';
     });
@@ -3030,7 +3181,7 @@ function abrirCatalogo(){
 }
 function nuevoProducto(){
   var ps=productos().slice();
-  ps.push({id:'x'+Date.now(),n:'Producto nuevo',u:'caja',p:0,linea:'Impulsivos',sab:[{s:'',a:''}]});
+  ps.push({id:'x'+Date.now(),n:'Producto nuevo',u:'caja',p:0,fr:0,fu:'',linea:'Impulsivos',sab:[{s:'',a:''}]});
   D.cfg.productos=ps;guardarCatalogo();
   editarProducto(ps[ps.length-1].id);
 }
@@ -3041,6 +3192,12 @@ function editarProducto(pid){
   h+='<div class="fg"><label class="fl">Unidad</label><input class="fi" id="cpU" value="'+es(p.u)+'" placeholder="caja x24"></div>';
   h+='<div class="fg"><label class="fl">Precio</label><input class="fi" id="cpP" type="number" min="0" value="'+Number(p.p||0)+'"></div>';
   h+='</div>';
+  h+='<div class="fg"><label class="fl">Se puede vender fraccionado <span style="font-size:10px;color:var(--muted)">(dejar en 0 si solo se vende la caja cerrada)</span></label></div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h+='<div class="fg"><label class="fl">Cuantos entran en la caja</label><input class="fi" id="cpFr" type="number" min="0" value="'+(Number(p.fr)||0)+'" placeholder="6"></div>';
+  h+='<div class="fg"><label class="fl">Como se llama cada uno</label><input class="fi" id="cpFu" value="'+es(p.fu||'')+'" placeholder="caja x8 / unidad"></div>';
+  h+='</div>';
+  if(Number(p.fr)>1)h+='<div style="font-size:11px;color:var(--cyan);margin:-4px 0 10px">Suelto queda a '+plata(Math.round(Number(p.p||0)/Number(p.fr)))+' cada '+es(p.fu||'unidad')+'.</div>';
   h+='<div class="fg"><label class="fl">Linea</label><select class="fi" id="cpL">'+['Impulsivos','Postres','Granel'].map(function(l){return '<option'+(p.linea===l?' selected':'')+'>'+l+'</option>';}).join('')+'</select></div>';
   h+='<div class="div"></div><div class="fl">SABORES <span style="font-size:10px;color:var(--muted)">(cada uno con su abreviacion para el pedido)</span></div>';
   h+='<div id="cpSab">';
@@ -3084,6 +3241,9 @@ function guardarProducto(pid){
   p.u=document.getElementById('cpU').value.trim();
   p.p=Number(document.getElementById('cpP').value)||0;
   p.linea=document.getElementById('cpL').value;
+  var fr=Number(document.getElementById('cpFr').value)||0;
+  if(fr>1){p.fr=fr;p.fu=document.getElementById('cpFu').value.trim()||'unidad';}
+  else{delete p.fr;delete p.fu;}
   p.sab=leerSaboresForm().filter(function(x){return x.s||x.a;});
   if(!p.sab.length)p.sab=[{s:'',a:p.n}];
   D.cfg.productos=ps;guardarCatalogo();
@@ -3747,7 +3907,7 @@ function expCSVVendedor(vend){
 // GERENTE COMODATOS
 var gCoF2='act';
 function renderGCo(){
-  document.getElementById('gCoF').innerHTML=['pend','act','ret','all'].map(function(f){return '<span class="fb'+(gCoF2===f?' on':'')+'" onclick="sGCoF(\''+f+'\')">'+(f==='pend'?'Pendientes':f==='act'?'Activos':f==='ret'?'Retirados':'Todos')+'</span>';}).join('');
+  document.getElementById('gCoF').innerHTML=['pend','act','ret','cae','all'].map(function(f){return '<span class="fb'+(gCoF2===f?' on':'')+'" onclick="sGCoF(\''+f+'\')">'+(f==='pend'?'Pendientes':f==='act'?'Activos':f==='ret'?'Retirados':f==='cae'?'Caidos':'Todos')+'</span>';}).join('');
   var cs=D.com.slice();
   if(gVendSel){var idsV={};cliGlobal().forEach(function(c){idsV[c.id]=true;});cs=cs.filter(function(co){return idsV[co.cid];});}
 
@@ -3776,9 +3936,10 @@ function renderGCo(){
   if(gCoF2==='pend')lista=cs.filter(function(co){var e=estadoComodato(co);return e==='por_firmar'||e==='por_entregar';});
   else if(gCoF2==='act')lista=cs.filter(function(co){return estadoComodato(co)==='activo';});
   else if(gCoF2==='ret')lista=cs.filter(function(co){return estadoComodato(co)==='ret';});
+  else if(gCoF2==='cae')lista=cs.filter(function(co){return estadoComodato(co)==='cancel';});
 
   // Orden: primero por firmar, luego por entregar, luego activos, luego retirados; dentro por fecha
-  var ordenEst={por_firmar:0,por_entregar:1,activo:2,ret:3};
+  var ordenEst={por_firmar:0,por_entregar:1,activo:2,ret:3,cancel:4};
   lista.sort(function(a,b){
     var ea=ordenEst[estadoComodato(a)],eb=ordenEst[estadoComodato(b)];
     if(ea!==eb)return ea-eb;
@@ -3793,7 +3954,7 @@ function renderGCo(){
     var e=estadoComodato(co);
     // Encabezado de seccion cuando cambia el estado
     if(e!==estadoAnterior){
-      var titulos={por_firmar:'⏳ POR FIRMAR',por_entregar:'📦 POR ENTREGAR',activo:'✅ ACTIVOS',ret:'❌ RETIRADOS'};
+      var titulos={por_firmar:'⏳ POR FIRMAR',por_entregar:'📦 POR ENTREGAR',activo:'✅ ACTIVOS',ret:'❌ RETIRADOS',cancel:'⛔ ACUERDOS CAIDOS'};
       h+='<div style="padding:12px 14px 6px;font-size:12px;font-weight:800;color:'+colorEstadoCom(e)+'">'+titulos[e]+'</div>';
       estadoAnterior=e;
     }
@@ -3804,6 +3965,7 @@ function renderGCo(){
     if(e==='por_firmar')h+='<div style="font-size:11px;color:'+(vencido?'var(--red)':'var(--muted)')+';margin-top:2px">'+(vencido?'⚠ Vencido - volver a buscar firma: ':'Volver a buscar firma: ')+fmt(co.fe)+'</div>';
     else if(e==='por_entregar')h+='<div style="font-size:11px;color:'+(vencido?'var(--red)':'var(--muted)')+';margin-top:2px">'+(vencido?'⚠ Entrega vencida: ':'Entrega pactada: ')+fmt(co.fe)+'</div>';
     else if(e==='activo')h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">Entregado: '+fmt(co.fe)+'</div>';
+    else if(e==='cancel')h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">Se cayo el '+fmt(co.fcancel)+(co.motivoCancel?' · '+es(co.motivoCancel):'')+'</div>';
     else h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">Entrega: '+fmt(co.fe)+(co.fr?' · Retiro: '+fmt(co.fr):'')+'</div>';
     h+='</div><span class="tg" style="background:rgba('+h2r(colorEstadoCom(e))+',.15);color:'+colorEstadoCom(e)+'">'+labelEstadoCom(e)+'</span></div>';
     // Botones segun estado
@@ -3811,7 +3973,9 @@ function renderGCo(){
     if(e==='por_firmar')h+='<button class="sm g" onclick="avanzarComodato(\''+co.id+'\',\'por_entregar\')">✍ Marcar firmado</button>';
     if(e==='por_entregar')h+='<button class="sm g" onclick="avanzarComodato(\''+co.id+'\',\'activo\')">📦 Marcar entregado</button>';
     if(e==='activo')h+='<button class="sm" onclick="retCo(\''+co.id+'\')" style="color:var(--orange)">Registrar retiro</button>';
-    if(e==='por_firmar'||e==='por_entregar')h+='<button class="sm" onclick="editarPendiente(\''+co.id+'\')" style="color:var(--cyan)">Editar</button>';
+    if(e==='por_firmar'||e==='por_entregar')h+='<button class="sm" onclick="caerComodato(\''+co.id+'\')" style="color:var(--muted)">Se cayo el acuerdo</button>';
+    if(e==='cancel')h+='<button class="sm g" onclick="revivirComodato(\''+co.id+'\')">Volver a ponerlo en juego</button>';
+    if(e!=='ret'&&e!=='cancel')h+='<button class="sm" onclick="editarPendiente(\''+co.id+'\')" style="color:var(--cyan)">Editar</button>';
     h+='<button class="sm rd" onclick="delCo(\''+co.id+'\')">Eliminar</button>';
     h+='</div>';
     h+='</div>';
@@ -3859,13 +4023,19 @@ function editarPendiente(id){
   var co=D.com.find(function(x){return x.id===id;});if(!co)return;
   var e=estadoComodato(co);
   var mH=(D.cfg.marcas||[]).map(function(m){return '<option'+(co.marca===m?' selected':'')+'>'+es(m)+'</option>';}).join('');
-  var lblFecha=e==='por_firmar'?'Fecha para volver a buscar firma':'Fecha de entrega pactada';
-  oMod('Editar pendiente','<div class="fg"><label class="fl">N° de freezer <span style="font-size:10px;color:var(--muted)">(opcional hasta entregar)</span></label><input class="fi" id="epN" value="'+es(co.nro||'')+'" placeholder="Ej: 042"></div><div class="fg"><label class="fl">Marca</label><select class="fi" id="epM"><option value="">Seleccionar...</option>'+mH+'</select></div><div class="fg"><label class="fl">'+lblFecha+'</label><input class="fi" type="date" id="epF" value="'+es(co.fe||'')+'"></div><div class="fg"><label class="fl">Observaciones</label><textarea class="fi fta" id="epO">'+es(co.obs||'')+'</textarea></div><button class="btn" onclick="saveEditarPendiente(\''+id+'\')">Guardar</button>');
+  var lblFecha=e==='por_firmar'?'Fecha para volver a buscar firma':(e==='activo'?'Fecha de entrega':'Fecha de entrega pactada');
+  var lblNro=e==='activo'?'(el que esta puesto en el local)':'(opcional hasta entregar)';
+  var titulo=e==='activo'?'Editar freezer entregado':'Editar pendiente';
+  oMod(titulo,'<div class="fg"><label class="fl">N° de freezer <span style="font-size:10px;color:var(--muted)">'+lblNro+'</span></label><input class="fi" id="epN" value="'+es(co.nro||'')+'" placeholder="Ej: 042"></div><div class="fg"><label class="fl">Marca</label><select class="fi" id="epM"><option value="">Seleccionar...</option>'+mH+'</select></div><div class="fg"><label class="fl">'+lblFecha+'</label><input class="fi" type="date" id="epF" value="'+es(co.fe||'')+'"></div><div class="fg"><label class="fl">Observaciones</label><textarea class="fi fta" id="epO">'+es(co.obs||'')+'</textarea></div><button class="btn" onclick="saveEditarPendiente(\''+id+'\')">Guardar</button>');
 }
 function saveEditarPendiente(id){
   if(soloLectura())return;
   var co=D.com.find(function(x){return x.id===id;});if(!co)return;
-  co.nro=document.getElementById('epN').value.trim();
+  var nro=document.getElementById('epN').value.trim();
+  // Un freezer ya entregado no puede quedarse sin numero: es el que identifica
+  // la unidad que esta fisicamente en el local.
+  if(estadoComodato(co)==='activo'&&!nro){toast('Un freezer entregado necesita su N°','err');return;}
+  co.nro=nro;
   co.marca=document.getElementById('epM').value;
   co.fe=document.getElementById('epF').value;
   co.obs=document.getElementById('epO').value;
@@ -4980,9 +5150,9 @@ function wFin(){
     c.ul=v.fecha;
     if(v.vendio===true)c.uv=v.fecha;
     if(v.eta){c.etapaEmbudo=v.eta;
-      // Misma regla que en la visita a prospecto: si el wizard lo dejo en
-      // "Cliente Activo", deja de ser prospecto tambien internamente.
-      if(v.eta==='Cliente Activo'&&c.esP){c.esP=false;v.conversion=true;}
+      // Misma regla que en la visita a prospecto, y para los dos lados:
+      // "Cliente Activo" convierte, cualquier otra etapa lo devuelve al embudo.
+      if(sincronizarEsP(c,v.eta)==='alta')v.conversion=true;
     }
     if(v.deu!==undefined)c.deu=v.deu;
     if(v.prox)v.prox=ajustarDiaHabil(v.prox);
@@ -5212,14 +5382,44 @@ function sEt(et){
 // Estado de un comodato: 'por_firmar' -> 'por_entregar' -> 'activo' (y 'ret'=retirado).
 // Los comodatos viejos sin campo 'estado' se consideran activos (retrocompatibilidad).
 function estadoComodato(co){
+  if(co.cancel)return 'cancel';   // se acordo pero la negociacion se cayo antes de entregar
   if(co.ret)return 'ret';
   return co.estado||'activo';
 }
 function labelEstadoCom(e){
-  return {por_firmar:'POR FIRMAR',por_entregar:'POR ENTREGAR',activo:'ACTIVO',ret:'RETIRADO'}[e]||'ACTIVO';
+  return {por_firmar:'POR FIRMAR',por_entregar:'POR ENTREGAR',activo:'ACTIVO',ret:'RETIRADO',cancel:'SE CAYO'}[e]||'ACTIVO';
 }
 function colorEstadoCom(e){
-  return {por_firmar:'#fbbf24',por_entregar:'#22d3ee',activo:'#4ade80',ret:'#f87171'}[e]||'#4ade80';
+  return {por_firmar:'#fbbf24',por_entregar:'#22d3ee',activo:'#4ade80',ret:'#f87171',cancel:'#94a3b8'}[e]||'#4ade80';
+}
+// Cuando se acordo el freezer y despues no se entrego porque la negociacion se
+// cayo. NO es un retiro: el freezer nunca salio. Queda registrado con el motivo
+// para poder mirar despues por que se caen los acuerdos.
+function caerComodato(id,despues){
+  if(soloLectura())return;
+  var co=D.com.find(function(x){return x.id===id;});if(!co)return;
+  var e=estadoComodato(co);
+  if(e!=='por_firmar'&&e!=='por_entregar'){toast('Solo se puede dar de baja un acuerdo que todavia no se entrego','err');return;}
+  var m=prompt('Por que se cayo el acuerdo con "'+(co.cnm||'')+'"?\n(se guarda como motivo, podes dejarlo vacio)','');
+  if(m===null)return;
+  co.cancel=true;
+  co.fcancel=fechaLocal();
+  co.motivoCancel=(m||'').trim();
+  logEvento('comodato',co.cid,co.cnm||'?','Acuerdo de freezer caido'+(co.motivoCancel?' · '+co.motivoCancel:''),e,'cancelado');
+  fsSetComodato(co);
+  toast('Acuerdo dado de baja','ok');
+  if(despues==='v')renderVCo();else refrescarComodatos();
+}
+// Vuelve a poner en juego un acuerdo que se habia dado por caido
+function revivirComodato(id,despues){
+  if(soloLectura())return;
+  var co=D.com.find(function(x){return x.id===id;});if(!co)return;
+  if(!confirm('Volver a poner en juego el acuerdo con "'+(co.cnm||'')+'"?'))return;
+  co.cancel=false;co.fcancel='';co.motivoCancel='';
+  logEvento('comodato',co.cid,co.cnm||'?','Acuerdo de freezer reactivado','cancelado',co.estado||'por_firmar');
+  fsSetComodato(co);
+  toast('Acuerdo reactivado','ok');
+  if(despues==='v')renderVCo();else refrescarComodatos();
 }
 // El cliente "tiene freezer nuestro" (para el control de freezer en visitas) solo si ya se entrego.
 function tieneFreezerNuestro(cid){
