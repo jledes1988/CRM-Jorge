@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='7.8 - 08/09/2026';
+var VERSION='7.9 - 08/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -742,6 +742,60 @@ function repararEsP(){
   });
   toast(rotos.length+(rotos.length===1?' contacto trabado como cliente se corrigio':' contactos trabados como clientes se corrigieron'),'ok');
 }
+// Freezers a retirar: entregados, en un contacto que hace mas dias que el
+// plazo configurado que no registra un pedido. Usa el mismo plazo que la regla
+// de recaida, porque es la misma decision comercial.
+function freezersARetirar(){
+  var lim=diasRecaida();
+  var out=[];
+  (D.com||[]).forEach(function(co){
+    if(estadoComodato(co)!=='activo')return;
+    var c=D.cli.find(function(x){return x.id===co.cid;});
+    if(!c||c.eliminado)return;
+    if(D.user&&D.user.r==='vendedor'&&c.vend!==D.user.n)return;
+    var ref=c.uv||co.fe||c.ing;      // ultimo pedido; si nunca hubo, desde que se entrego
+    if(!ref)return;
+    var d=dias(ref);
+    if(d===null||d<lim)return;
+    out.push({c:c,co:co,dias:d,desde:ref,nunca:!c.uv});
+  });
+  out.sort(function(a,b){return b.dias-a.dias;});
+  return out;
+}
+function retirarDesdePanel(coid){
+  retCo(coid);
+  verRetiros();
+}
+function verRetiros(){
+  var lista=freezersARetirar();
+  var lim=diasRecaida();
+  var h='';
+  if(!lista.length){h='<div class="empty">Ningun freezer para retirar. Todos los equipos estan trabajando.</div>';}
+  else{
+    h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Tienen nuestro freezer y hace mas de '+lim+' dias que no pasan un pedido. Agrupados por barrio, del que mas tiempo lleva al que menos.</div>';
+    agruparPorBarrio(lista).forEach(function(g){
+      h+=encabezadoBarrio(g);
+      g.items.forEach(function(it){
+        var c=it.c;
+        h+='<div class="cc" style="margin-bottom:8px;border-left:4px solid var(--red)">';
+        h+='<div style="margin-bottom:8px"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
+        if(c.dir)h+='<div style="font-size:11px;color:var(--muted)">&#128205; '+es(c.dir)+'</div>';
+        h+='<div style="font-size:11px;color:var(--red);font-weight:700">Freezer '+(it.co.nro?'#'+es(it.co.nro):'sin N°')+(it.co.marca?' · '+es(it.co.marca):'')+'</div>';
+        h+='<div style="font-size:11px;color:var(--muted)">'+(it.nunca?'Nunca registro un pedido · entregado el '+fmt(it.desde):'Ultimo pedido: '+fmt(it.desde))+' · hace '+it.dias+' dias</div>';
+        var salR=saldoDe(c.id);
+        if(salR>0)h+='<div style="font-size:11px;color:var(--red);font-weight:800;margin-top:2px">&#9888; Ademas debe '+plata(salR)+'</div>';
+        h+='</div>';
+        h+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
+        h+='<button class="sm g" onclick="agregarAGiraRapido(\''+c.id+'\',\'ret\')">+ Gira para retirar</button>';
+        h+='<button class="sm" onclick="cMod();abrirVisita(\''+c.id+'\')">Visitar</button>';
+        if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')">WhatsApp</button>';
+        h+='<button class="sm" onclick="retirarDesdePanel(\''+it.co.id+'\')" style="color:var(--orange)">Ya lo retire</button>';
+        h+='</div></div>';
+      });
+    });
+  }
+  oMod('Freezers a retirar ('+lista.length+')',h);
+}
 // ── REGLA: cliente sin pedido vuelve a prospecto ─────────────────────
 // Un contacto es Cliente Activo porque COMPRA. Si pasa mucho tiempo sin un
 // pedido registrado deja de serlo y vuelve al embudo como prospecto en
@@ -756,11 +810,25 @@ function diasRecaida(){
 }
 // Lista de clientes que hoy caerian con el plazo configurado. Se usa tanto
 // para aplicar la regla como para mostrar el impacto en Config antes de nada.
+// Fecha en que se le entrego el freezer que hoy tiene puesto (el mas reciente).
+function fechaFreezerPuesto(cid){
+  var fs=(D.com||[]).filter(function(co){return co.cid===cid&&estadoComodato(co)==='activo'&&co.fe;})
+    .map(function(co){return co.fe;}).sort();
+  return fs.length?fs[fs.length-1]:'';
+}
+// Desde cuando se cuenta la inactividad de un cliente:
+//   1) su ultimo pedido;
+//   2) si nunca compro, la fecha en que se le puso el freezer (poner un equipo
+//      es empezar de cero: no se puede castigar por lo que paso antes);
+//   3) si tampoco hay freezer, la fecha de ingreso.
+function refInactividad(c){
+  return c.uv||fechaFreezerPuesto(c.id)||c.ing;
+}
 function clientesEnRecaida(){
   var lim=diasRecaida();
   return D.cli.filter(function(c){
     if(c.esP||c.eliminado)return false;
-    var ref=c.uv||c.ing;
+    var ref=refInactividad(c);
     if(!ref)return false;            // sin ninguna fecha no hay como juzgarlo: no se toca
     var d=dias(ref);
     return d!==null&&d>=lim;
@@ -773,8 +841,9 @@ function revisarClientesInactivos(){
   if(!lista.length)return;
   var lim=diasRecaida();
   lista.forEach(function(c){
-    var ref=c.uv||c.ing;
-    var motivo=c.uv?('sin pedidos desde '+fmt(c.uv)):('nunca registro un pedido, ingreso '+fmt(c.ing));
+    var ref=refInactividad(c);
+    var fz=fechaFreezerPuesto(c.id);
+    var motivo=c.uv?('sin pedidos desde '+fmt(c.uv)):(fz?('nunca registro un pedido, freezer puesto el '+fmt(fz)):('nunca registro un pedido, ingreso '+fmt(c.ing)));
     c.esP=true;c.etapaEmbudo='Negociacion';
     c._modBy='Sistema';c._modAt=new Date().toISOString();
     fsSetContacto(c);
@@ -1097,14 +1166,29 @@ function renderVH(){
     h+='<span style="color:var(--red);font-size:20px">&rsaquo;</span></div>';
   }
 
+  // Freezers que hay que ir a buscar
+  var retL=freezersARetirar();
+  if(retL.length){
+    h+='<div style="background:rgba(248,113,113,.10);border:1px solid rgba(248,113,113,.35);border-radius:var(--rsm);padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="verRetiros()">';
+    h+='<div><div style="font-size:13px;font-weight:700;color:var(--red)">&#10052; '+retL.length+' freezer'+(retL.length!==1?'s':'')+' para retirar</div>';
+    h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">Sin pedidos hace mas de '+diasRecaida()+' dias · el mas viejo hace '+retL[0].dias+'</div></div>';
+    h+='<span style="color:var(--red);font-size:20px">&rsaquo;</span></div>';
+  }
+
   // Recordatorio de cobranza
   var deuL=deudores();
   if(deuL.length){
     var deuT=deuL.reduce(function(t,d){return t+d.saldo;},0);
     var viejo=deuL.reduce(function(m,d){return (d.dias!==null&&d.dias>m)?d.dias:m;},0);
     h+='<div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:var(--rsm);padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="verDeudores()">';
+    var rotas=deuL.filter(function(d){return d.promVenc;}).length;
+    var hoyProm=deuL.filter(function(d){return d.promHoy;}).length;
     h+='<div><div style="font-size:13px;font-weight:700;color:var(--red)">&#128176; '+deuL.length+' cliente'+(deuL.length!==1?'s':'')+' te debe'+(deuL.length!==1?'n':'')+' '+plata(deuT)+'</div>';
-    h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">Agrupados por barrio'+(viejo?' · el mas viejo hace '+viejo+' dias':'')+'</div></div>';
+    var sub=[];
+    if(hoyProm)sub.push(hoyProm+' viene'+(hoyProm!==1?'n':'')+' a pagar HOY');
+    if(rotas)sub.push(rotas+' rompio'+(rotas!==1?'n':'')+' la promesa');
+    if(!sub.length&&viejo)sub.push('el mas viejo hace '+viejo+' dias');
+    h+='<div style="font-size:11px;color:'+(rotas?'var(--red)':'var(--muted)')+';margin-top:2px">'+(sub.join(' · ')||'Agrupados por barrio')+'</div></div>';
     h+='<span style="color:var(--red);font-size:20px">&rsaquo;</span></div>';
   }
 
@@ -1234,7 +1318,7 @@ function agregarAGiraRapido(cid,volverA){
   if(!confirm('Agregar "'+c.nm+'" a la gira de hoy?'))return;
   agregarAGira(cid,today());
   // Vuelve al panel desde el que se lo agrego, sin cerrarlo
-  if(volverA==='seg')verSeguimiento();else if(volverA==='deu')verDeudores();else verInaccion();
+  if(volverA==='seg')verSeguimiento();else if(volverA==='deu')verDeudores();else if(volverA==='ret')verRetiros();else verInaccion();
 }
 // Historial: desplegable por mes -> lista de dias con actividad -> detalle en modal
 function toggleHistorialVH(){
@@ -2485,6 +2569,8 @@ function renderGD(){
   var ls=getLunesSem();
   var vb=vendedores.filter(function(u){return D.vis.filter(function(v){return v.vend===u.n&&v.fecha>=ls;}).length<3;});
   if(vb.length)alertas.push({t:'y',msg:'Baja actividad esta semana: '+vb.map(function(u){return u.n;}).join(', '),ids:null});
+  var retAdm=freezersARetirar();
+  if(retAdm.length)alertas.push({t:'r',msg:retAdm.length+' freezer'+(retAdm.length!==1?'s':'')+' para retirar: sin pedidos hace +'+diasRecaida()+' dias',ids:retAdm.map(function(r){return r.c.id;})});
   var deuAdm=deudores();
   if(deuAdm.length)alertas.push({t:'r',msg:deuAdm.length+' cliente'+(deuAdm.length!==1?'s':'')+' con deuda por '+plata(deuAdm.reduce(function(t,d){return t+d.saldo;},0)),ids:deuAdm.map(function(d){return d.c.id;})});
   var csv=D.com.filter(comVigente).filter(function(co){var c=D.cli.find(function(x){return x.id===co.cid;});return c&&(!c.ul||dias(c.ul)>30);});
@@ -2925,11 +3011,22 @@ function plu(u,n){
   ps[0]=/[aeiou]$/i.test(ps[0])?ps[0]+'s':ps[0]+'es';
   return ps.join(' ');
 }
-var pedActual={cid:null,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:'',cobro:'todo',cobrado:0};
+var pedActual={cid:null,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:'',cobro:'todo',cobrado:0,prom:''};
 
+// Regla de la casa: no se le baja mercaderia a quien debe. No se bloquea a
+// ciegas (a veces baja igual porque le paga la mitad en el momento), pero
+// tiene que ser una decision consciente, no un descuido.
 function abrirPedido(cid){
   var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
-  pedActual={cid:cid,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:'',cobro:'todo',cobrado:0};
+  var sal=saldoDe(cid);
+  if(sal>0){
+    var prom=compromisoDe(cid);
+    var msg='"'+c.nm+'" DEBE '+plata(sal)+'.';
+    if(prom)msg+='\nSe comprometio a pagar el '+fmt(prom)+(prom<today()?' (ya vencio)':'')+'.';
+    msg+='\n\nLa regla es no bajar mercaderia con saldo pendiente.\n\n¿Cargas el pedido igual?';
+    if(!confirm(msg)){verCuenta(cid);return;}
+  }
+  pedActual={cid:cid,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:'',cobro:'todo',cobrado:0,prom:''};
   renderPedido();
 }
 function setPedLinea(l){pedActual.linea=l;renderPedido();}
@@ -3051,8 +3148,10 @@ function renderPedido(){
     h+='<span class="fb'+(pedActual.cobro===o[0]?' on':'')+'" onclick="setPedCobro(\''+o[0]+'\')">'+o[1]+'</span>';
   });
   h+='</div>';
-  if(pedActual.cobro==='parte'){
-    h+='<div class="fg" style="margin:0"><label class="fl">Cuanto te dio ahora</label><input class="fi" type="number" min="0" id="pedCobrado" value="'+(pedActual.cobrado||'')+'" oninput="setPedCobrado(this.value);refrescarDeudaPed()" style="font-size:16px;font-weight:700;margin:0"></div>';
+  if(pedActual.cobro==='parte'||pedActual.cobro==='nada'){
+    if(pedActual.cobro==='parte')h+='<div class="fg"><label class="fl">Cuanto te dio ahora</label><input class="fi" type="number" min="0" id="pedCobrado" value="'+(pedActual.cobrado||'')+'" oninput="setPedCobrado(this.value);refrescarDeudaPed()" style="font-size:16px;font-weight:700;margin:0"></div>';
+    var sem2=new Date();sem2.setDate(sem2.getDate()+7);
+    h+='<div class="fg" style="margin:0"><label class="fl">Cuando viene por el resto</label><input class="fi" type="date" id="pedProm" min="'+today()+'" value="'+(pedActual.prom||fechaLocal(sem2))+'" oninput="pedActual.prom=this.value" style="margin:0"></div>';
   }
   h+='<div id="pedDeuda" style="margin-top:8px">'+deudaPedHTML()+'</div>';
   h+='</div>';
@@ -3166,6 +3265,10 @@ function guardarPedido(){
     });
   });
   var tot=totalPedido();
+  var salPrevio=saldoDe(c.id);
+  if(salPrevio>0&&deudaDelPedido()>0){
+    if(!confirm('Atencion: "'+c.nm+'" ya debia '+plata(salPrevio)+' y este pedido le suma '+plata(deudaDelPedido())+'.\n\nVa a quedar debiendo '+plata(salPrevio+deudaDelPedido())+'.\n\n¿Guardamos igual?'))return;
+  }
   var ped={id:uid(),cid:c.id,cliente:c.nm,fecha:today(),vend:D.user?D.user.n:'',
     items:items,total:tot,mats:Object.keys(pedActual.mats),
     notaPago:pedActual.notaPago,notaConv:pedActual.notaConv,obs:pedActual.obs};
@@ -3182,7 +3285,10 @@ function guardarPedido(){
   if(debe>0){
     nuevoMovimiento(c.id,'cargo',debe,'Pedido del '+fmt(ped.fecha),ped.id);
     fsSetPedido(ped);
-    toast('Pedido guardado. Quedo debiendo '+plata(debe),'ok');
+    var pEl=document.getElementById('pedProm');
+    var prom=(pEl&&pEl.value)||pedActual.prom||'';
+    if(prom){setCompromiso(c.id,prom);logEvento('venta',c.id,c.nm,'Se comprometio a pagar '+plata(debe)+' el '+fmt(prom),'','');}
+    toast('Pedido guardado. Quedo debiendo '+plata(debe)+(prom?' — vuelve el '+fmt(prom):''),'ok');
   } else {
     toast('Pedido guardado y cobrado: '+plata(tot),'ok');
   }
@@ -3212,6 +3318,21 @@ function deudaDesde(cid){
     .map(function(m){return m.fecha;}).sort();
   return fs.length?fs[0]:'';
 }
+// Fecha en que el cliente se comprometio a pagar el saldo, si dio una.
+function compromisoDe(cid){
+  var c=D.cli.find(function(x){return x.id===cid;});
+  return (c&&c.promPago)||'';
+}
+// Guarda (o borra) el compromiso de pago del cliente
+function setCompromiso(cid,fecha){
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  var ant=c.promPago||'';
+  c.promPago=fecha||'';
+  if(ant!==c.promPago){
+    c._modBy=D.user?D.user.n:'?';c._modAt=new Date().toISOString();
+    fsSetContacto(c);
+  }
+}
 // Todos los que hoy deben plata, del que mas debe al que menos
 function deudores(){
   var vistos={},out=[];
@@ -3224,9 +3345,19 @@ function deudores(){
     var sal=saldoDe(m.cid);
     if(sal<=0)return;
     var desde=deudaDesde(m.cid);
-    out.push({c:c,saldo:sal,desde:desde,dias:desde?dias(desde):null});
+    var prom=compromisoDe(m.cid);
+    out.push({c:c,saldo:sal,desde:desde,dias:desde?dias(desde):null,
+      prom:prom,
+      promVenc:!!(prom&&prom<today()),      // prometio pagar y no pago
+      promHoy:!!(prom&&prom===today())});
   });
-  out.sort(function(a,b){return b.saldo-a.saldo;});
+  // Primero el que rompio la promesa, despues el que la tiene para hoy, y
+  // dentro de cada grupo el que mas debe.
+  out.sort(function(a,b){
+    var pa=a.promVenc?0:(a.promHoy?1:2), pb=b.promVenc?0:(b.promHoy?1:2);
+    if(pa!==pb)return pa-pb;
+    return b.saldo-a.saldo;
+  });
   return out;
 }
 function totalDeuda(){
@@ -3237,7 +3368,10 @@ function totalDeuda(){
 function sincronizarMarcaDeudor(cid){
   var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
   var debe=saldoDe(cid)>0;
-  if(!!c.deu!==debe){c.deu=debe;fsSetContacto(c);}
+  var cambio=false;
+  if(!!c.deu!==debe){c.deu=debe;cambio=true;}
+  if(!debe&&c.promPago){c.promPago='';cambio=true;}  // quedo al dia: se cae el compromiso
+  if(cambio){c._modBy=D.user?D.user.n:'?';c._modAt=new Date().toISOString();fsSetContacto(c);}
 }
 // Registra un movimiento. concepto y pid son opcionales.
 function nuevoMovimiento(cid,tipo,monto,concepto,pid){
@@ -3263,6 +3397,11 @@ function registrarPago(cid,volverA){
   h+='<div class="fg"><label class="fl">Cuanto pago ahora</label><input class="fi" type="number" min="1" id="pgMonto" value="'+sal+'" style="font-size:18px;font-weight:700"></div>';
   h+='<div style="display:flex;gap:6px;margin-bottom:10px"><button class="sm g" onclick="document.getElementById(\'pgMonto\').value='+sal+'">Pago todo</button><button class="sm" onclick="document.getElementById(\'pgMonto\').value=\'\';document.getElementById(\'pgMonto\').focus()">Pago una parte</button></div>';
   h+='<div class="fg"><label class="fl">Nota <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="pgNota" placeholder="Ej: efectivo / transferencia"></div>';
+  // Compromiso: solo tiene sentido si queda saldo. El campo esta siempre y se
+  // ignora si paga todo, para no hacer dos pantallas distintas.
+  var sem=new Date();sem.setDate(sem.getDate()+7);
+  h+='<div class="fg"><label class="fl">Si queda debiendo, cuando viene por el resto <span style="font-size:10px;color:var(--muted)">(opcional)</span></label>';
+  h+='<input class="fi" type="date" id="pgProm" min="'+today()+'" value="'+(compromisoDe(cid)||fechaLocal(sem))+'"></div>';
   h+='<button class="btn" onclick="guardarPago(\''+cid+'\',\''+(volverA||'')+'\')" style="margin:0 0 8px">Registrar el pago</button>';
   h+='<button class="btn sec" onclick="verCuenta(\''+cid+'\')" style="margin:0">Ver la cuenta completa</button>';
   oMod('Registrar pago',h);
@@ -3275,9 +3414,15 @@ function guardarPago(cid,volverA){
   if(monto<=0){toast('Poné cuanto pago','err');return;}
   if(monto>sal&&!confirm('Está pagando '+plata(monto)+' y debe '+plata(sal)+'.\n\nLe va a quedar '+plata(monto-sal)+' a favor. ¿Seguimos?'))return;
   var nota=document.getElementById('pgNota');
+  var promEl=document.getElementById('pgProm');
   nuevoMovimiento(cid,'pago',monto,nota?nota.value.trim():'','');
   var resto=saldoDe(cid);
-  toast(resto>0?'Pago registrado. Le queda '+plata(resto):'Pago registrado: quedo al dia','ok');
+  // El compromiso se guarda solo si quedo saldo (si pago todo, sincronizarMarcaDeudor ya lo limpio)
+  if(resto>0&&promEl&&promEl.value){
+    setCompromiso(cid,promEl.value);
+    logEvento('venta',cid,(D.cli.find(function(x){return x.id===cid;})||{}).nm||'','Se comprometio a pagar '+plata(resto)+' el '+fmt(promEl.value),'','');
+  }
+  toast(resto>0?'Pago registrado. Le queda '+plata(resto)+(promEl&&promEl.value?' — vuelve el '+fmt(promEl.value):''):'Pago registrado: quedo al dia','ok');
   if(volverA==='panel')verDeudores();else if(volverA==='cuenta')verCuenta(cid);else cMod();
   refrescarVistaActual();
 }
@@ -3363,11 +3508,14 @@ function verDeudores(){
       g.items.forEach(function(it){
         var c=it.c;
         var col=it.dias===null?'var(--muted)':it.dias>30?'var(--red)':it.dias>15?'var(--orange)':'var(--yellow)';
+        if(it.promVenc)col='var(--red)';
         h+='<div class="cc" style="margin-bottom:8px;border-left:4px solid '+col+'">';
+        if(it.promVenc)h+='<div style="font-size:11px;font-weight:800;color:var(--red);margin-bottom:4px">&#9888; PROMETIO PAGAR EL '+fmt(it.prom)+' Y NO PAGO</div>';
+        else if(it.promHoy)h+='<div style="font-size:11px;font-weight:800;color:var(--yellow);margin-bottom:4px">&#128197; HOY VIENE POR EL SALDO</div>';
         h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;min-width:0">';
         h+='<div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
         if(c.dir)h+='<div style="font-size:11px;color:var(--muted)">&#128205; '+es(c.dir)+'</div>';
-        h+='<div style="font-size:11px;color:'+col+'">'+(it.dias===null?'sin fecha':'hace '+it.dias+' dias')+'</div>';
+        h+='<div style="font-size:11px;color:'+col+'">'+(it.dias===null?'sin fecha':'hace '+it.dias+' dias')+(it.prom&&!it.promVenc&&!it.promHoy?' · paga el '+fmt(it.prom):'')+'</div>';
         h+='</div><div style="font-size:17px;font-weight:900;color:var(--red);flex-shrink:0">'+plata(it.saldo)+'</div></div>';
         h+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
         h+='<button class="sm g" onclick="registrarPago(\''+c.id+'\',\'panel\')">Cobrar</button>';
@@ -4728,7 +4876,7 @@ function renderGCfg(){
   h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="fi" type="number" min="7" max="365" id="cfgRecaida" value="'+diasRecaida()+'" style="width:90px;margin:0;text-align:center;font-size:16px;font-weight:700"><span style="font-size:12px;color:var(--muted)">dias</span><button class="btn sec" onclick="guardarRecaida()" style="margin:0">Guardar y aplicar</button></div>';
   var enRec=clientesEnRecaida();
   if(enRec.length){
-    h+='<div style="font-size:11px;color:var(--yellow);margin-top:10px;line-height:1.5"><b>'+enRec.length+' cliente'+(enRec.length===1?'':'s')+' caeria'+(enRec.length===1?'':'n')+' con este plazo:</b><br>'+enRec.map(function(c){return es(c.nm)+' ('+(c.uv?'ultimo pedido '+fmt(c.uv):'sin pedidos, ingreso '+fmt(c.ing))+')';}).join('<br>')+'</div>';
+    h+='<div style="font-size:11px;color:var(--yellow);margin-top:10px;line-height:1.5"><b>'+enRec.length+' cliente'+(enRec.length===1?'':'s')+' caeria'+(enRec.length===1?'':'n')+' con este plazo:</b><br>'+enRec.map(function(c){var fz=fechaFreezerPuesto(c.id);return es(c.nm)+' ('+(c.uv?'ultimo pedido '+fmt(c.uv):(fz?'sin pedidos, freezer puesto el '+fmt(fz):'sin pedidos, ingreso '+fmt(c.ing)))+')';}).join('<br>')+'</div>';
   } else {
     h+='<div style="font-size:11px;color:var(--muted);margin-top:10px">Ningun cliente cae con este plazo.</div>';
   }

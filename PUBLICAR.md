@@ -1,136 +1,111 @@
-# CRM-Jorge — Versión 7.8
+# CRM-Jorge — Versión 7.9
 
-**Solo cambió `app.js`.** Pero esta vez hay **un paso extra obligatorio** antes
-de usar las deudas: leé `REGLAS-DEUDAS.txt`.
+**Solo cambió `app.js`.**
 
----
-
-## ⚠ Primero: las reglas de Firestore
-
-El módulo de deudores guarda en una colección nueva (`deudas`) que tus reglas
-actuales **no contemplan**. Hasta que agregues el bloque, la base va a rechazar
-cada movimiento.
-
-Está todo explicado en `REGLAS-DEUDAS.txt`: son 6 pasos y un bloque de 5
-líneas para pegar. **No borres nada de lo que ya está**, solo agregás.
-
-Si te lo olvidás, la app te avisa con un cartel rojo explícito en vez de hacer
-como que guardó. Decime si preferís que lo aplique yo desde el navegador, como
-la vez pasada.
+> Si todavía no cargaste las reglas de Firestore de `REGLAS-DEUDAS.txt`,
+> hacelo antes: sin eso el módulo de deudas no guarda nada.
 
 ---
 
-# Los dos bugs que encontraste
+## 1 · Cuándo viene por el resto
 
-## Los comodatos caídos seguían contando
+Esto era lo que faltaba para tu caso: paga la mitad al bajar la mercadería y la
+otra mitad a la semana.
 
-Tenías razón. Cuando hice el estado "caído" en la 7.7, lo apliqué en la
-pantalla de Comodatos, pero **seis lugares más del código** definían "freezer
-vigente" como *"que no esté retirado"* — y un acuerdo caído no está retirado,
-así que seguía contando.
+**Al cargar el pedido**, si elegís "Cobré una parte" o "No cobró nada",
+aparece un campo **"Cuándo viene por el resto"**, con el lunes siguiente ya
+puesto por defecto.
 
-Por eso el aviso te decía que había freezers sin visita que vos ya habías dado
-de baja. Afectaba también al tablero, a los informes, al mapa y al botón
-"Acordó freezer" de la ficha.
+**Al registrar un pago** en la cuenta corriente, lo mismo: si queda saldo, te
+pregunta qué día vuelve.
 
-Lo unifiqué en un solo lugar: ahora hay una única definición de "en juego" y
-todo el resto la usa. **En Informes agregué un contador de "Acuerdos caídos"**
-para que no desaparezcan del todo.
+**Después el sistema te lo cobra a vos:**
 
-## El pedido: vista previa y copiado
-
-Dos cosas distintas, las dos arregladas.
-
-**La vista previa vuelve, y mejor:** ya no está escondida detrás de un botón.
-Ahora el texto para fábrica está **dentro del mismo formulario del pedido**,
-abajo de todo, y **se va escribiendo solo** mientras cargás cantidades. Sacás
-la pantalla intermedia que te confundía.
-
-**El copiado mentía.** El método viejo (`execCommand`) en el Chrome del celular
-**devuelve "no pude" en vez de tirar error**, así que la app cantaba "Copiado"
-en verde cuando en realidad no había copiado nada. Ahora usa el portapapeles
-moderno y **solo dice "Copiado" si el navegador confirma que copió**. Si no
-puede, te deja el texto seleccionado y te dice que lo mantengas apretado.
-
-> El cartel verde seguido del rojo era eso: el verde mentía y el rojo era el
-> real.
+- El día que prometió, el recordatorio de HOY dice **"N vienen a pagar HOY"**.
+- Si pasó y no pagó, ese cliente sube **al primer lugar** del panel con el
+  cartel rojo **"PROMETIÓ PAGAR EL 12/9 Y NO PAGÓ"**.
+- El orden del panel es: primero los que rompieron la promesa, después los que
+  vienen hoy, y recién ahí por monto.
+- Cuando queda en cero, el compromiso se borra solo.
 
 ---
 
-# Lo nuevo
+## 2 · No se baja mercadería con saldo
 
-## 1 · Módulo de deudores
+Tu regla, metida en dos puntos del camino:
 
-**La deuda sale del pedido.** Al final del formulario hay una sección
-**COBRO DE ESTA ENTREGA** con tres botones: *Cobré todo* / *Cobré una parte* /
-*No cobró nada*. Si elegís "una parte", ponés cuánto te dio y abajo te dice en
-rojo, en vivo, **cuánto queda debiendo**. Al guardar, eso se carga solo a su
-cuenta.
+**Al abrir el pedido**, si el cliente debe, te frena con el monto y la fecha
+que había prometido (y te dice si esa promesa ya venció). Si cancelás, te
+lleva directo a su cuenta corriente para cobrarle.
 
-Si el cliente ya venía debiendo, te lo avisa arriba antes de que cargues nada.
+**Al guardar**, si además le vas a sumar deuda nueva, te avisa cuánto va a
+quedar debiendo en total antes de confirmar.
 
-**Cuenta corriente por cliente.** Botón *Cuenta corriente* en la ficha, que ya
-te muestra el saldo en el propio botón. Adentro: el saldo grande, desde cuándo
-arrastra, y el historial de cada deuda y cada pago con quién y cuándo. Podés
-**registrar un pago** (total o parcial), **cargar una deuda a mano** (para lo
-que quedó de antes de la app) y **borrar un movimiento** mal cargado.
+> Lo dejé como aviso fuerte y no como bloqueo total, porque vos mismo
+> describiste el caso donde sí le bajás: te paga la mitad en el momento. Con
+> el aviso la decisión es consciente, no un descuido. Si preferís que sea
+> imposible, lo cambio.
 
-> El saldo **no se guarda en ningún lado**: se recalcula siempre sumando los
-> movimientos. Así nunca te queda un número que no coincide con el historial.
+---
 
-**El recordatorio, agrupado por barrio.** En HOY aparece en rojo *"N clientes
-te deben $X"*. Al tocarlo se abre el panel: el total en la calle arriba, y
-abajo agrupados por barrio con el subtotal de cada zona, para salir a cobrar
-por recorrido. Cada cliente trae el monto, hace cuántos días arrastra (color
-según sea más o menos de 15 y 30 días) y cuatro botones: **Cobrar**, **Cuenta**,
-**WhatsApp** y **+ Gira**.
+## 3 · Aviso de retiro del freezer
 
-El admin lo ve también como alerta en el tablero, y el filtro **Deudores** de
-Contactos ahora usa el saldo real en vez de la marca vieja.
+Cliente con **freezer entregado** que lleva más de 45 días sin pasar un
+pedido: aparece en HOY como **"N freezers para retirar"**.
 
-## 2 · El comodato convierte en Cliente Activo
+Adentro, agrupados por barrio, cada uno con el N° y la marca del equipo, hace
+cuántos días que no compra, y **si además debe plata**. Cuatro botones:
+**+ Gira para retirar**, **Visitar**, **WhatsApp** y **Ya lo retiré**.
 
-Elegiste *al entregar*, que es lo que ya hacía. Lo dejé como está: mientras el
-freezer está "por firmar" o "por entregar" sigue siendo prospecto, porque
-todavía no tiene nada nuestro en el local.
+Usa el mismo plazo de 45 días que la regla de recaída — se cambia desde Config
+y las dos cosas se mueven juntas, porque son la misma decisión comercial.
 
-> Aviso de algo que se va a cruzar: un cliente al que le pusiste el freezer
-> pero que no te compra hace 45 días, hoy **vuelve a prospecto** por la regla
-> de la 7.6. Si querés que el freezer puesto lo blinde de esa regla, decime y
-> lo cambio: es una línea.
+**Hoy no te va a aparecer ninguno**, y está bien: tus cinco freezers activos
+se entregaron entre hace 6 y 18 días.
 
-## 3 · Color de Negociación en el mapa
+---
 
-Era cyan, el mismo color de acento de toda la app, por eso no resaltaba.
-Ahora es **blanco puro con borde oscuro y el punto más grande** que los demás.
-Ningún otro estado usa blanco, y sobre el mapa oscuro es el que más salta.
+## ⚠ Un bug que encontré simulando, y que te está afectando ahora
 
-Como Negociación dejó de ser cyan, el cyan queda libre para "cliente activo
-con freezer puesto", que ya lo usaba.
+Al probar el aviso de retiro contra tu backup me topé con esto:
+
+**Coco loco, Di Navarro y Despensa Hidalgo tienen freezer nuestro entregado el
+31/8, el 2/9 y el 28/8** — hace días, no meses. Pero la regla de los 45 días
+los contaba desde su **fecha de ingreso** (julio), así que la 7.7 los mandó de
+vuelta a prospecto **una semana después de haberles instalado el equipo**.
+
+Estaba mal y era mío. Ahora la regla cuenta así:
+
+1. Su último pedido.
+2. Si nunca compró, **desde que se le puso el freezer** — instalar un equipo es
+   empezar de cero, no se puede castigar por lo de antes.
+3. Si tampoco hay freezer, la fecha de ingreso.
+
+Verifiqué que con el arreglo los tres **se salvan**, y que Ypf sabatini
+(último pedido 30/6, sin freezer) sigue cayendo como corresponde.
+
+> **Revisá en qué etapa te quedaron esos tres.** Si están en Negociación, son
+> clientes tuyos con el freezer puesto: pasalos a Cliente Activo a mano. De
+> acá en adelante no vuelve a pasar.
 
 ---
 
 ## Probá esto apenas subas
 
-1. **Primero las reglas** (`REGLAS-DEUDAS.txt`). Sin eso, el punto 3 falla.
-2. Tomá un pedido → cargá algo → mirá que **la vista previa se escriba sola**
-   abajo → **Copiar al portapapeles** → pegalo en cualquier lado para
-   confirmar que copió de verdad.
-3. En el mismo pedido, elegí **"Cobré una parte"**, poné un monto menor al
-   total y guardá → tiene que decirte cuánto quedó debiendo.
-4. Volvé a **HOY**: tiene que aparecer el recordatorio rojo de cobranza.
-   Entrá, tocá **Cobrar**, registrá el pago completo y verificá que
-   desaparezca de la lista.
-5. **Comodatos → Caídos**: agarrá uno y fijate que **ya no aparezca** en el
-   aviso de "comodato activo sin visita" del tablero admin.
-6. **Mapa**: buscá un contacto en Negociación — tiene que ser un punto blanco,
-   más grande que el resto.
+1. Tomá un pedido de un cliente **que deba plata** → tiene que frenarte antes
+   de dejarte entrar.
+2. En un pedido nuevo: **"Cobré una parte"** → poné un monto → fijate que
+   aparezca **"Cuándo viene por el resto"** → guardá.
+3. Cambiá esa fecha a ayer (Cuenta corriente → Cobrar → poné $1 y fecha de
+   ayer) y volvé a HOY: tiene que decir **"1 rompió la promesa"** y ese
+   cliente ir primero en el panel.
+4. **Coco loco, Di Navarro y Despensa Hidalgo**: revisá su etapa y corregila
+   si hace falta.
 
 ---
 
 ## Tus pendientes
 
-- Definir el **Pote Tutto 3 Lts** (quedó a $9.900).
-- Datos de los clientes (CUIT, condición impositiva, horarios) — dijiste que
-  los cargás hoy.
-- Segundas visitas — dijiste que arrancás hoy.
+- Definir el **Pote Tutto 3 Lts** ($9.900 provisorio).
+- Datos de los clientes (CUIT, condición impositiva, horarios).
+- Segundas visitas.
