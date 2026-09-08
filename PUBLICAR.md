@@ -1,166 +1,136 @@
-# CRM-Jorge — Versión 7.7
+# CRM-Jorge — Versión 7.8
 
-**Solo cambió `app.js`.** Descargalo y subilo a GitHub. `index.html` y
-`estilos.css` quedan como están.
-
-Compila, ningún botón quedó apuntando a una función inexistente, y simulé el
-motor de fracciones y las reglas de etapa contra tu backup del 3/9.
+**Solo cambió `app.js`.** Pero esta vez hay **un paso extra obligatorio** antes
+de usar las deudas: leé `REGLAS-DEUDAS.txt`.
 
 ---
 
-## 1 · Recordatorio de visitas agrupado por barrio
+## ⚠ Primero: las reglas de Firestore
 
-Los dos paneles de recordatorio —**Contactos sin gestión** y **Esperando
-segunda visita**— ahora vienen partidos por barrio, con la zona que más
-pendientes tiene arriba de todo. Adentro de cada barrio se mantiene el orden
-por urgencia.
+El módulo de deudores guarda en una colección nueva (`deudas`) que tus reglas
+actuales **no contemplan**. Hasta que agregues el bloque, la base va a rechazar
+cada movimiento.
 
-Así abrís el panel, ves "Nueva Córdoba (7)" y armás la gira de una zona sin ir
-salteando la lista.
+Está todo explicado en `REGLAS-DEUDAS.txt`: son 6 pasos y un bloque de 5
+líneas para pegar. **No borres nada de lo que ya está**, solo agregás.
 
----
-
-## 2 · Editar la marca del freezer después de entregado
-
-El botón **Editar** aparecía solo en los pendientes. Ahora está también en los
-**activos**: podés corregir marca, N° y fecha de entrega de un freezer que ya
-está puesto.
-
-Lo único que no te deja es borrar el N° de un freezer entregado — es lo que
-identifica la unidad que está físicamente en el local.
+Si te lo olvidás, la app te avisa con un cartel rojo explícito en vez de hacer
+como que guardó. Decime si preferís que lo aplique yo desde el navegador, como
+la vez pasada.
 
 ---
 
-## 3 · El Drugstore que "ya estaba cargado" pero no aparecía
+# Los dos bugs que encontraste
 
-Lo encontré. **Existe**, tel 3888447234, cargado el 15/7. No está borrado:
-está en etapa **"No Le Interesa"**, y las listas esconden por defecto lo que
-quedó fuera del embudo. Por eso no lo veías pero el chequeo de duplicados sí
-lo encontraba.
+## Los comodatos caídos seguían contando
 
-Ahora el aviso de duplicado te dice **por qué no lo ves** ("marcado como No Le
-Interesa: por eso no aparece en la lista", o "EN PAPELERA") y te da un botón
-**"Reactivarlo en vez de cargarlo de nuevo"**, que lo devuelve al embudo en
-Contactado con todo su historial intacto.
+Tenías razón. Cuando hice el estado "caído" en la 7.7, lo apliqué en la
+pantalla de Comodatos, pero **seis lugares más del código** definían "freezer
+vigente" como *"que no esté retirado"* — y un acuerdo caído no está retirado,
+así que seguía contando.
 
-> Hay 3 contactos más en la misma situación: Drugstore Infinity, Drugstore
-> 24/7 y este. Los buscás desde el filtro de etapa del Embudo.
+Por eso el aviso te decía que había freezers sin visita que vos ya habías dado
+de baja. Afectaba también al tablero, a los informes, al mapa y al botón
+"Acordó freezer" de la ficha.
 
----
+Lo unifiqué en un solo lugar: ahora hay una única definición de "en juego" y
+todo el resto la usa. **En Informes agregué un contador de "Acuerdos caídos"**
+para que no desaparezcan del todo.
 
-## 4 · Kiosco vale y 6yS: encontré por qué y lo arreglé
+## El pedido: vista previa y copiado
 
-**El bug:** poner "Cliente Activo" convertía el contacto por dentro, pero
-**volver atrás no revertía nada**. La marca interna quedaba trabada en
-"cliente" para siempre y ningún cambio de etapa la soltaba.
+Dos cosas distintas, las dos arregladas.
 
-En tu historial se ve exactamente eso: el **10/8** 6yS se convirtió a Cliente
-Activo y **ese mismo día** lo volviste a Negociación. No tomó. Y lo seguiste
-intentando el 24/8, el 25/8 y el 31/8.
+**La vista previa vuelve, y mejor:** ya no está escondida detrás de un botón.
+Ahora el texto para fábrica está **dentro del mismo formulario del pedido**,
+abajo de todo, y **se va escribiendo solo** mientras cargás cantidades. Sacás
+la pantalla intermedia que te confundía.
 
-**Dos cosas:**
+**El copiado mentía.** El método viejo (`execCommand`) en el Chrome del celular
+**devuelve "no pude" en vez de tirar error**, así que la app cantaba "Copiado"
+en verde cuando en realidad no había copiado nada. Ahora usa el portapapeles
+moderno y **solo dice "Copiado" si el navegador confirma que copió**. Si no
+puede, te deja el texto seleccionado y te dice que lo mantengas apretado.
 
-- **Ahora la etapa manda para los dos lados.** Cualquier etapa que no sea
-  "Cliente Activo" lo devuelve al embudo. Ya podés moverlos a mano.
-- **Se reparan solos al entrar como admin.** Se corrigen **3**: Kiosco vale
-  (queda en Negociación), 6yS (Propuesta Enviada) y **Almacén de Andrea**, que
-  figuraba como cliente activo estando en "No Le Interesa". Cada uno conserva
-  su etapa real, no se aplastan todos a Negociación.
-
-> Solo toca a los que nunca registraron una compra. Al que compró no lo mueve.
+> El cartel verde seguido del rojo era eso: el verde mentía y el rojo era el
+> real.
 
 ---
 
-## 5 · "Se cayó el acuerdo" del freezer
+# Lo nuevo
 
-Estado nuevo para cuando se acuerda el freezer y después no se entrega. En
-**Pendientes**, botón **"Se cayó el acuerdo"** → te pide el motivo (podés
-dejarlo vacío) y el acuerdo pasa a **⛔ CAÍDOS**.
+## 1 · Módulo de deudores
 
-- **No es un retiro.** El freezer nunca salió, así que no ensucia la
-  estadística de freezers colocados ni de retirados.
-- Sale del contador **"en camino a la meta"**.
-- Solapa nueva **Caídos**, en admin y en vendedor.
-- Si se reactiva, botón **"Volver a ponerlo en juego"** y vuelve al estado que
-  tenía.
-- El motivo queda guardado, así en unos meses podés mirar por qué se caen.
+**La deuda sale del pedido.** Al final del formulario hay una sección
+**COBRO DE ESTA ENTREGA** con tres botones: *Cobré todo* / *Cobré una parte* /
+*No cobró nada*. Si elegís "una parte", ponés cuánto te dio y abajo te dice en
+rojo, en vivo, **cuánto queda debiendo**. Al guardar, eso se carga solo a su
+cuenta.
 
-> Justamente es lo que le pasó a 6yS: el 31/7 figura entregado el freezer #yy
-> y retirado el mismo día. Eso es la simulación que me pediste evitar.
+Si el cliente ya venía debiendo, te lo avisa arriba antes de que cargues nada.
 
----
+**Cuenta corriente por cliente.** Botón *Cuenta corriente* en la ficha, que ya
+te muestra el saldo en el propio botón. Adentro: el saldo grande, desde cuándo
+arrastra, y el historial de cada deuda y cada pago con quién y cuándo. Podés
+**registrar un pago** (total o parcial), **cargar una deuda a mano** (para lo
+que quedó de antes de la app) y **borrar un movimiento** mal cargado.
 
-## 6 y 7 · Postres y frambuesas fraccionados
+> El saldo **no se guarda en ningún lado**: se recalcula siempre sumando los
+> movimientos. Así nunca te queda un número que no coincide con el historial.
 
-Cada producto puede venderse **por caja cerrada o suelto**, con el precio de
-la fracción calculado solo.
+**El recordatorio, agrupado por barrio.** En HOY aparece en rojo *"N clientes
+te deben $X"*. Al tocarlo se abre el panel: el total en la calle arriba, y
+abajo agrupados por barrio con el subtotal de cada zona, para salir a cobrar
+por recorrido. Cada cliente trae el monto, hace cuántos días arrastra (color
+según sea más o menos de 15 y 30 días) y cuatro botones: **Cobrar**, **Cuenta**,
+**WhatsApp** y **+ Gira**.
 
-En el formulario del pedido, esos productos muestran **dos casillas** por
-sabor: *Cajas* y *Cajas x8* (o *Unidades*), con el precio unitario arriba.
+El admin lo ve también como alerta en el tablero, y el filtro **Deudores** de
+Contactos ahora usa el saldo real en vez de la marca vieja.
 
-El texto para fábrica sale con el formato exacto de tus capturas:
+## 2 · El comodato convierte en Cliente Activo
 
-```
-pedido
-2 alfajor seichoc
-2 cajas x8 alfajor seichoc
-6 unidades pote dubai
-4 unidades frambuesa
-```
+Elegiste *al entregar*, que es lo que ya hacía. Lo dejé como está: mientras el
+freezer está "por firmar" o "por entregar" sigue siendo prospecto, porque
+todavía no tiene nada nuestro en el local.
 
-Lo dejé cargado en **19 productos de Postres**: los packs x8 se fraccionan en
-**cajitas x8** (6 por caja), y los potes, tortas y frambuesas en **unidades**.
-Las frambuesas quedan a $76.429 la caja de 12 y **$6.369 la unidad**.
+> Aviso de algo que se va a cruzar: un cliente al que le pusiste el freezer
+> pero que no te compra hace 45 días, hoy **vuelve a prospecto** por la regla
+> de la 7.6. Si querés que el freezer puesto lo blinde de esa regla, decime y
+> lo cambio: es una línea.
 
-**Lo controlás vos** desde Config → Catálogo → cualquier producto: dos campos
-nuevos, *"Cuántos entran en la caja"* y *"Cómo se llama cada uno"*. Poné 0 en
-el primero y el producto vuelve a venderse solo por caja cerrada. Abajo te
-muestra a cuánto queda el suelto.
+## 3 · Color de Negociación en el mapa
 
-Los baldes x3, x5 y el Pote Tutto quedaron sin fraccionar porque ya se venden
-por unidad.
+Era cyan, el mismo color de acento de toda la app, por eso no resaltaba.
+Ahora es **blanco puro con borde oscuro y el punto más grande** que los demás.
+Ningún otro estado usa blanco, y sobre el mapa oscuro es el que más salta.
 
----
-
-## Lo que vas a ver al entrar
-
-Simulé todo junto sobre tu backup. Los avisos salen en este orden:
-
-1. **3 contactos trabados como clientes se corrigieron** (punto 4).
-2. **5 clientes volvieron a prospecto** por la regla de 45 días: Ypf sabatini
-   (último pedido 30/6), Coco loco, Despensa Hidalgo, Di Navarro y Maxikiosco
-   GyC (los cuatro sin ningún pedido cargado).
-
-Te quedan **7 clientes**: Club Municipal, Despensa MyM, Fragueiro Store,
-Colegio Garzón, La esquina Market, Roselane y La campiña.
-
-> Igual que la vez pasada: los que caen sin pedidos caen porque el módulo de
-> pedidos estuvo apagado hasta la 7.5 y nunca hubo forma de cargárselos. Si
-> alguno te compra, cargale el pedido y vuelve solo a cliente.
+Como Negociación dejó de ser cyan, el cyan queda libre para "cliente activo
+con freezer puesto", que ya lo usaba.
 
 ---
 
 ## Probá esto apenas subas
 
-1. Entrá como admin → mirá los dos avisos → el tablero debería decir **7
-   clientes**.
-2. **Kiosco vale** tiene que estar en el embudo, en Negociación, y ahora sí
-   dejarte moverlo.
-3. Tomá un pedido → pestaña **Postres** → cargá **2** en Cajas y **2** en
-   Cajas x8 de Alfajor Seichoc → **Copiar para fábrica** → tienen que salir
-   los dos renglones separados.
-4. **Comodatos → Pendientes** → "Se cayó el acuerdo" en alguno → verificá que
-   aparezca en la solapa **Caídos** y que el contador de la meta baje.
-5. **Comodatos → Activos** → Editar → cambiá la marca y guardá.
-6. Cargá un prospecto nuevo con el tel **3888447234** → tiene que avisarte que
-   ya existe y ofrecerte reactivarlo.
+1. **Primero las reglas** (`REGLAS-DEUDAS.txt`). Sin eso, el punto 3 falla.
+2. Tomá un pedido → cargá algo → mirá que **la vista previa se escriba sola**
+   abajo → **Copiar al portapapeles** → pegalo en cualquier lado para
+   confirmar que copió de verdad.
+3. En el mismo pedido, elegí **"Cobré una parte"**, poné un monto menor al
+   total y guardá → tiene que decirte cuánto quedó debiendo.
+4. Volvé a **HOY**: tiene que aparecer el recordatorio rojo de cobranza.
+   Entrá, tocá **Cobrar**, registrá el pago completo y verificá que
+   desaparezca de la lista.
+5. **Comodatos → Caídos**: agarrá uno y fijate que **ya no aparezca** en el
+   aviso de "comodato activo sin visita" del tablero admin.
+6. **Mapa**: buscá un contacto en Negociación — tiene que ser un punto blanco,
+   más grande que el resto.
 
 ---
 
-## Pendientes tuyos
+## Tus pendientes
 
-- Corregir sabores y abreviaciones desde el editor del catálogo.
-- Sabores reales de cada categoría de lata.
 - Definir el **Pote Tutto 3 Lts** (quedó a $9.900).
-- CUIT, condición impositiva y horarios de los clientes.
-- Arrancar con la **segunda visita**: 140 prospectos esperando.
+- Datos de los clientes (CUIT, condición impositiva, horarios) — dijiste que
+  los cargás hoy.
+- Segundas visitas — dijiste que arrancás hoy.

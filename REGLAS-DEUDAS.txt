@@ -1,0 +1,43 @@
+PASO OBLIGATORIO ANTES DE USAR LAS DEUDAS
+=========================================
+
+El modulo de deudores guarda en una coleccion nueva de Firestore que se llama
+"deudas". Las reglas que tenes hoy no la contemplan, asi que la base va a
+RECHAZAR cada movimiento hasta que agregues el bloque de abajo.
+
+La app te lo va a avisar con este cartel rojo si te olvidas:
+"La base rechazo la deuda: falta habilitar la coleccion deudas en las reglas
+de Firestore"
+
+COMO SE HACE
+------------
+1. Entra a https://console.firebase.google.com
+2. Elegi tu proyecto
+3. Menu de la izquierda: Firestore Database
+4. Pestania de arriba: Reglas (Rules)
+5. Pega el bloque de abajo JUSTO ANTES de la ultima llave de cierre, al lado
+   de los otros match (el de "pedidos" es el mas parecido)
+6. Boton Publicar (Publish)
+
+NO borres nada de lo que ya esta. Solo agregas este bloque.
+
+EL BLOQUE A PEGAR
+-----------------
+
+    match /deudas/{doc} {
+      allow read: if autenticado();
+      allow create, update: if esAdmin() || esVendedor();
+      allow delete: if esAdmin() || (esVendedor() && resource.data.vend == miNombre());
+    }
+
+QUE PERMITE
+-----------
+- Leer: cualquiera que este logueado.
+- Crear y corregir movimientos: vos y los vendedores.
+- Borrar un movimiento: vos siempre; un vendedor solo los que cargo el mismo.
+
+COMO SABES QUE QUEDO BIEN
+-------------------------
+Toma un pedido de prueba, elegi "No cobro nada" y guardalo. Si en HOY aparece
+el recordatorio de cobranza en rojo, quedo bien. Si sale el cartel rojo de
+permisos, el bloque no se publico.

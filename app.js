@@ -4,11 +4,11 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='7.7 - 07/09/2026';
+var VERSION='7.8 - 08/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
-var EC={'Nuevo Prospecto':'#fb923c','Contactado':'#fbbf24','Propuesta Enviada':'#a78bfa','Negociacion':'#22d3ee','Cliente Activo':'#4ade80','No Le Interesa':'#f87171','Perdido':'#f87171'};
+var EC={'Nuevo Prospecto':'#fb923c','Contactado':'#fbbf24','Propuesta Enviada':'#a78bfa','Negociacion':'#ffffff','Cliente Activo':'#4ade80','No Le Interesa':'#f87171','Perdido':'#f87171'};
 var MD={'Nuevo Prospecto':'Hola! Soy de Sei Tu Helados, pase por tu local y me gustaria contarte nuestra propuesta. Tenes un minuto?','Contactado':'Hola! Te escribo para coordinar una visita y mostrarte la propuesta de Sei Tu. Que dia te viene bien?','Propuesta Enviada':'Hola! Pudiste ver la propuesta? Queda alguna duda que pueda responder?','Negociacion':'Hola! Como venimos con la propuesta? Si necesitas ajustar algo avisame.','Cliente Activo':'Hola! Como va la venta? Aviso si hay novedades o promos.','No Le Interesa':'Gracias por tu tiempo! Si cambia la situacion quedo disponible.','Perdido':'Hola! Hace tiempo no hablamos. Segui interesado en Sei Tu?'};
 // Provincias donde opera la empresa. Si se suma una nueva, agregarla aca y en ARG_CIU.
 var ARG_PROV=['Cordoba','Santa Fe','Catamarca','La Rioja','Santiago del Estero','Tucuman','Salta','Jujuy'];
@@ -71,7 +71,7 @@ var PRODUCTOS_DEF=[
 ];
 // Materiales que se entregan en comodato: van en el pedido pero NO suman al total.
 var MATERIALES_DEF=['freezer + comodato','veleta','totem c/display','caja material pop','saltarines','cenefa','cartel impulsivos sei tu','display'];
-var D={user:null,usrs:[{id:1,n:'JL',u:'jl',email:'jorge.ledesmagd@gmail.com',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',email:'jledes.tf@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:3,n:'Chamu',u:'chamu',email:'jorge_500_df@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:4,n:'Pablo',u:'pablo',email:'pablodellacasa13@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],rec:[],ped:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
+var D={deudas:[],user:null,usrs:[{id:1,n:'JL',u:'jl',email:'jorge.ledesmagd@gmail.com',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',email:'jledes.tf@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:3,n:'Chamu',u:'chamu',email:'jorge_500_df@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''},{id:4,n:'Pablo',u:'pablo',email:'pablodellacasa13@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],rec:[],ped:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
 
 // ════════════════════════════════════════════════════════════════════
 // FIREBASE / FIRESTORE - FUENTE UNICA DE DATOS EN TIEMPO REAL
@@ -103,7 +103,7 @@ function debugLog(tipo,msg){
 var FS_LOADED_COUNT=0;
 // El historial y el recorrido GPS ya NO se descargan al abrir la app: son las dos
 // colecciones que crecen sin techo y casi nunca se miran. Se cargan a pedido.
-var FS_COLLECTIONS=['contactos','visitas','comodatos','gira','pedidos','usuarios','config'];
+var FS_COLLECTIONS=['contactos','visitas','comodatos','gira','pedidos','deudas','usuarios','config'];
 
 function fsBootMsg(t){var e=document.getElementById('sBootMsg');if(e)e.textContent=t;}
 
@@ -223,6 +223,13 @@ function fsSetupListeners(){
     if(FS_READY)refrescarVistaActual();
   },function(ref){return ref.where('fecha','>=',DESDE_VIS);});
 
+  // Las deudas NO se filtran por fecha: una deuda vieja sigue siendo una deuda.
+  // El volumen es bajo (un movimiento por venta impaga y uno por pago).
+  safeSnap('deudas',function(snap){
+    D.deudas=fsSnapToArr(snap);
+    if(FS_READY)refrescarVistaActual();
+  });
+
   // recorrido y log: NO se suscriben aca. Ver cargarRecorridoDia() y cargarLogCompleto().
 
   var USUARIOS_DEFAULT=[
@@ -332,7 +339,7 @@ function soloLectura(){
 // MODO LOCAL: si fsDB es null (el CDN de Firebase no cargo), las escrituras NO deben crashear.
 // Se guarda todo el estado en localStorage y se avisa que quedo pendiente de sincronizar.
 function fsGuardaLocal(){
-  ls('jc',D.cli);ls('jv',D.vis);ls('jo',D.com);ls('jg',D.gira);ls('jf',D.cfg);ls('ju',D.usrs);
+  ls('jc',D.cli);ls('jv',D.vis);ls('jo',D.com);ls('jg',D.gira);ls('jf',D.cfg);ls('ju',D.usrs);ls('jd',D.deudas);
   setSyncDot('error');
   toast('Sin conexion a la base: guardado solo en este dispositivo','err');
   return Promise.resolve();
@@ -380,6 +387,28 @@ function fsDelComodato(id){
     .catch(function(e){setSyncDot('error');});
 }
 // ── PEDIDOS ───────────────────────────────────────────────────────────
+// Un movimiento de cuenta corriente: un cargo (venta que no se cobro) o un pago.
+function fsSetDeuda(m){
+  if(soloLectura())return Promise.resolve();
+  if(!fsDB)return fsGuardaLocal();
+  setSyncDot('pending');
+  return fsDB.collection('deudas').doc(m.id).set(m)
+    .then(function(){setSyncDot('ok');})
+    .catch(function(e){
+      setSyncDot('error');debugLog('error','deuda write: '+e.message);
+      // Si las reglas de Firestore todavia no contemplan la coleccion nueva,
+      // el error es "permission-denied" y hay que avisarlo con todas las letras:
+      // si no, parece que se guardo y no se guardo nada.
+      if(String(e.code||'').indexOf('permission')>=0||String(e.message||'').toLowerCase().indexOf('permission')>=0)
+        toast('La base rechazo la deuda: falta habilitar la coleccion "deudas" en las reglas de Firestore','err');
+      else toast('No se pudo guardar el movimiento de deuda','err');
+    });
+}
+function fsDelDeuda(id){
+  if(soloLectura())return Promise.resolve();
+  if(!fsDB)return fsGuardaLocal();
+  return fsDB.collection('deudas').doc(id).delete().catch(function(e){debugLog('error','deuda del: '+e.message);});
+}
 function fsSetPedido(p){
   if(soloLectura())return Promise.resolve();
   if(!fsDB)return fsGuardaLocal();
@@ -813,6 +842,7 @@ function limpiarPassViejas(){
   logEvento('usuario','','','Contrasenas en texto plano eliminadas de la base ('+conPass.length+')','','');
 }
 function normalizarDatos(){
+  if(!Array.isArray(D.deudas))D.deudas=[];
   D.cli.forEach(function(c){if(c.tipo&&MAPA_TIPOS[c.tipo]){c._tipoViejo=c.tipo;c.tipo=MAPA_TIPOS[c.tipo];}});
   D.cli.forEach(function(c){if(!c.etapaEmbudo||c.etapaEmbudo==='')c.etapaEmbudo=c.esP?'Nuevo Prospecto':'Cliente Activo';if(!c.uv)c.uv='';if(!c.ex)c.ex={};if(c.deu===undefined)c.deu=false;if(!c.ing)c.ing='';if(!c.vend)c.vend='';if(!c.prods)c.prods=[];if(!c.prov)c.prov='';if(!c.ciu)c.ciu='';if(c.agendado===undefined)c.agendado=false;if(!c.tel2)c.tel2='';if(!c.email)c.email='';if(c.eliminado===undefined)c.eliminado=false;if(!c.fuente)c.fuente=c.esP?'Prospeccion directa':'';});
   D.usrs.forEach(function(u){if(u.activo===undefined)u.activo=true;if(!u.creado)u.creado='';if(!u.ua)u.ua='';});
@@ -1067,6 +1097,17 @@ function renderVH(){
     h+='<span style="color:var(--red);font-size:20px">&rsaquo;</span></div>';
   }
 
+  // Recordatorio de cobranza
+  var deuL=deudores();
+  if(deuL.length){
+    var deuT=deuL.reduce(function(t,d){return t+d.saldo;},0);
+    var viejo=deuL.reduce(function(m,d){return (d.dias!==null&&d.dias>m)?d.dias:m;},0);
+    h+='<div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:var(--rsm);padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="verDeudores()">';
+    h+='<div><div style="font-size:13px;font-weight:700;color:var(--red)">&#128176; '+deuL.length+' cliente'+(deuL.length!==1?'s':'')+' te debe'+(deuL.length!==1?'n':'')+' '+plata(deuT)+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted);margin-top:2px">Agrupados por barrio'+(viejo?' · el mas viejo hace '+viejo+' dias':'')+'</div></div>';
+    h+='<span style="color:var(--red);font-size:20px">&rsaquo;</span></div>';
+  }
+
   // Pendientes de comodato (por firmar / por entregar) con fecha de hoy o vencida
   var misComodatos=D.com.filter(function(co){
     var e=estadoComodato(co);
@@ -1193,7 +1234,7 @@ function agregarAGiraRapido(cid,volverA){
   if(!confirm('Agregar "'+c.nm+'" a la gira de hoy?'))return;
   agregarAGira(cid,today());
   // Vuelve al panel desde el que se lo agrego, sin cerrarlo
-  if(volverA==='seg')verSeguimiento();else verInaccion();
+  if(volverA==='seg')verSeguimiento();else if(volverA==='deu')verDeudores();else verInaccion();
 }
 // Historial: desplegable por mes -> lista de dias con actividad -> detalle en modal
 function toggleHistorialVH(){
@@ -1339,7 +1380,7 @@ function verEnMapaMini(id){
     miniMapaObj=L.map('miniMapa',{zoomControl:true,attributionControl:false}).setView([c.lat,c.lng],16);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(miniMapaObj);
     var etaMini=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
-    L.circleMarker([c.lat,c.lng],{radius:11,fillColor:(EC[etaMini]||'#22d3ee'),color:'#fff',weight:2,fillOpacity:.95}).addTo(miniMapaObj);
+    L.circleMarker([c.lat,c.lng],{radius:11,fillColor:(EC[etaMini]||'#22d3ee'),color:(etaMini==='Negociacion'?'#0b1220':'#fff'),weight:2,fillOpacity:.95}).addTo(miniMapaObj);
     miniMapaObj.invalidateSize();
   },250);
 }
@@ -1371,7 +1412,9 @@ function abrirFichaV(id){
   h+='<div style="font-size:13px;color:var(--muted);margin-top:4px">'+es(ubicParts.join(' · '))+(c.tipo?' · '+es(c.tipo):'')+'</div>';
   h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">';
   h+=(c.esP?'<span class="tg o">'+es(c.etapaEmbudo||'PROSPECTO')+'</span>':'<span class="tg g">CLIENTE ACTIVO</span>');
-  if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900">⚠ DEUDOR</span>';
+  var _sal=saldoDe(c.id);
+  if(_sal>0)h+='<span onclick="verCuenta(\''+c.id+'\')" style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900;cursor:pointer">⚠ DEBE '+plata(_sal)+'</span>';
+  else if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900">⚠ DEUDOR</span>';
   if(c.cFr)h+='<span class="tg m">'+es(c.cFr)+'</span>';
   if(c.calU)h+='<span class="tg m">Ubic: '+c.calU+'</span>';
   if(c.trans)h+='<span class="tg m">Transito: '+es(c.trans)+'</span>';
@@ -1409,7 +1452,8 @@ function abrirFichaV(id){
   }
   h+='</div>';
   // "Acordo freezer": aparece en Negociacion si todavia no tiene un comodato en curso.
-  if(c.etapaEmbudo==='Negociacion'&&!D.com.some(function(co){return co.cid===id&&!co.ret;})){
+  h+='<button class="btn sec" onclick="verCuenta(\''+id+'\')" style="margin:0 0 8px">Cuenta corriente'+(saldoDe(id)>0?' — debe '+plata(saldoDe(id)):'')+'</button>';
+  if(c.etapaEmbudo==='Negociacion'&&!D.com.some(function(co){return co.cid===id&&comVigente(co);})){
     h+='<button class="btn" onclick="acordoFreezer(\''+id+'\')" style="margin:0 0 8px;background:linear-gradient(90deg,#fbbf24,#22d3ee);color:#0b1220;font-weight:800">❄ Acordó freezer</button>';
   }
   // Ubicacion: una vez confirmada solo queda un boton chico para quitarla del mapa.
@@ -1754,11 +1798,12 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin,filtroTipo){
     if(filtroTipo==='pros'&&!c.esP)return;
     // Acordo el freezer pero todavia no esta activo (por firmar / por entregar):
     // se distingue con el mismo color del boton "Acordar freezer", no es cliente activo todavia.
-    var coAcordado=D.com.some(function(co){return co.cid===c.id&&!co.ret&&estadoComodato(co)!=='activo';});
+    var coAcordado=D.com.some(function(co){return co.cid===c.id&&comVigente(co)&&estadoComodato(co)!=='activo';});
     if(filtroTipo==='freezerPend'&&!coAcordado)return;
     var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
     if(filtroEtapa&&eta!==filtroEtapa)return;
     var col=EC[eta]||'#94a3b8';
+    var esNeg=(eta==='Negociacion');
     var bordeCol='#0b1220';
     if(coAcordado)col='#ec4899';
     // Cliente activo que ya tiene freezer nuestro entregado: se destaca con relleno celeste
@@ -1766,7 +1811,7 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin,filtroTipo){
     if(!c.esP&&tieneFreezerNuestro(c.id)){col='#22d3ee';bordeCol='#4ade80';}
     // Sucursal de otro local: punto mas chico, con el color de la casa central
     // (salvo que la sucursal tenga su propio estado de freezer, que manda primero).
-    var radio=9;
+    var radio=esNeg?12:9;
     if(c.sucursalDe){
       radio=6;
       if(!coAcordado&&!(!c.esP&&tieneFreezerNuestro(c.id))){
@@ -1779,7 +1824,7 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin,filtroTipo){
     pop+='<div style="font-weight:800;font-size:14px;margin-bottom:2px">'+es(c.nm)+'</div>';
     if(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase())pop+='<div style="font-size:12px;font-weight:700;color:#0891b2">'+es(c.fan)+'</div>';
     pop+='<div style="font-size:11px;color:#666">'+es(c.bar||c.ciu||'')+(c.tipo?' · '+es(c.tipo):'')+'</div>';
-    pop+='<div style="font-size:11px;margin-top:3px"><span style="background:'+col+';color:#fff;padding:2px 8px;border-radius:10px;font-weight:700">'+es(eta)+'</span></div>';
+    pop+='<div style="font-size:11px;margin-top:3px"><span style="background:'+col+';color:'+(col.toLowerCase()==='#ffffff'?'#0b1220':'#fff')+';padding:2px 8px;border-radius:10px;font-weight:700">'+es(eta)+'</span></div>';
     if(c.sucursalDe){var padrePop=D.cli.find(function(x){return x.id===c.sucursalDe;});if(padrePop)pop+='<div style="font-size:10px;color:#888;margin-top:3px">Sucursal de '+es(padrePop.nm)+'</div>';}
     pop+='<div style="display:flex;gap:6px;margin-top:8px">';
     pop+='<button onclick="'+(esAdmin?'aFicha':'abrirFichaV')+'(\''+c.id+'\')" style="background:#0891b2;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">Ver ficha</button>';
@@ -1812,7 +1857,7 @@ function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro,filtroTipo,fnFiltroT
   h+='<span style="font-size:11px;color:var(--muted);margin-left:auto">'+conf+' en el mapa'+(sinConf?' &middot; <span style="color:var(--orange)">'+sinConf+' por confirmar</span>':'')+'</span>';
   h+='</div>';
   h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">';
-  ET.forEach(function(e){h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:'+(EC[e]||'#94a3b8')+';display:inline-block"></span>'+es(e)+'</span>';});
+  ET.forEach(function(e){h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:'+(EC[e]||'#94a3b8')+';display:inline-block'+(e==='Negociacion'?';box-shadow:0 0 0 1px var(--border)':'')+'"></span>'+es(e)+'</span>';});
   h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:#ec4899;display:inline-block"></span>Acordo freezer (por firmar/entregar)</span>';
   h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:#22d3ee;border:2px solid #4ade80;box-sizing:border-box;display:inline-block"></span>Cliente con freezer nuestro</span>';
   h+='</div>';
@@ -1944,7 +1989,7 @@ function retCoV(id){retCo(id);renderVCo();}
 // Cargar un acuerdo de freezer desde la propia pestaña Freezers, sin salir:
 // primero se elige el contacto, despues se completan los datos (reusa acordoFreezer).
 function nuevoAcuerdoFreezer(){
-  var conFreezer={};D.com.forEach(function(co){if(!co.ret)conFreezer[co.cid]=true;});
+  var conFreezer={};D.com.forEach(function(co){if(comVigente(co))conFreezer[co.cid]=true;});
   var disp=misContactos(true).filter(function(c){return !conFreezer[c.id];}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   var h='<div class="srch" style="margin:0 0 10px;position:sticky;top:0"><input type="text" id="afqBusq" placeholder="Buscar cliente o prospecto..." oninput="filtrarAcuerdoFreezer()" style="background:none;border:none;outline:none;color:var(--text);font-size:14px;width:100%;font-family:inherit"></div>';
   h+='<div id="afqLista" style="max-height:50vh;overflow-y:auto">'+listaAcuerdoFreezerHTML(disp)+'</div>';
@@ -1966,7 +2011,7 @@ function listaAcuerdoFreezerHTML(lista){
 }
 function filtrarAcuerdoFreezer(){
   var q=(document.getElementById('afqBusq').value||'').toLowerCase();
-  var conFreezer={};D.com.forEach(function(co){if(!co.ret)conFreezer[co.cid]=true;});
+  var conFreezer={};D.com.forEach(function(co){if(comVigente(co))conFreezer[co.cid]=true;});
   var disp=misContactos(true).filter(function(c){return !conFreezer[c.id]&&(c.nm.toLowerCase().includes(q)||(c.fan||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q));}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   document.getElementById('afqLista').innerHTML=listaAcuerdoFreezerHTML(disp);
 }
@@ -2440,7 +2485,9 @@ function renderGD(){
   var ls=getLunesSem();
   var vb=vendedores.filter(function(u){return D.vis.filter(function(v){return v.vend===u.n&&v.fecha>=ls;}).length<3;});
   if(vb.length)alertas.push({t:'y',msg:'Baja actividad esta semana: '+vb.map(function(u){return u.n;}).join(', '),ids:null});
-  var csv=D.com.filter(function(co){return !co.ret;}).filter(function(co){var c=D.cli.find(function(x){return x.id===co.cid;});return c&&(!c.ul||dias(c.ul)>30);});
+  var deuAdm=deudores();
+  if(deuAdm.length)alertas.push({t:'r',msg:deuAdm.length+' cliente'+(deuAdm.length!==1?'s':'')+' con deuda por '+plata(deuAdm.reduce(function(t,d){return t+d.saldo;},0)),ids:deuAdm.map(function(d){return d.c.id;})});
+  var csv=D.com.filter(comVigente).filter(function(co){var c=D.cli.find(function(x){return x.id===co.cid;});return c&&(!c.ul||dias(c.ul)>30);});
   if(csv.length)alertas.push({t:'y',msg:csv.length+' cliente'+(csv.length!==1?'s':'')+' con comodato activo sin visita +30 dias',ids:csv.map(function(co){var c=D.cli.find(function(x){return x.id===co.cid;});return c?c.id:null;}).filter(Boolean)});
   var h='';
   // Filtro periodo
@@ -2720,7 +2767,7 @@ function renderGC(){
   else if(gCF2==='Prospectos')cs=cs.filter(function(c){return c.esP;});
   else if(gCF2==='Sin visitar')cs=cs.filter(function(c){return !c.ul;});
   else if(gCF2==='Con freezer')cs=cs.filter(function(c){return c.cFr==='Propio';});
-  else if(gCF2==='Deudores')cs=cs.filter(function(c){return c.deu;});
+  else if(gCF2==='Deudores')cs=cs.filter(function(c){return saldoDe(c.id)>0||c.deu;});
   if(q)cs=cs.filter(function(c){return c.nm.toLowerCase().includes(q)||(c.dir||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q);});
   cs.sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   // Resumen de filtros activos (fuera del flujo normal, arriba de la lista) + boton para limpiar todo.
@@ -2878,25 +2925,55 @@ function plu(u,n){
   ps[0]=/[aeiou]$/i.test(ps[0])?ps[0]+'s':ps[0]+'es';
   return ps.join(' ');
 }
-var pedActual={cid:null,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:''};
+var pedActual={cid:null,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:'',cobro:'todo',cobrado:0};
 
 function abrirPedido(cid){
   var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
-  pedActual={cid:cid,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:''};
+  pedActual={cid:cid,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:'',cobro:'todo',cobrado:0};
   renderPedido();
 }
 function setPedLinea(l){pedActual.linea=l;renderPedido();}
+// Como se cobro esta entrega: todo, una parte, o nada.
+function setPedCobro(m){
+  pedActual.cobro=m;
+  if(m!=='parte')pedActual.cobrado=0;
+  renderPedido();
+}
+function setPedCobrado(v){pedActual.cobrado=Math.max(0,Math.round(Number(v)||0));}
+// Lo que queda debiendo esta entrega
+function deudaDelPedido(){
+  var tot=totalPedido();
+  if(pedActual.cobro==='todo')return 0;
+  if(pedActual.cobro==='nada')return tot;
+  return Math.max(0,tot-Number(pedActual.cobrado||0));
+}
 function setPedQty(key,v){
   var n=Math.max(0,Number(v)||0);
   if(n===0)delete pedActual.items[key];else pedActual.items[key]=n;
+  refrescarTotalPed();
+}
+// Refresca el total y la vista previa sin volver a dibujar todo el formulario
+// (si se redibujara, el teclado del celular se cerraria en cada tecla).
+function deudaPedHTML(){
+  var d=deudaDelPedido();
+  if(d<=0)return '<div style="font-size:12px;color:var(--green);font-weight:700">Queda saldado: no genera deuda.</div>';
+  return '<div style="font-size:12px;color:var(--red);font-weight:700">Queda debiendo '+plata(d)+' — se carga a su cuenta al guardar.</div>';
+}
+function refrescarDeudaPed(){
+  var d=document.getElementById('pedDeuda');if(d)d.innerHTML=deudaPedHTML();
+}
+function refrescarTotalPed(){
   var t=document.getElementById('pedTotal');if(t)t.innerHTML=totalPedidoHTML();
+  refrescarDeudaPed();
+  var v=document.getElementById('pedTxt');
+  if(v&&document.activeElement!==v)v.value=textoFabrica();
 }
 // Cantidad de fracciones sueltas (cajitas o unidades) de un renglon
 function setPedFrac(key,v){
   var n=Math.max(0,Number(v)||0);
   if(!pedActual.frac)pedActual.frac={};
   if(n===0)delete pedActual.frac[key];else pedActual.frac[key]=n;
-  var t=document.getElementById('pedTotal');if(t)t.innerHTML=totalPedidoHTML();
+  refrescarTotalPed();
 }
 function togMat(m){
   if(pedActual.mats[m])delete pedActual.mats[m];else pedActual.mats[m]=1;
@@ -2965,11 +3042,28 @@ function renderPedido(){
   h+='<div class="fg"><label class="fl">Convenio particular con el cliente <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="pedConv" value="'+es(pedActual.notaConv)+'" placeholder="Ej: entrega en efectivo o transf la mitad"></div>';
   h+='<div class="fg"><label class="fl">Aclaraciones <span style="font-size:10px;color:var(--muted)">(ej: que productos acepta cambiar)</span></label><textarea class="fi fta" id="pedObs" rows="2" placeholder="Ej: carita cielo y seibom blanco los puede cambiar por otro">'+es(pedActual.obs)+'</textarea></div>';
   h+='<div id="pedTotal" style="text-align:right;margin:10px 0">'+totalPedidoHTML()+'</div>';
-  h+='<button class="btn" onclick="guardarPedido()" style="margin:0 0 8px">Guardar pedido</button>';
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-  h+='<button class="btn sec" onclick="pedidoAFabrica()" style="margin:0">Copiar para fabrica</button>';
-  h+='<button class="btn sec" onclick="pedidoAlCliente()" style="margin:0">Enviar al cliente</button>';
+  // ── Cobro: lo que no se cobra queda como deuda del cliente ──
+  var salPrev=saldoDe(c.id);
+  h+='<div class="card" style="margin-bottom:10px"><div class="ct">COBRO DE ESTA ENTREGA</div>';
+  if(salPrev>0)h+='<div style="font-size:11px;color:var(--red);margin-bottom:8px">Ojo: ya venia debiendo '+plata(salPrev)+'</div>';
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
+  [['todo','Cobre todo'],['parte','Cobre una parte'],['nada','No cobro nada']].forEach(function(o){
+    h+='<span class="fb'+(pedActual.cobro===o[0]?' on':'')+'" onclick="setPedCobro(\''+o[0]+'\')">'+o[1]+'</span>';
+  });
   h+='</div>';
+  if(pedActual.cobro==='parte'){
+    h+='<div class="fg" style="margin:0"><label class="fl">Cuanto te dio ahora</label><input class="fi" type="number" min="0" id="pedCobrado" value="'+(pedActual.cobrado||'')+'" oninput="setPedCobrado(this.value);refrescarDeudaPed()" style="font-size:16px;font-weight:700;margin:0"></div>';
+  }
+  h+='<div id="pedDeuda" style="margin-top:8px">'+deudaPedHTML()+'</div>';
+  h+='</div>';
+  // Vista previa del texto para fabrica, siempre visible y en vivo
+  h+='<div class="card" style="margin-bottom:10px"><div class="ct">VISTA PREVIA PARA FABRICA</div>';
+  h+='<textarea class="fi fta" id="pedTxt" rows="10" style="font-size:12px;font-family:monospace;margin:0">'+es(textoFabrica())+'</textarea>';
+  h+='<button class="btn sec" onclick="copiarTexto(\'pedTxt\')" style="margin:8px 0 0">Copiar al portapapeles</button>';
+  h+='<div style="font-size:11px;color:var(--muted);margin-top:6px">Si el boton no funciona en tu telefono, manten apretado el texto de arriba y elegi Copiar.</div>';
+  h+='</div>';
+  h+='<button class="btn" onclick="guardarPedido()" style="margin:0 0 8px">Guardar pedido</button>';
+  h+='<button class="btn sec" onclick="pedidoAlCliente()" style="margin:0">Enviar comprobante al cliente</button>';
   oMod('Tomar pedido',h);
 }
 function leerNotas(){
@@ -2996,6 +3090,7 @@ function lineasPedido(){
 function textoFabrica(){
   var c=D.cli.find(function(x){return x.id===pedActual.cid;});if(!c)return '';
   leerNotas();
+  if(!Object.keys(pedActual.items).length&&!Object.keys(pedActual.frac||{}).length&&!Object.keys(pedActual.mats).length)return '';
   var L=[];
   if(esPrimerPedido(c.id)){
     L.push('Nombre del negocio: '+(c.nm||''));
@@ -3021,20 +3116,29 @@ function textoFabrica(){
   if(pedActual.notaConv){L.push(pedActual.notaConv);}
   return L.join('\n');
 }
-function pedidoAFabrica(){
-  var t=textoFabrica();
-  if(!t){toast('Cargá algo primero','err');return;}
-  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Copialo y pegalo en el grupo "Pedidos y clientes nuevos".</div>';
-  h+='<textarea class="fi fta" id="pedTxt" rows="14" style="font-size:12px;font-family:monospace">'+es(t)+'</textarea>';
-  h+='<button class="btn" onclick="copiarTexto(\'pedTxt\')" style="margin:10px 0 6px">Copiar al portapapeles</button>';
-  h+='<button class="btn sec" onclick="renderPedido()" style="margin:0">Volver al pedido</button>';
-  oMod('Pedido para fabrica',h);
-}
+// Copiar al portapapeles. El metodo viejo (execCommand) DEVUELVE false en el
+// Chrome del celular en vez de tirar error, asi que avisaba "Copiado" cuando en
+// realidad no habia copiado nada. Ahora se usa primero la API moderna y solo se
+// confirma si el navegador dice que salio bien.
 function copiarTexto(id){
   var el=document.getElementById(id);if(!el)return;
-  el.select();
-  try{document.execCommand('copy');toast('Copiado','ok');}
-  catch(e){toast('Copialo a mano','err');}
+  var txt=el.value!==undefined?el.value:el.textContent;
+  if(!txt||!txt.trim()){toast('No hay nada para copiar: carga el pedido primero','err');return;}
+  function aMano(){
+    try{el.focus();el.setSelectionRange(0,txt.length);}catch(e){}
+    toast('Tu telefono no dejo copiar solo: el texto quedo seleccionado, manten apretado y elegi Copiar','err');
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText&&window.isSecureContext){
+    navigator.clipboard.writeText(txt).then(function(){toast('Copiado','ok');},function(){aMano();});
+    return;
+  }
+  var ok=false;
+  try{
+    el.focus();el.select();
+    if(el.setSelectionRange)el.setSelectionRange(0,txt.length);
+    ok=document.execCommand('copy');
+  }catch(e){ok=false;}
+  if(ok)toast('Copiado','ok');else aMano();
 }
 function pedidoAlCliente(){
   var c=D.cli.find(function(x){return x.id===pedActual.cid;});if(!c)return;
@@ -3072,9 +3176,209 @@ function guardarPedido(){
   if(c.esP){c.esP=false;c.etapaEmbudo='Cliente Activo';}
   fsSetContacto(c);
   logEvento('venta',c.id,c.nm,'Pedido cargado por '+plata(tot),'','');
-  toast('Pedido guardado: '+plata(tot),'ok');
+  // Lo que no se cobro queda como deuda en la cuenta corriente del cliente
+  var debe=deudaDelPedido();
+  ped.cobrado=tot-debe;
+  if(debe>0){
+    nuevoMovimiento(c.id,'cargo',debe,'Pedido del '+fmt(ped.fecha),ped.id);
+    fsSetPedido(ped);
+    toast('Pedido guardado. Quedo debiendo '+plata(debe),'ok');
+  } else {
+    toast('Pedido guardado y cobrado: '+plata(tot),'ok');
+  }
   cMod();
   if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGC();else renderVC();
+}
+// ══════════════════════════════════════════════════════════════════════
+// CUENTA CORRIENTE / DEUDORES
+// Cada movimiento es un 'cargo' (mercaderia bajada y no cobrada) o un 'pago'.
+// El saldo de un cliente es la suma de los cargos menos la de los pagos. No se
+// guarda un saldo suelto en ningun lado: siempre se recalcula, asi nunca queda
+// un numero desincronizado del historial.
+// ══════════════════════════════════════════════════════════════════════
+function movimientosDe(cid){
+  return (D.deudas||[]).filter(function(m){return m.cid===cid;})
+    .sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+}
+function saldoDe(cid){
+  return (D.deudas||[]).reduce(function(t,m){
+    if(m.cid!==cid)return t;
+    return t+(m.tipo==='pago'?-Number(m.monto||0):Number(m.monto||0));
+  },0);
+}
+// Fecha del cargo impago mas viejo: sirve para saber cuanto hace que arrastra deuda.
+function deudaDesde(cid){
+  var fs=(D.deudas||[]).filter(function(m){return m.cid===cid&&m.tipo!=='pago'&&m.fecha;})
+    .map(function(m){return m.fecha;}).sort();
+  return fs.length?fs[0]:'';
+}
+// Todos los que hoy deben plata, del que mas debe al que menos
+function deudores(){
+  var vistos={},out=[];
+  (D.deudas||[]).forEach(function(m){
+    if(vistos[m.cid])return;
+    vistos[m.cid]=true;
+    var c=D.cli.find(function(x){return x.id===m.cid;});
+    if(!c||c.eliminado)return;
+    if(D.user&&D.user.r==='vendedor'&&c.vend!==D.user.n)return;
+    var sal=saldoDe(m.cid);
+    if(sal<=0)return;
+    var desde=deudaDesde(m.cid);
+    out.push({c:c,saldo:sal,desde:desde,dias:desde?dias(desde):null});
+  });
+  out.sort(function(a,b){return b.saldo-a.saldo;});
+  return out;
+}
+function totalDeuda(){
+  return deudores().reduce(function(t,d){return t+d.saldo;},0);
+}
+// Mantiene la marca "DEUDOR" del contacto en linea con el saldo real, para que
+// el filtro y los badges que ya existian sigan funcionando sin tocarlos.
+function sincronizarMarcaDeudor(cid){
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  var debe=saldoDe(cid)>0;
+  if(!!c.deu!==debe){c.deu=debe;fsSetContacto(c);}
+}
+// Registra un movimiento. concepto y pid son opcionales.
+function nuevoMovimiento(cid,tipo,monto,concepto,pid){
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return null;
+  var m={id:uid(),cid:cid,cliente:c.nm,fecha:today(),tipo:tipo,
+    monto:Math.round(Number(monto)||0),concepto:concepto||'',pid:pid||'',
+    vend:D.user?D.user.n:''};
+  if(m.monto<=0)return null;
+  D.deudas.push(m);
+  fsSetDeuda(m);
+  sincronizarMarcaDeudor(cid);
+  logEvento('venta',cid,c.nm,(tipo==='pago'?'Pago recibido: ':'Deuda cargada: ')+plata(m.monto)+(m.concepto?' · '+m.concepto:''),'','');
+  return m;
+}
+// ── Registrar un pago ────────────────────────────────────────────────
+function registrarPago(cid,volverA){
+  if(soloLectura())return;
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  var sal=saldoDe(cid);
+  if(sal<=0){toast('Este cliente no tiene deuda','err');return;}
+  var h='<div style="font-size:15px;font-weight:800">'+es(c.nm)+'</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Debe <b style="color:var(--red);font-size:15px">'+plata(sal)+'</b>'+(deudaDesde(cid)?' desde el '+fmt(deudaDesde(cid)):'')+'</div>';
+  h+='<div class="fg"><label class="fl">Cuanto pago ahora</label><input class="fi" type="number" min="1" id="pgMonto" value="'+sal+'" style="font-size:18px;font-weight:700"></div>';
+  h+='<div style="display:flex;gap:6px;margin-bottom:10px"><button class="sm g" onclick="document.getElementById(\'pgMonto\').value='+sal+'">Pago todo</button><button class="sm" onclick="document.getElementById(\'pgMonto\').value=\'\';document.getElementById(\'pgMonto\').focus()">Pago una parte</button></div>';
+  h+='<div class="fg"><label class="fl">Nota <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="pgNota" placeholder="Ej: efectivo / transferencia"></div>';
+  h+='<button class="btn" onclick="guardarPago(\''+cid+'\',\''+(volverA||'')+'\')" style="margin:0 0 8px">Registrar el pago</button>';
+  h+='<button class="btn sec" onclick="verCuenta(\''+cid+'\')" style="margin:0">Ver la cuenta completa</button>';
+  oMod('Registrar pago',h);
+}
+function guardarPago(cid,volverA){
+  if(soloLectura())return;
+  var el=document.getElementById('pgMonto');
+  var monto=Math.round(Number(el&&el.value)||0);
+  var sal=saldoDe(cid);
+  if(monto<=0){toast('Poné cuanto pago','err');return;}
+  if(monto>sal&&!confirm('Está pagando '+plata(monto)+' y debe '+plata(sal)+'.\n\nLe va a quedar '+plata(monto-sal)+' a favor. ¿Seguimos?'))return;
+  var nota=document.getElementById('pgNota');
+  nuevoMovimiento(cid,'pago',monto,nota?nota.value.trim():'','');
+  var resto=saldoDe(cid);
+  toast(resto>0?'Pago registrado. Le queda '+plata(resto):'Pago registrado: quedo al dia','ok');
+  if(volverA==='panel')verDeudores();else if(volverA==='cuenta')verCuenta(cid);else cMod();
+  refrescarVistaActual();
+}
+// ── Cargar una deuda a mano (fuera de un pedido) ─────────────────────
+function cargarDeudaManual(cid,volverA){
+  if(soloLectura())return;
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  var h='<div style="font-size:15px;font-weight:800;margin-bottom:10px">'+es(c.nm)+'</div>';
+  h+='<div class="fg"><label class="fl">Cuanto debe</label><input class="fi" type="number" min="1" id="dmMonto" style="font-size:18px;font-weight:700"></div>';
+  h+='<div class="fg"><label class="fl">Por que <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="dmNota" placeholder="Ej: entrega del 12/8 sin cobrar"></div>';
+  h+='<button class="btn" onclick="guardarDeudaManual(\''+cid+'\',\''+(volverA||'')+'\')" style="margin:0">Cargar la deuda</button>';
+  oMod('Cargar deuda',h);
+}
+function guardarDeudaManual(cid,volverA){
+  if(soloLectura())return;
+  var el=document.getElementById('dmMonto');
+  var monto=Math.round(Number(el&&el.value)||0);
+  if(monto<=0){toast('Poné el monto','err');return;}
+  var nota=document.getElementById('dmNota');
+  nuevoMovimiento(cid,'cargo',monto,nota?nota.value.trim():'','');
+  toast('Deuda cargada: '+plata(monto),'ok');
+  if(volverA==='panel')verDeudores();else if(volverA==='cuenta')verCuenta(cid);else cMod();
+  refrescarVistaActual();
+}
+// ── Cuenta corriente de un cliente ───────────────────────────────────
+function verCuenta(cid){
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  var movs=movimientosDe(cid);
+  var sal=saldoDe(cid);
+  var h='<div style="font-size:15px;font-weight:800">'+es(c.nm)+'</div>';
+  h+='<div style="text-align:center;padding:14px;background:var(--s1);border-radius:var(--rsm);margin:10px 0">';
+  h+='<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Saldo</div>';
+  h+='<div style="font-size:26px;font-weight:900;color:'+(sal>0?'var(--red)':'var(--green)')+'">'+plata(sal)+'</div>';
+  if(sal>0&&deudaDesde(cid))h+='<div style="font-size:11px;color:var(--muted)">arrastra desde el '+fmt(deudaDesde(cid))+'</div>';
+  if(sal<=0)h+='<div style="font-size:11px;color:var(--green)">al dia</div>';
+  h+='</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
+  h+='<button class="btn'+(sal>0?'':' sec')+'" onclick="registrarPago(\''+cid+'\',\'cuenta\')" style="margin:0">Registrar pago</button>';
+  h+='<button class="btn sec" onclick="cargarDeudaManual(\''+cid+'\',\'cuenta\')" style="margin:0">Cargar deuda</button>';
+  h+='</div>';
+  if(!movs.length)h+='<div class="empty">Sin movimientos</div>';
+  else{
+    h+='<div class="fl">MOVIMIENTOS</div>';
+    movs.forEach(function(m){
+      var pago=m.tipo==='pago';
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+      h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:'+(pago?'var(--green)':'var(--red)')+'">'+(pago?'Pago':'Deuda')+' · '+plata(m.monto)+'</div>';
+      h+='<div style="font-size:11px;color:var(--muted)">'+fmt(m.fecha)+(m.vend?' · '+es(m.vend):'')+(m.concepto?' · '+es(m.concepto):'')+'</div></div>';
+      h+='<button class="sm rd" onclick="borrarMovimiento(\''+m.id+'\')" style="font-size:11px;padding:3px 8px">&#215;</button>';
+      h+='</div>';
+    });
+  }
+  oMod('Cuenta de '+c.nm,h);
+}
+function borrarMovimiento(mid){
+  if(soloLectura())return;
+  var m=(D.deudas||[]).find(function(x){return x.id===mid;});if(!m)return;
+  if(!confirm('Borrar este movimiento de '+plata(m.monto)+'?\n\nEl saldo se recalcula solo.'))return;
+  var cid=m.cid;
+  D.deudas=D.deudas.filter(function(x){return x.id!==mid;});
+  fsDelDeuda(mid);
+  sincronizarMarcaDeudor(cid);
+  logEvento('venta',cid,m.cliente,'Movimiento de cuenta borrado ('+(m.tipo==='pago'?'pago':'deuda')+' '+plata(m.monto)+')','','');
+  toast('Movimiento borrado','ok');
+  verCuenta(cid);
+  refrescarVistaActual();
+}
+// ── Panel de deudores, agrupado por barrio para salir a cobrar ───────
+function verDeudores(){
+  var lista=deudores();
+  var tot=lista.reduce(function(t,d){return t+d.saldo;},0);
+  var h='';
+  if(!lista.length){h='<div class="empty">Nadie debe nada. Muy bien!</div>';}
+  else{
+    h='<div style="text-align:center;padding:12px;background:var(--s1);border-radius:var(--rsm);margin-bottom:12px">';
+    h+='<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Total en la calle</div>';
+    h+='<div style="font-size:24px;font-weight:900;color:var(--red)">'+plata(tot)+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted)">'+lista.length+' cliente'+(lista.length!==1?'s':'')+'</div></div>';
+    h+='<div style="font-size:12px;color:var(--muted);margin-bottom:6px">Agrupados por barrio, para salir a cobrar por zona.</div>';
+    agruparPorBarrio(lista).forEach(function(g){
+      var totB=g.items.reduce(function(t,d){return t+d.saldo;},0);
+      h+='<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px"><div style="font-size:12px;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:.4px">&#128205; '+es(g.barrio)+'</div><div style="font-size:11px;color:var(--red);font-weight:700">'+plata(totB)+'</div><div style="flex:1;height:1px;background:var(--border)"></div></div>';
+      g.items.forEach(function(it){
+        var c=it.c;
+        var col=it.dias===null?'var(--muted)':it.dias>30?'var(--red)':it.dias>15?'var(--orange)':'var(--yellow)';
+        h+='<div class="cc" style="margin-bottom:8px;border-left:4px solid '+col+'">';
+        h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;min-width:0">';
+        h+='<div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
+        if(c.dir)h+='<div style="font-size:11px;color:var(--muted)">&#128205; '+es(c.dir)+'</div>';
+        h+='<div style="font-size:11px;color:'+col+'">'+(it.dias===null?'sin fecha':'hace '+it.dias+' dias')+'</div>';
+        h+='</div><div style="font-size:17px;font-weight:900;color:var(--red);flex-shrink:0">'+plata(it.saldo)+'</div></div>';
+        h+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
+        h+='<button class="sm g" onclick="registrarPago(\''+c.id+'\',\'panel\')">Cobrar</button>';
+        h+='<button class="sm" onclick="verCuenta(\''+c.id+'\')">Cuenta</button>';
+        if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')">WhatsApp</button>';
+        h+='<button class="sm" onclick="agregarAGiraRapido(\''+c.id+'\',\'deu\')">+ Gira</button>';
+        h+='</div></div>';
+      });
+    });
+  }
+  oMod('Deudores ('+lista.length+')',h);
 }
 // ── GESTION DE PEDIDOS YA CARGADOS ────────────────────────────────────
 // Sirve para corregir un pedido mal cargado, descontar lo que no se entrego
@@ -3362,7 +3666,9 @@ function aFicha(id){
   h+=(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase()?'<div style="font-size:15px;font-weight:700;color:var(--cyan)">'+es(c.fan)+'</div>':'');
   h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">';
   h+=(c.esP?'<span class="tg o">'+es(c.etapaEmbudo||'PROSPECTO')+'</span>':'<span class="tg g">CLIENTE</span>');
-  if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900">⚠ DEUDOR</span>';
+  var _sal=saldoDe(c.id);
+  if(_sal>0)h+='<span onclick="verCuenta(\''+c.id+'\')" style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900;cursor:pointer">⚠ DEBE '+plata(_sal)+'</span>';
+  else if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900">⚠ DEUDOR</span>';
   if(c.vend)h+='<span class="tg m">'+es(c.vend)+'</span>';
   if(c.fuente&&c.esP)h+='<span class="tg" style="background:rgba(139,92,246,.18);color:#a78bfa">'+iconoFuente(c.fuente)+' '+es(c.fuente)+'</span>';
   h+='</div></div>';
@@ -3403,7 +3709,8 @@ function aFicha(id){
     h+='<button class="btn sec" onclick="exportarVCard(\''+id+'\')" style="margin:0">📋 Agregar a agenda</button>';
   }
   h+='</div>';
-  if(c.etapaEmbudo==='Negociacion'&&!D.com.some(function(co){return co.cid===id&&!co.ret;})){
+  h+='<button class="btn sec" onclick="verCuenta(\''+id+'\')" style="margin:0 0 8px">Cuenta corriente'+(saldoDe(id)>0?' — debe '+plata(saldoDe(id)):'')+'</button>';
+  if(c.etapaEmbudo==='Negociacion'&&!D.com.some(function(co){return co.cid===id&&comVigente(co);})){
     h+='<button class="btn" onclick="acordoFreezer(\''+id+'\')" style="margin:0 0 8px;background:linear-gradient(90deg,#fbbf24,#22d3ee);color:#0b1220;font-weight:800">❄ Acordó freezer</button>';
   }
   // Ubicacion: confirmada = solo un boton chico. Sin confirmar = las dos formas de ubicarla.
@@ -3828,7 +4135,7 @@ function _renderInformeVendedor(vend){
   var cliVisP=cliT.filter(function(c){return misVisP.some(function(v){return v.cid===c.id;});});
   var cliNoVis=cliT.filter(function(c){return !c.ul||dias(c.ul)>30;});
   var comP=misCom.filter(function(co){return co.fe>=desde;});
-  var comAct=misCom.filter(function(co){return !co.ret;});
+  var comAct=misCom.filter(comVigente);
   var tasaConv=prosT.length>0?Math.round(conv.length/prosT.length*100):0;
   // Causas de pérdida
   var noVentaVis=misVisP.filter(function(v){return v.vendio===false&&v.razones;});
@@ -4206,7 +4513,7 @@ function renderGI(){
   var cliNuevos=clientes.filter(function(c){return c.ing>=per.desde&&c.ing<=per.hasta;});
   var cliSinVisitar=clientes.filter(function(c){return !c.ul;});
   var cliVencidos=clientes.filter(function(c){return c.ul&&dias(c.ul)>30;});
-  var cliConCom=D.com.filter(function(co){return !co.ret;}).map(function(co){return co.cid;}).filter(function(id,i,a){return a.indexOf(id)===i;});
+  var cliConCom=D.com.filter(comVigente).map(function(co){return co.cid;}).filter(function(id,i,a){return a.indexOf(id)===i;});
   h+='<div class="sg">';
   h+='<div class="sb"><div class="sn">'+clientes.length+'</div><div class="sl2">Total clientes</div></div>';
   h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(cliSinVisitar.map(function(c){return c.id;})).replace(/"/g,"'")+')" style="cursor:pointer"><div class="sn" style="color:var(--red)">'+cliSinVisitar.length+'</div><div class="sl2">Sin visitar nunca</div></div>';
@@ -4247,11 +4554,13 @@ function renderGI(){
 
   // ── COMODATOS ──
   h+='<div class="card"><div class="ct">COMODATOS</div>';
-  var comAct=D.com.filter(function(co){return !co.ret;});
-  var comRet=D.com.filter(function(co){return co.ret;});
+  var comAct=D.com.filter(comVigente);
+  var comRet=D.com.filter(function(co){return estadoComodato(co)==='ret';});
+  var comCae=D.com.filter(function(co){return estadoComodato(co)==='cancel';});
   var comPer=D.com.filter(function(co){return co.fe>=per.desde&&co.fe<=per.hasta;});
   h+='<div class="sg">';
   h+='<div class="sb"><div class="sn" style="color:var(--green)">'+comAct.length+'</div><div class="sl2">Activos</div></div>';
+  h+='<div class="sb"><div class="sn" style="color:#94a3b8">'+comCae.length+'</div><div class="sl2">Acuerdos caidos</div></div>';
   h+='<div class="sb"><div class="sn" style="color:var(--red)">'+comRet.length+'</div><div class="sl2">Retirados</div></div>';
   h+='<div class="sb"><div class="sn" style="color:var(--orange)">'+comPer.length+'</div><div class="sl2">Firmados (periodo)</div></div>';
   h+='</div></div>';
@@ -4590,7 +4899,7 @@ function expJSON(){
     cargarLogCompleto(function(){expJSON();});
     return;
   }
-  var backup={cli:D.cli,vis:D.vis,com:D.com,gira:D.gira,ped:D.ped,log:D.log,cfg:D.cfg,usrs:D.usrs,fecha:new Date().toISOString()};
+  var backup={cli:D.cli,vis:D.vis,com:D.com,gira:D.gira,ped:D.ped,deudas:D.deudas,log:D.log,cfg:D.cfg,usrs:D.usrs,fecha:new Date().toISOString()};
   var blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
   var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='CRM-backup-'+today()+'.json';
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
@@ -5421,6 +5730,13 @@ function revivirComodato(id,despues){
   toast('Acuerdo reactivado','ok');
   if(despues==='v')renderVCo();else refrescarComodatos();
 }
+// Un comodato sigue "en juego": ni retirado ni con el acuerdo caido.
+// Antes se usaba !co.ret en media docena de lugares, asi que los acuerdos que
+// Jorge daba de baja seguian contando en los avisos y en los tableros.
+function comVigente(co){
+  var e=estadoComodato(co);
+  return e!=='ret'&&e!=='cancel';
+}
 // El cliente "tiene freezer nuestro" (para el control de freezer en visitas) solo si ya se entrego.
 function tieneFreezerNuestro(cid){
   return D.com.some(function(co){return co.cid===cid&&estadoComodato(co)==='activo';});
@@ -5994,6 +6310,7 @@ window.addEventListener('load',function(){
     var g=lg('jg',null);if(g){D.gira=g;}
     var f=lg('jf',null);if(f){Object.keys(CFG).forEach(function(k){if(f[k]!==undefined)D.cfg[k]=f[k];});}
     var u=lg('ju',null);if(u){D.usrs=u;}
+    var dd=lg('jd',null);if(dd){D.deudas=dd;}
     normalizarDatos();
     setTimeout(function(){
       FS_READY=true;
