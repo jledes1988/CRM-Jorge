@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='8.0 - 09/09/2026';
+var VERSION='8.1 - 09/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -1801,6 +1801,8 @@ function abrirVisita(id){
 // Visita simple para PROSPECTOS
 function abrirVisitaProspecto(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  vpCid=id;
+  if(!vpEstado||vpEstado.cid!==id){vpVendio=null;vpPedidoId='';}
   var h='<div style="font-size:22px;font-weight:800;margin-bottom:6px">'+es(c.nm)+'</div>';
   h+='<div style="font-size:13px;color:var(--muted);margin-bottom:16px">'+es(c.etapaEmbudo||'Prospecto')+(c.bar?' · '+es(c.bar):'')+'</div>';
   h+='<div class="fg"><label class="fl">Observaciones de la visita</label><textarea class="fi fta" id="vpObs" rows="3" placeholder="Que paso en la visita? Mostro interes? Datos importantes..."></textarea></div>';
@@ -1808,10 +1810,7 @@ function abrirVisitaProspecto(id){
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">';
   h+='<div id="vpSi" onclick="togVP(true)" style="padding:16px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:16px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">SI</div>';
   h+='<div id="vpNo" onclick="togVP(false)" style="padding:16px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:16px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">NO</div></div></div>';
-  h+='<div id="vpVentaBox" style="display:none">';
-  h+='<div class="fg"><label class="fl">Fecha de la venta</label><input class="fi" type="date" id="vpFechaPed" value="'+today()+'"></div>';
-  h+='<div class="fg"><label class="fl">Monto de la venta <span style="font-size:10px;color:var(--muted)">(opcional, sin puntos ni comas)</span></label><input class="fi" id="vpMonto" type="number" inputmode="numeric" min="0" step="1" placeholder="Ej: 45000"></div>';
-  h+='<div class="fg"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px;font-weight:700">Convertir a Cliente Activo</span><label class="sw"><input type="checkbox" id="vpConv" checked><span class="sl3"></span></label></div><div style="font-size:12px;color:var(--muted);margin-top:4px">Si se convierte, pasa a la lista de clientes activos</div></div></div>';
+  h+='<div id="vpVentaBox" style="display:none">'+pedidoEnVisitaProsHTML()+'</div>';
   h+='<div class="fg"><label class="fl">Mover en el embudo</label>';
   h+='<select class="fi" id="vpEta"><option value="">Mantener etapa actual ('+es(c.etapaEmbudo||'Nuevo Prospecto')+')</option>';
   ET.concat(SA).forEach(function(et){if(et!==c.etapaEmbudo)h+='<option value="'+es(et)+'">'+es(et)+'</option>';});
@@ -1821,7 +1820,42 @@ function abrirVisitaProspecto(id){
   h+='<input class="fi" type="date" id="vpProx" min="'+today()+'" value="'+(c.prox||'')+'"></div>';
   h+='<button class="btn or" onclick="guardarVisitaProspecto(\''+id+'\')">Guardar visita</button>';
   oMod('Visita a prospecto',h);
+  // Si venimos de cargar el pedido, se repone lo que ya estaba escrito
+  if(vpEstado&&vpEstado.cid===id){
+    var o=document.getElementById('vpObs');if(o)o.value=vpEstado.obs||'';
+    var e=document.getElementById('vpEta');if(e)e.value=vpEstado.eta||'';
+    var p=document.getElementById('vpProx');if(p&&vpEstado.prox)p.value=vpEstado.prox;
+    if(vpEstado.vendio!==null&&vpEstado.vendio!==undefined)togVP(vpEstado.vendio);
+  }
 }
+// Estado del formulario mientras se va a cargar el pedido, para no perder lo escrito
+var vpEstado=null;
+var vpPedidoId='';
+function pedidoEnVisitaProsHTML(){
+  var p=vpPedidoId?D.ped.find(function(x){return x.id===vpPedidoId;}):null;
+  if(p){
+    var debe=p.cobrado!==undefined?(Number(p.total||0)-Number(p.cobrado||0)):0;
+    var h='<div class="card" style="border:1px solid var(--green)"><div class="ct" style="color:var(--green)">PEDIDO CARGADO</div>';
+    h+='<div style="font-size:20px;font-weight:900;color:var(--green)">'+plata(p.total)+'</div>';
+    h+='<div style="font-size:12px;color:var(--muted)">'+(p.items?p.items.length:0)+' renglones · pasa a Cliente Activo al guardar</div>';
+    if(debe>0)h+='<div style="font-size:12px;color:var(--red);font-weight:700;margin-top:4px">Quedo debiendo '+plata(debe)+'</div>';
+    h+='<button class="sm" onclick="tomarPedidoEnVisitaPros()" style="margin-top:8px">Corregir el pedido</button>';
+    h+='</div>';
+    return h;
+  }
+  return '<div class="card"><div style="font-size:12px;color:var(--muted);margin-bottom:8px">Carga el pedido con los productos: de ahi salen el total, el texto para fabrica y la deuda si no lo cobraste entero. Al guardarlo el prospecto pasa a Cliente Activo.</div>'+
+    '<button class="btn" onclick="tomarPedidoEnVisitaPros()" style="margin:0">Tomar el pedido</button></div>';
+}
+// Guarda lo escrito, abre el pedido, y al volver repone el formulario
+function tomarPedidoEnVisitaPros(){
+  var id=vpCid;if(!id)return;
+  var o=document.getElementById('vpObs'),e=document.getElementById('vpEta'),p=document.getElementById('vpProx');
+  vpEstado={cid:id,obs:o?o.value:'',eta:e?e.value:'',prox:p?p.value:'',vendio:vpVendio};
+  volverAVisitaPros=id;
+  abrirPedido(id);
+}
+var volverAVisitaPros='';
+var vpCid='';
 var vpVendio=null;
 function togVP(si){
   vpVendio=si;
@@ -1832,6 +1866,7 @@ function togVP(si){
 }
 function guardarVisitaProspecto(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  var _limpiar=function(){vpEstado=null;vpPedidoId='';vpVendio=null;vpCid='';};
   var obs=document.getElementById('vpObs').value;
   var eta=document.getElementById('vpEta').value;
   var hoy=today();
@@ -1842,12 +1877,16 @@ function guardarVisitaProspecto(id){
   // no aparece en el filtro Clientes, ni en el dashboard, ni en la exportacion.
   if(eta){v.eta=eta;c.etapaEmbudo=eta;if(sincronizarEsP(c,eta)==='alta'){v.conversion=true;conv=true;}}
   if(vpVendio===true){
-    var fp=document.getElementById('vpFechaPed').value||hoy;
-    v.fechaPedido=fp;c.uv=fp;
-    var mEl=document.getElementById('vpMonto');
-    if(mEl&&mEl.value!=='')v.monto=Number(mEl.value)||0;
-    conv=document.getElementById('vpConv')&&document.getElementById('vpConv').checked;
-    if(conv){c.esP=false;c.etapaEmbudo='Cliente Activo';v.eta='Cliente Activo';v.conversion=true;}
+    // El pedido ya dejo uv, la deuda y la conversion a Cliente Activo.
+    var ped=vpPedidoId?D.ped.find(function(x){return x.id===vpPedidoId;}):null;
+    if(ped){
+      v.pid=ped.id;v.fechaPedido=ped.fecha;v.monto=Number(ped.total||0);
+      c.uv=ped.fecha;
+      if(c.esP){c.esP=false;c.etapaEmbudo='Cliente Activo';v.eta='Cliente Activo';v.conversion=true;conv=true;}
+    } else {
+      toast('Marcaste que vendiste pero no cargaste el pedido','err');
+      return;
+    }
   }
   c.ul=hoy;
   // Próxima visita → agregar automáticamente a la Gira. Si no se cargó una fecha
@@ -1879,8 +1918,9 @@ function guardarVisitaProspecto(id){
   fsSetContacto(c);
   cMod();
   toast(prox?'Visita guardada · Gira agendada para '+fmt(prox)+(autoSug?' (sugerida)':''):vpVendio===true?'Venta registrada!':'Visita guardada','ok');
-  vpVendio=null;
+  _limpiar();
   renderVH();
+  refrescarVistaActual();
   if(gTab==='ejec')renderVG();
   // Confirmar ubicacion la primera vez, si el vendedor esta en el local
   if(!c.gpsOk&&(!D.user||D.user.r==='vendedor')){setTimeout(function(){confirmarUbicacion(c.id);},400);}
@@ -3185,6 +3225,37 @@ var pedActual={cid:null,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:'',
 // Regla de la casa: no se le baja mercaderia a quien debe. No se bloquea a
 // ciegas (a veces baja igual porque le paga la mitad en el momento), pero
 // tiene que ser una decision consciente, no un descuido.
+// Reabre un pedido guardado en el formulario completo, con todo lo que tenia.
+// Al guardar se pisa el mismo pedido (no se crea uno nuevo) y se ajusta la
+// deuda que habia generado.
+function editarPedidoCompleto(pid){
+  if(soloLectura())return;
+  var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
+  var c=D.cli.find(function(x){return x.id===p.cid;});if(!c){toast('No encuentro el cliente de este pedido','err');return;}
+  var items={},frac={},mats={},perdidos=[];
+  (p.items||[]).forEach(function(it){
+    var prod=productos().find(function(x){return x.id===it.id;});
+    if(!prod){perdidos.push(it.n+(it.s?' '+it.s:''));return;}
+    // El renglon guardado no trae el indice del sabor: se busca por sabor y,
+    // si no, por abreviacion. Asi sobrevive a que se reordenen los sabores.
+    var idx=(prod.sab||[]).findIndex(function(sb){return (sb.s||'')===(it.s||'');});
+    if(idx<0)idx=(prod.sab||[]).findIndex(function(sb){return (sb.a||'')===(it.a||'');});
+    if(idx<0){perdidos.push(it.n+(it.s?' '+it.s:''));return;}
+    var k=prod.id+'|'+idx;
+    if(it.fr)frac[k]=(frac[k]||0)+Number(it.q||0);
+    else items[k]=(items[k]||0)+Number(it.q||0);
+  });
+  (p.mats||[]).forEach(function(m){mats[m]=1;});
+  // Como se habia cobrado, para no volver a preguntarlo desde cero
+  var cobradoPrev=p.cobrado!==undefined?Number(p.cobrado||0):Number(p.total||0);
+  var debePrev=Number(p.total||0)-cobradoPrev;
+  var cobro=debePrev<=0?'todo':(cobradoPrev>0?'parte':'nada');
+  pedActual={cid:p.cid,editId:p.id,fechaOrig:p.fecha,items:items,frac:frac,mats:mats,
+    notaPago:p.notaPago||'',notaConv:p.notaConv||'',obs:p.obs||'',
+    cobro:cobro,cobrado:cobradoPrev,prom:compromisoDe(p.cid)||''};
+  if(perdidos.length)toast('Ojo: '+perdidos.length+' renglon(es) ya no existen en el catalogo y no se pudieron recuperar: '+perdidos.join(', '),'err');
+  renderPedido();
+}
 function abrirPedido(cid){
   var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
   var sal=saldoDe(cid);
@@ -3266,7 +3337,8 @@ function renderPedido(){
   var lineas=['Impulsivos','Postres','Granel'];
   if(!pedActual.linea)pedActual.linea=lineas[0];
   var h='<div style="font-size:15px;font-weight:800">'+es(c.nm)+'</div>';
-  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">'+(esPrimerPedido(c.id)?'Primer pedido: se manda el encabezado completo':'Ya tuvo pedidos: encabezado corto')+'</div>';
+  if(pedActual.editId)h+='<div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:10px">Editando el pedido del '+fmt(pedActual.fechaOrig)+'. Al guardar se pisa ese mismo pedido.</div>';
+  else h+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">'+(esPrimerPedido(c.id)?'Primer pedido: se manda el encabezado completo':'Ya tuvo pedidos: encabezado corto')+'</div>';
   // Materiales en comodato
   h+='<div class="card" style="margin-bottom:10px"><div class="ct">MATERIALES EN COMODATO (sin costo)</div><div class="chips">';
   materiales().forEach(function(m){
@@ -3330,7 +3402,7 @@ function renderPedido(){
   h+='<button class="btn sec" onclick="copiarTexto(\'pedTxt\')" style="margin:8px 0 0">Copiar al portapapeles</button>';
   h+='<div style="font-size:11px;color:var(--muted);margin-top:6px">Si el boton no funciona en tu telefono, manten apretado el texto de arriba y elegi Copiar.</div>';
   h+='</div>';
-  h+='<button class="btn" onclick="guardarPedido()" style="margin:0 0 8px">Guardar pedido</button>';
+  h+='<button class="btn" onclick="guardarPedido()" style="margin:0 0 8px">'+(pedActual.editId?'Guardar los cambios':'Guardar pedido')+'</button>';
   h+='<button class="btn sec" onclick="pedidoAlCliente()" style="margin:0">Enviar comprobante al cliente</button>';
   oMod('Tomar pedido',h);
 }
@@ -3434,39 +3506,62 @@ function guardarPedido(){
     });
   });
   var tot=totalPedido();
-  var salPrevio=saldoDe(c.id);
-  if(salPrevio>0&&deudaDelPedido()>0){
-    if(!confirm('Atencion: "'+c.nm+'" ya debia '+plata(salPrevio)+' y este pedido le suma '+plata(deudaDelPedido())+'.\n\nVa a quedar debiendo '+plata(salPrevio+deudaDelPedido())+'.\n\n¿Guardamos igual?'))return;
-  }
-  var ped={id:uid(),cid:c.id,cliente:c.nm,fecha:today(),vend:D.user?D.user.n:'',
-    items:items,total:tot,mats:Object.keys(pedActual.mats),
-    notaPago:pedActual.notaPago,notaConv:pedActual.notaConv,obs:pedActual.obs};
-  D.ped.push(ped);
-  fsSetPedido(ped);
-  // El pedido es una venta: actualiza la ultima compra del cliente
-  c.uv=ped.fecha;
-  if(c.esP){c.esP=false;c.etapaEmbudo='Cliente Activo';}
-  fsSetContacto(c);
-  logEvento('venta',c.id,c.nm,'Pedido cargado por '+plata(tot),'','');
-  // Lo que no se cobro queda como deuda en la cuenta corriente del cliente
+  var editando=!!pedActual.editId;
   var debe=deudaDelPedido();
-  ped.cobrado=tot-debe;
+  // El aviso de saldo previo no corresponde cuando se esta corrigiendo un
+  // pedido que ya existe: su propia deuda ya esta contada en el saldo.
+  if(!editando){
+    var salPrevio=saldoDe(c.id);
+    if(salPrevio>0&&debe>0){
+      if(!confirm('Atencion: "'+c.nm+'" ya debia '+plata(salPrevio)+' y este pedido le suma '+plata(debe)+'.\n\nVa a quedar debiendo '+plata(salPrevio+debe)+'.\n\n¿Guardamos igual?'))return;
+    }
+  }
+  var ped;
+  if(editando){
+    ped=D.ped.find(function(x){return x.id===pedActual.editId;});
+    if(!ped){toast('No encuentro el pedido que estabas editando','err');return;}
+    var totAnt=Number(ped.total||0);
+    ped.items=items;ped.total=tot;ped.mats=Object.keys(pedActual.mats);
+    ped.notaPago=pedActual.notaPago;ped.notaConv=pedActual.notaConv;ped.obs=pedActual.obs;
+    ped.cobrado=tot-debe;
+    ped._modBy=D.user?D.user.n:'?';ped._modAt=new Date().toISOString();
+    logEvento('venta',c.id,c.nm,'Pedido del '+fmt(ped.fecha)+' editado: '+plata(totAnt)+' -> '+plata(tot),'','');
+  } else {
+    ped={id:uid(),cid:c.id,cliente:c.nm,fecha:today(),vend:D.user?D.user.n:'',
+      items:items,total:tot,mats:Object.keys(pedActual.mats),
+      notaPago:pedActual.notaPago,notaConv:pedActual.notaConv,obs:pedActual.obs,
+      cobrado:tot-debe};
+    D.ped.push(ped);
+    // El pedido es una venta: actualiza la ultima compra del cliente
+    c.uv=ped.fecha;
+    if(c.esP){c.esP=false;c.etapaEmbudo='Cliente Activo';}
+    fsSetContacto(c);
+    logEvento('venta',c.id,c.nm,'Pedido cargado por '+plata(tot),'','');
+  }
+  fsSetPedido(ped);
+  // La deuda que genero ESTE pedido se deja igual a lo que quedo sin cobrar.
+  // Los pagos que el cliente haya hecho no se tocan: son movimientos aparte.
+  ajustarDeudaDePedido(ped,debe);
   if(debe>0){
-    nuevoMovimiento(c.id,'cargo',debe,'Pedido del '+fmt(ped.fecha),ped.id);
-    fsSetPedido(ped);
     var pEl=document.getElementById('pedProm');
     var prom=(pEl&&pEl.value)||pedActual.prom||'';
     if(prom){setCompromiso(c.id,prom);logEvento('venta',c.id,c.nm,'Se comprometio a pagar '+plata(debe)+' el '+fmt(prom),'','');}
-    toast('Pedido guardado. Quedo debiendo '+plata(debe)+(prom?' — vuelve el '+fmt(prom):''),'ok');
+    toast((editando?'Pedido actualizado':'Pedido guardado')+'. Quedo debiendo '+plata(debe)+(prom?' — vuelve el '+fmt(prom):''),'ok');
   } else {
-    toast('Pedido guardado y cobrado: '+plata(tot),'ok');
+    toast((editando?'Pedido actualizado':'Pedido guardado')+' y cobrado: '+plata(tot),'ok');
   }
   // Si el pedido se tomo desde una visita, se vuelve al wizard con el resumen.
   // Se lee el flag ANTES de cMod(), porque cMod lo consume.
   var desdeVisita=volverAlWizard;
   if(desdeVisita){W.data.pid=ped.id;W.data.vendio=true;W.data.monto=tot;}
+  var desdePros=volverAVisitaPros;
+  if(desdePros){vpPedidoId=ped.id;vpVendio=true;if(vpEstado)vpEstado.vendio=true;volverAVisitaPros='';}
+  var eraEdicion=editando;
+  pedActual.editId=null;
   cMod();
   if(desdeVisita){refrescarPedidoEnVisita();return;}
+  if(desdePros){abrirVisitaProspecto(desdePros);return;}
+  if(eraEdicion){verPedido(ped.id);refrescarVistaActual();return;}
   if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGC();else renderVC();
 }
 // ══════════════════════════════════════════════════════════════════════
@@ -3711,6 +3806,34 @@ function verDeudores(){
 // Sirve para corregir un pedido mal cargado, descontar lo que no se entrego
 // (entrega parcial) o anularlo. Asi el cliente no queda con productos que
 // nunca le llegaron y los numeros sirven para sacar conclusiones.
+// Deja el cargo de deuda de un pedido igual a lo que quedo sin cobrar. Si ya
+// no debe nada, el cargo se borra. Los pagos del cliente no se tocan nunca.
+function ajustarDeudaDePedido(ped,debe){
+  var prev=(D.deudas||[]).filter(function(m){return m.pid===ped.id&&m.tipo!=='pago';});
+  if(debe>0){
+    if(prev.length){
+      // Se deja uno solo con el monto correcto y se borran los repetidos
+      var m=prev[0];
+      if(Number(m.monto||0)!==debe){
+        m.monto=debe;m.concepto='Pedido del '+fmt(ped.fecha);
+        m._modBy=D.user?D.user.n:'?';m._modAt=new Date().toISOString();
+        fsSetDeuda(m);
+      }
+      prev.slice(1).forEach(function(x){
+        D.deudas=D.deudas.filter(function(y){return y.id!==x.id;});
+        fsDelDeuda(x.id);
+      });
+    } else {
+      nuevoMovimiento(ped.cid,'cargo',debe,'Pedido del '+fmt(ped.fecha),ped.id);
+    }
+  } else {
+    prev.forEach(function(x){
+      D.deudas=D.deudas.filter(function(y){return y.id!==x.id;});
+      fsDelDeuda(x.id);
+    });
+  }
+  sincronizarMarcaDeudor(ped.cid);
+}
 function recalcularUltimaCompra(cid){
   var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
   var ps=pedidosDe(cid);
@@ -3734,6 +3857,7 @@ function verPedido(pid){
   if(p.mats&&p.mats.length)h+='<div style="font-size:11px;color:var(--muted);margin-top:8px">Comodato: '+es(p.mats.join(', '))+'</div>';
   h+='<div style="text-align:right;margin:12px 0;font-size:18px;font-weight:900;color:var(--green)">'+plata(p.total)+'</div>';
   h+='<button class="btn" onclick="guardarCambiosPedido(\''+pid+'\')" style="margin:0 0 8px">Guardar correcciones</button>';
+  h+='<button class="btn sec" onclick="editarPedidoCompleto(\''+pid+'\')" style="margin:0 0 8px">Editar el pedido completo (agregar productos)</button>';
   h+='<button class="btn red" onclick="eliminarPedido(\''+pid+'\')" style="margin:0">Eliminar este pedido</button>';
   oMod('Pedido del '+fmt(p.fecha),h);
 }
@@ -3748,9 +3872,14 @@ function guardarCambiosPedido(pid){
   if(!p.items.length){
     if(confirm('Quedó sin productos. ¿Eliminamos el pedido?')){eliminarPedido(pid);return;}
   }
+  var totAnterior=Number(p.total||0);
   p.total=p.items.reduce(function(t,it){return t+(it.q*Number(it.p||0));},0);
+  // Lo cobrado no cambia al descontar productos: cambia lo que queda debiendo
+  var cobradoP=p.cobrado!==undefined?Math.min(Number(p.cobrado||0),p.total):p.total;
+  p.cobrado=cobradoP;
   p._modBy=D.user?D.user.n:'?';p._modAt=new Date().toISOString();
   fsSetPedido(p);
+  ajustarDeudaDePedido(p,p.total-cobradoP);
   logEvento('venta',p.cid,p.cliente,'Pedido corregido: quedo en '+plata(p.total),'','');
   toast('Pedido actualizado: '+plata(p.total),'ok');
   cMod();
@@ -3762,6 +3891,12 @@ function eliminarPedido(pid){
   var cid=p.cid;
   D.ped=D.ped.filter(function(x){return x.id!==pid;});
   fsDelPedido(pid);
+  // La deuda que habia generado este pedido se va con el
+  (D.deudas||[]).filter(function(m){return m.pid===pid&&m.tipo!=='pago';}).forEach(function(m){
+    D.deudas=D.deudas.filter(function(y){return y.id!==m.id;});
+    fsDelDeuda(m.id);
+  });
+  sincronizarMarcaDeudor(cid);
   recalcularUltimaCompra(cid);
   logEvento('venta',cid,p.cliente,'Pedido eliminado ('+plata(p.total)+')','','');
   toast('Pedido eliminado','ok');

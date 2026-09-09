@@ -1,104 +1,72 @@
-# CRM-Jorge — Versión 8.0
+# CRM-Jorge — Versión 8.1
 
-**Esta vez van los TRES archivos:** `app.js`, `index.html` y `estilos.css`.
-Si subís solo uno, la pestaña nueva no aparece o queda rota.
+**Solo cambió `app.js`.** `index.html` y `estilos.css` de la 8.0 quedan como
+están.
 
-> Y si todavía no cargaste las reglas de Firestore de `REGLAS-DEUDAS.txt`,
-> hacelo antes que nada: sin eso las deudas no guardan.
-
----
-
-## Por qué no veías a los deudores
-
-No era un bug tuyo: **el módulo no tenía puerta de entrada**. El panel de
-deudores solo aparecía en HOY *si ya había alguien debiendo*, y la única forma
-de cargar una deuda era entrar a la ficha de un cliente. Con la base vacía, no
-había manera de llegar.
-
-Lo mismo pasaba con los pedidos: se guardaban bien, pero para verlos había que
-entrar cliente por cliente, o meterse en Config.
+> Las reglas de Firestore ya están publicadas (hoy 2:08 p.m.). No hay que
+> tocar nada más ahí.
 
 ---
 
-## La reestructuración
+## 1 · Editar el pedido entero
 
-**Pestaña nueva "VENTAS"** en la barra de abajo (séptimo botón), con dos
-solapas:
+Antes la pantalla de un pedido solo te dejaba **bajar** cantidades. Si te
+olvidaste de sumarle algo, no había forma.
 
-**Pedidos** — filtro por Hoy / Esta semana / Este mes / Todo, y arriba tres
-números: cuántos pedidos, cuánto vendiste y **cuánto quedó sin cobrar**. Abajo
-la lista agrupada por día con el subtotal de cada jornada. Tocás uno y entrás a
-corregirlo.
+Ahora, adentro de cualquier pedido, botón **"Editar el pedido completo
+(agregar productos)"**. Te reabre el formulario original con **todo lo que ya
+tenía cargado**: productos, sabores, cajas y sueltos, materiales en comodato,
+las notas y cómo lo habías cobrado. Agregás lo que falte y guardás.
 
-**Deudores** — el total en la calle, la cantidad de deudores, y la lista
-agrupada por barrio. **Está siempre, aunque no haya nadie debiendo**, y tiene
-un botón **"+ Cargar deuda"** para meter lo que venías arrastrando de antes sin
-tener que buscar la ficha del cliente.
+**Se pisa el mismo pedido, no se crea uno nuevo.** El encabezado te avisa en
+amarillo qué pedido estás editando.
 
-El admin tiene lo mismo en un ítem propio del menú: **"Pedidos y deudas"**.
+**Lo que pasa con la deuda** — esto es lo que más cuidé:
 
----
+- Si el pedido pasa de $100.000 a $150.000 y habías cobrado $40.000, la deuda
+  de ese pedido pasa de $60.000 a $110.000. **No se duplica.**
+- **Los pagos que el cliente ya hizo no se tocan nunca.** Si te había pagado
+  $50.000 a cuenta, ese pago sigue ahí después de editar.
+- Si al final lo cobrás entero, la deuda de ese pedido desaparece sola.
+- Si borrás el pedido, su deuda se va con él (antes quedaba colgada).
 
-## La visita ahora carga el pedido
-
-Este era el nudo. Había **dos formas paralelas de registrar una venta que no se
-hablaban**: el "¿vendió? SÍ/NO + monto" de la visita, y el módulo de pedidos.
-El monto suelto de la visita no alimentaba nada — ni el texto para fábrica, ni
-la deuda, ni el detalle de qué se llevó.
-
-Ahora, en el paso **Venta**:
-
-- **SÍ** → botón **"Tomar el pedido"**, que abre el módulo con los productos.
-  Al guardarlo **volvés solo a la visita**, y ahí ves el resumen: el total, los
-  renglones y cuánto quedó debiendo. Podés tocar "Corregir el pedido" si te
-  equivocaste.
-- **NO** → sigue igual, con los motivos.
-
-Saqué el campo "monto de la venta" y el check "marcar como deudor": los dos los
-reemplaza el pedido, que además te deja el detalle y la cuenta corriente.
+Lo llegás desde **VENTAS → Pedidos**, desde **Pedidos y deudas** en el admin,
+o desde el historial del cliente.
 
 ---
 
-## La carga inicial
+## 2 · La visita desde Embudo
 
-Tenías razón y esto explica el problema de ayer.
+Tenías razón y fue un olvido mío. En la 8.0 cambié la visita a **clientes**,
+pero desde Embudo se usa la visita a **prospectos**, que es otra pantalla —
+y esa quedó igual, con el monto suelto.
 
-**Cuando marcás el freezer como entregado**, la fecha queda registrada como su
-**primer pedido** — porque la carga inicial baja junto con el equipo. Ahí
-arranca el reloj de los 45 días. Además te ofrece cargar el detalle de
-productos, pero no te obliga: si decís que no, la fecha queda igual.
+Ya está unificada. En la visita a prospecto, **SÍ** ahora te da **"Tomar el
+pedido"**, abre el módulo con los productos y al guardarlo volvés a la visita
+con el resumen verde. **No perdés lo que ya habías escrito**: las
+observaciones, la etapa y la próxima visita quedan como las dejaste.
 
-**Los que ya estaban cargados se arreglan solos** la primera vez que entres
-como admin. Simulé contra tu backup:
+Saqué tres campos que ahora los resuelve el pedido:
 
-| Cliente | Primer pedido que queda |
-|---|---|
-| Coco loco | 31/8 (entrega del freezer) |
-| Di Navarro | 2/9 |
-| Despensa Hidalgo | 28/8 |
+- *Fecha de la venta* → es la del pedido.
+- *Monto de la venta* → es el total del pedido.
+- *Convertir a Cliente Activo* → pasa solo, porque cargar un pedido **es** lo
+  que lo convierte en cliente.
 
-Los tres vuelven a Cliente Activo y **ya no los alcanza la regla de los 45
-días**. Verificado. Despensa MyM y La esquina Market no se tocan porque ya
-tenían pedidos propios.
+Si marcás SÍ y no cargás el pedido, no te deja guardar y te avisa.
 
 ---
 
 ## Probá esto apenas subas
 
-1. **Subí los tres archivos.** Entrá como admin → tiene que salir el aviso
-   *"3 clientes con freezer: se registró su carga inicial"* → revisá que Coco
-   loco, Di Navarro y Despensa Hidalgo estén en Cliente Activo.
-2. Entrá como vendedor → tiene que estar el botón **VENTAS** en la barra de
-   abajo. Fijate que los 7 botones entren bien en tu pantalla.
-3. **VENTAS → Deudores** → tiene que abrir aunque esté vacío, con el botón
-   "+ Cargar deuda". Cargale una deuda de prueba a alguien.
-4. **Registrá una visita a un cliente** → paso Venta → **SÍ** → "Tomar el
-   pedido" → cargá algo → guardá → tenés que volver a la visita con el resumen
-   verde.
-5. **VENTAS → Pedidos** → ese pedido tiene que estar ahí, bajo la fecha de hoy.
-
-> Si los 7 botones te quedan apretados en el celular, decime y los paso a solo
-> íconos, o muevo Ventas adentro de otra pestaña.
+1. **Embudo** → entrá a un prospecto → Visita → escribí una observación → **SÍ**
+   → "Tomar el pedido" → cargá algo → guardá. Tenés que volver a la visita
+   **con la observación todavía escrita** y el resumen verde.
+2. Guardá esa visita → el prospecto tiene que quedar en **Cliente Activo**.
+3. **VENTAS → Pedidos** → entrá a ese pedido → **"Editar el pedido completo"**
+   → sumale un producto → guardá.
+4. **VENTAS → Deudores** → si había quedado debiendo, el monto tiene que
+   reflejar el pedido nuevo, no el viejo ni los dos sumados.
 
 ---
 
@@ -107,3 +75,5 @@ tenían pedidos propios.
 - Definir el **Pote Tutto 3 Lts** ($9.900 provisorio).
 - CUIT, condición impositiva y horarios de los clientes.
 - Segundas visitas.
+- Revisar si los pedidos de antes de hoy se perdieron (VENTAS → Pedidos →
+  Todo). Los que falten hay que volver a cargarlos.
