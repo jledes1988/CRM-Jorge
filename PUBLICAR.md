@@ -1,111 +1,109 @@
-# CRM-Jorge — Versión 7.9
+# CRM-Jorge — Versión 8.0
 
-**Solo cambió `app.js`.**
+**Esta vez van los TRES archivos:** `app.js`, `index.html` y `estilos.css`.
+Si subís solo uno, la pestaña nueva no aparece o queda rota.
 
-> Si todavía no cargaste las reglas de Firestore de `REGLAS-DEUDAS.txt`,
-> hacelo antes: sin eso el módulo de deudas no guarda nada.
-
----
-
-## 1 · Cuándo viene por el resto
-
-Esto era lo que faltaba para tu caso: paga la mitad al bajar la mercadería y la
-otra mitad a la semana.
-
-**Al cargar el pedido**, si elegís "Cobré una parte" o "No cobró nada",
-aparece un campo **"Cuándo viene por el resto"**, con el lunes siguiente ya
-puesto por defecto.
-
-**Al registrar un pago** en la cuenta corriente, lo mismo: si queda saldo, te
-pregunta qué día vuelve.
-
-**Después el sistema te lo cobra a vos:**
-
-- El día que prometió, el recordatorio de HOY dice **"N vienen a pagar HOY"**.
-- Si pasó y no pagó, ese cliente sube **al primer lugar** del panel con el
-  cartel rojo **"PROMETIÓ PAGAR EL 12/9 Y NO PAGÓ"**.
-- El orden del panel es: primero los que rompieron la promesa, después los que
-  vienen hoy, y recién ahí por monto.
-- Cuando queda en cero, el compromiso se borra solo.
+> Y si todavía no cargaste las reglas de Firestore de `REGLAS-DEUDAS.txt`,
+> hacelo antes que nada: sin eso las deudas no guardan.
 
 ---
 
-## 2 · No se baja mercadería con saldo
+## Por qué no veías a los deudores
 
-Tu regla, metida en dos puntos del camino:
+No era un bug tuyo: **el módulo no tenía puerta de entrada**. El panel de
+deudores solo aparecía en HOY *si ya había alguien debiendo*, y la única forma
+de cargar una deuda era entrar a la ficha de un cliente. Con la base vacía, no
+había manera de llegar.
 
-**Al abrir el pedido**, si el cliente debe, te frena con el monto y la fecha
-que había prometido (y te dice si esa promesa ya venció). Si cancelás, te
-lleva directo a su cuenta corriente para cobrarle.
-
-**Al guardar**, si además le vas a sumar deuda nueva, te avisa cuánto va a
-quedar debiendo en total antes de confirmar.
-
-> Lo dejé como aviso fuerte y no como bloqueo total, porque vos mismo
-> describiste el caso donde sí le bajás: te paga la mitad en el momento. Con
-> el aviso la decisión es consciente, no un descuido. Si preferís que sea
-> imposible, lo cambio.
+Lo mismo pasaba con los pedidos: se guardaban bien, pero para verlos había que
+entrar cliente por cliente, o meterse en Config.
 
 ---
 
-## 3 · Aviso de retiro del freezer
+## La reestructuración
 
-Cliente con **freezer entregado** que lleva más de 45 días sin pasar un
-pedido: aparece en HOY como **"N freezers para retirar"**.
+**Pestaña nueva "VENTAS"** en la barra de abajo (séptimo botón), con dos
+solapas:
 
-Adentro, agrupados por barrio, cada uno con el N° y la marca del equipo, hace
-cuántos días que no compra, y **si además debe plata**. Cuatro botones:
-**+ Gira para retirar**, **Visitar**, **WhatsApp** y **Ya lo retiré**.
+**Pedidos** — filtro por Hoy / Esta semana / Este mes / Todo, y arriba tres
+números: cuántos pedidos, cuánto vendiste y **cuánto quedó sin cobrar**. Abajo
+la lista agrupada por día con el subtotal de cada jornada. Tocás uno y entrás a
+corregirlo.
 
-Usa el mismo plazo de 45 días que la regla de recaída — se cambia desde Config
-y las dos cosas se mueven juntas, porque son la misma decisión comercial.
+**Deudores** — el total en la calle, la cantidad de deudores, y la lista
+agrupada por barrio. **Está siempre, aunque no haya nadie debiendo**, y tiene
+un botón **"+ Cargar deuda"** para meter lo que venías arrastrando de antes sin
+tener que buscar la ficha del cliente.
 
-**Hoy no te va a aparecer ninguno**, y está bien: tus cinco freezers activos
-se entregaron entre hace 6 y 18 días.
+El admin tiene lo mismo en un ítem propio del menú: **"Pedidos y deudas"**.
 
 ---
 
-## ⚠ Un bug que encontré simulando, y que te está afectando ahora
+## La visita ahora carga el pedido
 
-Al probar el aviso de retiro contra tu backup me topé con esto:
+Este era el nudo. Había **dos formas paralelas de registrar una venta que no se
+hablaban**: el "¿vendió? SÍ/NO + monto" de la visita, y el módulo de pedidos.
+El monto suelto de la visita no alimentaba nada — ni el texto para fábrica, ni
+la deuda, ni el detalle de qué se llevó.
 
-**Coco loco, Di Navarro y Despensa Hidalgo tienen freezer nuestro entregado el
-31/8, el 2/9 y el 28/8** — hace días, no meses. Pero la regla de los 45 días
-los contaba desde su **fecha de ingreso** (julio), así que la 7.7 los mandó de
-vuelta a prospecto **una semana después de haberles instalado el equipo**.
+Ahora, en el paso **Venta**:
 
-Estaba mal y era mío. Ahora la regla cuenta así:
+- **SÍ** → botón **"Tomar el pedido"**, que abre el módulo con los productos.
+  Al guardarlo **volvés solo a la visita**, y ahí ves el resumen: el total, los
+  renglones y cuánto quedó debiendo. Podés tocar "Corregir el pedido" si te
+  equivocaste.
+- **NO** → sigue igual, con los motivos.
 
-1. Su último pedido.
-2. Si nunca compró, **desde que se le puso el freezer** — instalar un equipo es
-   empezar de cero, no se puede castigar por lo de antes.
-3. Si tampoco hay freezer, la fecha de ingreso.
+Saqué el campo "monto de la venta" y el check "marcar como deudor": los dos los
+reemplaza el pedido, que además te deja el detalle y la cuenta corriente.
 
-Verifiqué que con el arreglo los tres **se salvan**, y que Ypf sabatini
-(último pedido 30/6, sin freezer) sigue cayendo como corresponde.
+---
 
-> **Revisá en qué etapa te quedaron esos tres.** Si están en Negociación, son
-> clientes tuyos con el freezer puesto: pasalos a Cliente Activo a mano. De
-> acá en adelante no vuelve a pasar.
+## La carga inicial
+
+Tenías razón y esto explica el problema de ayer.
+
+**Cuando marcás el freezer como entregado**, la fecha queda registrada como su
+**primer pedido** — porque la carga inicial baja junto con el equipo. Ahí
+arranca el reloj de los 45 días. Además te ofrece cargar el detalle de
+productos, pero no te obliga: si decís que no, la fecha queda igual.
+
+**Los que ya estaban cargados se arreglan solos** la primera vez que entres
+como admin. Simulé contra tu backup:
+
+| Cliente | Primer pedido que queda |
+|---|---|
+| Coco loco | 31/8 (entrega del freezer) |
+| Di Navarro | 2/9 |
+| Despensa Hidalgo | 28/8 |
+
+Los tres vuelven a Cliente Activo y **ya no los alcanza la regla de los 45
+días**. Verificado. Despensa MyM y La esquina Market no se tocan porque ya
+tenían pedidos propios.
 
 ---
 
 ## Probá esto apenas subas
 
-1. Tomá un pedido de un cliente **que deba plata** → tiene que frenarte antes
-   de dejarte entrar.
-2. En un pedido nuevo: **"Cobré una parte"** → poné un monto → fijate que
-   aparezca **"Cuándo viene por el resto"** → guardá.
-3. Cambiá esa fecha a ayer (Cuenta corriente → Cobrar → poné $1 y fecha de
-   ayer) y volvé a HOY: tiene que decir **"1 rompió la promesa"** y ese
-   cliente ir primero en el panel.
-4. **Coco loco, Di Navarro y Despensa Hidalgo**: revisá su etapa y corregila
-   si hace falta.
+1. **Subí los tres archivos.** Entrá como admin → tiene que salir el aviso
+   *"3 clientes con freezer: se registró su carga inicial"* → revisá que Coco
+   loco, Di Navarro y Despensa Hidalgo estén en Cliente Activo.
+2. Entrá como vendedor → tiene que estar el botón **VENTAS** en la barra de
+   abajo. Fijate que los 7 botones entren bien en tu pantalla.
+3. **VENTAS → Deudores** → tiene que abrir aunque esté vacío, con el botón
+   "+ Cargar deuda". Cargale una deuda de prueba a alguien.
+4. **Registrá una visita a un cliente** → paso Venta → **SÍ** → "Tomar el
+   pedido" → cargá algo → guardá → tenés que volver a la visita con el resumen
+   verde.
+5. **VENTAS → Pedidos** → ese pedido tiene que estar ahí, bajo la fecha de hoy.
+
+> Si los 7 botones te quedan apretados en el celular, decime y los paso a solo
+> íconos, o muevo Ventas adentro de otra pestaña.
 
 ---
 
 ## Tus pendientes
 
 - Definir el **Pote Tutto 3 Lts** ($9.900 provisorio).
-- Datos de los clientes (CUIT, condición impositiva, horarios).
+- CUIT, condición impositiva y horarios de los clientes.
 - Segundas visitas.

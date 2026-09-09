@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='7.9 - 08/09/2026';
+var VERSION='8.0 - 09/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -309,17 +309,17 @@ function refrescarVistaActual(){
   if(!D.user)return;
   if(D.user.r==='admin'){
     var activeId=null;
-    ['sGD','sGC','sGE','sGV','sGCo','sGI','sGCfg'].forEach(function(id){
+    ['sGD','sGC','sGE','sGV','sGCo','sGP','sGI','sGCfg'].forEach(function(id){
       var el=document.getElementById(id);if(el&&el.classList.contains('on'))activeId=id;
     });
-    var map={sGD:renderGD,sGC:renderGC,sGE:renderGE,sGV:renderGV,sGCo:renderGCo,sGI:renderGI,sGCfg:renderGCfg};
+    var map={sGD:renderGD,sGC:renderGC,sGE:renderGE,sGV:renderGV,sGCo:renderGCo,sGP:renderGP,sGI:renderGI,sGCfg:renderGCfg};
     if(activeId&&map[activeId])map[activeId]();
   } else {
     var activeIdV=null;
-    ['sVH','sVC','sVE','sVG'].forEach(function(id){
+    ['sVH','sVC','sVE','sVG','sVV','sVCo'].forEach(function(id){
       var el=document.getElementById(id);if(el&&el.classList.contains('on'))activeIdV=id;
     });
-    var mapV={sVH:renderVH,sVC:renderVC,sVE:renderVE,sVG:renderVG};
+    var mapV={sVH:renderVH,sVC:renderVC,sVE:renderVE,sVG:renderVG,sVV:renderVV,sVCo:renderVCo};
     if(activeIdV&&mapV[activeIdV])mapV[activeIdV]();
   }
 }
@@ -723,6 +723,34 @@ function migrarClientesPabloAProspecto(){
 // "Cliente Activo" convertia pero volver atras no revertia, asi que quedaban
 // trabados contando como clientes para siempre (Kiosco vale, 6yS).
 // Solo toca a los que nunca registraron una compra: al que compro no se lo mueve.
+// Los freezers que ya estaban entregados antes de la 8.0 quedaron sin la carga
+// inicial registrada, asi que la regla de los 45 dias los contaba desde su
+// fecha de ingreso (meses atras) y los mandaba a prospecto una semana despues
+// de haberles instalado el equipo. Se les pone la fecha de entrega como primer
+// pedido, que es lo que realmente paso.
+function migrarCargaInicial(){
+  if(!D.user||D.user.r!=='admin')return;
+  if(!CFG_CARGADA)return;
+  if(D.cfg&&D.cfg.cargaInicialV>=1)return;
+  var arreglados=[];
+  (D.com||[]).forEach(function(co){
+    if(estadoComodato(co)!=='activo'||!co.fe)return;
+    var c=D.cli.find(function(x){return x.id===co.cid;});
+    if(!c||c.eliminado)return;
+    if(c.uv)return;                       // ya tiene un pedido registrado: no se toca
+    c.uv=co.fe;
+    c.esP=false;
+    if(!c.etapaEmbudo||c.etapaEmbudo!=='Cliente Activo')c.etapaEmbudo='Cliente Activo';
+    c._modBy='Sistema';c._modAt=new Date().toISOString();
+    fsSetContacto(c);
+    co.cargaInicial=true;fsSetComodato(co);
+    arreglados.push(c.nm);
+    logEvento('venta',c.id,c.nm,'Carga inicial registrada como primer pedido (freezer entregado el '+fmt(co.fe)+')','','');
+  });
+  D.cfg.cargaInicialV=1;
+  fsSetConfig({cargaInicialV:1});
+  if(arreglados.length)toast(arreglados.length+' cliente'+(arreglados.length!==1?'s':'')+' con freezer: se registro su carga inicial','ok');
+}
 function repararEsP(){
   if(!D.user||D.user.r!=='admin')return;
   if(!CFG_CARGADA)return;
@@ -1058,6 +1086,7 @@ function startApp(){
   try{migrarInstagramARedesSociales();}catch(e){} // renombra Instagram -> Redes Sociales (solo admin)
   try{migrarClientesActivos();}catch(e){} // convierte los que tenian la etapa pero seguian como prospecto
   try{migrarClientesPabloAProspecto();}catch(e){} // los contactos de Pablo vuelven a prospecto (decision comercial)
+  try{migrarCargaInicial();}catch(e){}         // la entrega del freezer cuenta como primer pedido
   try{repararEsP();}catch(e){}                // destraba los que quedaron como clientes por el bug viejo
   try{migrarFraccionProductos();}catch(e){}   // suma la fraccion al catalogo ya guardado
   try{revisarClientesInactivos();}catch(e){}   // cliente sin pedido en X dias vuelve a prospecto (solo admin)
@@ -1108,7 +1137,7 @@ function today(){return fechaLocal();}
 function vGo(t){
   document.querySelectorAll('#sVen .sc').forEach(function(s){s.classList.remove('on');});
   document.querySelectorAll('.vb').forEach(function(b){b.classList.remove('on');});
-  var m={H:['sVH','vbH',renderVH],C:['sVC','vbC',renderVC],E:['sVE','vbE',renderVE],G:['sVG','vbG',renderVG],M:['sVM','vbM',renderVM],Co:['sVCo','vbCo',renderVCo]};
+  var m={H:['sVH','vbH',renderVH],C:['sVC','vbC',renderVC],E:['sVE','vbE',renderVE],G:['sVG','vbG',renderVG],M:['sVM','vbM',renderVM],V:['sVV','vbV',renderVV],Co:['sVCo','vbCo',renderVCo]};
   if(m[t]){
     var el0=document.getElementById(m[t][0]);
     var el1=document.getElementById(m[t][1]);
@@ -2098,6 +2127,146 @@ function filtrarAcuerdoFreezer(){
   var conFreezer={};D.com.forEach(function(co){if(comVigente(co))conFreezer[co.cid]=true;});
   var disp=misContactos(true).filter(function(c){return !conFreezer[c.id]&&(c.nm.toLowerCase().includes(q)||(c.fan||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q));}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   document.getElementById('afqLista').innerHTML=listaAcuerdoFreezerHTML(disp);
+}
+// ══════════════════════════════════════════════════════════════════════
+// VENTAS: los pedidos que se cargaron y la plata que esta en la calle.
+// Antes los pedidos solo se veian entrando cliente por cliente, y el panel de
+// deudores solo aparecia si ya habia alguien debiendo: si estaba vacio no
+// habia forma de llegar. Ahora es una pestania fija.
+// ══════════════════════════════════════════════════════════════════════
+var vVSolapa='ped';   // 'ped' | 'deu'
+var vVPer='sem';      // hoy | sem | mes | todo
+function setVVSolapa(x){vVSolapa=x;renderVV();}
+function setVVPer(p){vVPer=p;renderVV();}
+// Pedidos que le corresponden al usuario actual
+function misPedidos(){
+  if(!D.user||D.user.r==='admin'||D.user.r==='gerente')return D.ped.slice();
+  var mios={};D.cli.forEach(function(c){if(c.vend===D.user.n)mios[c.id]=true;});
+  return D.ped.filter(function(p){return mios[p.cid]||p.vend===D.user.n;});
+}
+function desdePeriodo(p){
+  var d=new Date();
+  if(p==='hoy')return today();
+  if(p==='sem'){d.setDate(d.getDate()-(d.getDay()===0?6:d.getDay()-1));return fechaLocal(d);}
+  if(p==='mes')return today().slice(0,7)+'-01';
+  return '2000-01-01';
+}
+function pedidosDelPeriodo(lista,per){
+  var desde=desdePeriodo(per);
+  return lista.filter(function(p){return (p.fecha||'')>=desde;})
+    .sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+}
+// El admin ve lo mismo, pero sobre todos los vendedores.
+var gPSolapa='ped';
+function setGPSolapa(x){gPSolapa=x;renderGP();}
+function renderGP(){
+  var top=document.getElementById('gPF'),cont=document.getElementById('gPB');
+  if(!top||!cont)return;
+  var deuL=deudores();
+  var totDeu=deuL.reduce(function(t,d){return t+d.saldo;},0);
+  top.innerHTML='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+
+    '<span class="fb'+(gPSolapa==='ped'?' on':'')+'" onclick="setGPSolapa(\'ped\')">Pedidos</span>'+
+    '<span class="fb'+(gPSolapa==='deu'?' on':'')+'" onclick="setGPSolapa(\'deu\')">Deudores'+(deuL.length?' ('+deuL.length+')':'')+'</span>'+
+    '</div>';
+  // gVendSel: si el admin esta mirando a un vendedor puntual, se respeta
+  var base=D.ped.slice();
+  if(gVendSel){var ids={};cliGlobal().forEach(function(c){ids[c.id]=true;});base=base.filter(function(p){return ids[p.cid];});}
+  cont.innerHTML=gPSolapa==='ped'?htmlPedidosPanel(base):htmlDeudoresPanel(deuL,totDeu);
+}
+function renderVV(){
+  var top=document.getElementById('vVF'),cont=document.getElementById('vVB');
+  if(!top||!cont)return;
+  var deuL=deudores();
+  var totDeu=deuL.reduce(function(t,d){return t+d.saldo;},0);
+  top.innerHTML='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+
+    '<span class="fb'+(vVSolapa==='ped'?' on':'')+'" onclick="setVVSolapa(\'ped\')">Pedidos</span>'+
+    '<span class="fb'+(vVSolapa==='deu'?' on':'')+'" onclick="setVVSolapa(\'deu\')">Deudores'+(deuL.length?' ('+deuL.length+')':'')+'</span>'+
+    '</div>';
+  cont.innerHTML=vVSolapa==='ped'?htmlPedidosPanel(misPedidos()):htmlDeudoresPanel(deuL,totDeu);
+}
+// ── Solapa Pedidos ───────────────────────────────────────────────────
+function htmlPedidosPanel(base){
+  var ps=pedidosDelPeriodo(base,vVPer);
+  var tot=ps.reduce(function(t,p){return t+Number(p.total||0);},0);
+  var cob=ps.reduce(function(t,p){return t+(p.cobrado!==undefined?Number(p.cobrado||0):Number(p.total||0));},0);
+  var h='<div style="padding:12px 14px;background:var(--s1);border-bottom:1px solid var(--border)">';
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">';
+  [['hoy','Hoy'],['sem','Esta semana'],['mes','Este mes'],['todo','Todo']].forEach(function(o){
+    h+='<span class="fb'+(vVPer===o[0]?' on':'')+'" onclick="setVVPer(\''+o[0]+'\')">'+o[1]+'</span>';
+  });
+  h+='</div>';
+  h+='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">';
+  h+='<div><div style="font-size:22px;font-weight:800">'+ps.length+'</div><div style="font-size:10px;color:var(--muted)">PEDIDOS</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:var(--green)">'+plata(tot)+'</div><div style="font-size:10px;color:var(--muted)">VENDIDO</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:'+(tot-cob>0?'var(--red)':'var(--muted)')+'">'+plata(tot-cob)+'</div><div style="font-size:10px;color:var(--muted)">SIN COBRAR</div></div>';
+  h+='</div></div>';
+  if(!ps.length){
+    h+='<div class="empty">Sin pedidos en este periodo.<br><span style="font-size:11px">Los pedidos se cargan desde la ficha del cliente o desde la visita.</span></div>';
+    return h;
+  }
+  h+='<div style="padding:10px 14px">';
+  var diaAnt='';
+  ps.forEach(function(p){
+    if(p.fecha!==diaAnt){
+      diaAnt=p.fecha;
+      var delDia=ps.filter(function(x){return x.fecha===p.fecha;});
+      var tDia=delDia.reduce(function(t,x){return t+Number(x.total||0);},0);
+      h+='<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px"><div style="font-size:12px;font-weight:800;color:var(--cyan)">'+fmt(p.fecha)+'</div><div style="font-size:11px;color:var(--green);font-weight:700">'+plata(tDia)+'</div><div style="flex:1;height:1px;background:var(--border)"></div></div>';
+    }
+    var debe=p.cobrado!==undefined?(Number(p.total||0)-Number(p.cobrado||0)):0;
+    h+='<div onclick="verPedido(\''+p.id+'\')" style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer">';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(p.cliente||'')+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted)">'+(p.items?p.items.length:0)+' renglones'+(p.vend?' · '+es(p.vend):'')+'</div></div>';
+    h+='<div style="text-align:right;flex-shrink:0"><div style="font-size:14px;font-weight:800;color:var(--green)">'+plata(p.total)+'</div>';
+    if(debe>0)h+='<div style="font-size:10px;color:var(--red);font-weight:800">debe '+plata(debe)+'</div>';
+    h+='</div><span style="color:var(--muted)">&rsaquo;</span></div>';
+  });
+  h+='</div>';
+  return h;
+}
+// ── Solapa Deudores (misma info que el panel, pero como pantalla fija) ─
+function htmlDeudoresPanel(lista,tot){
+  var h='<div style="padding:12px 14px;background:var(--s1);border-bottom:1px solid var(--border);display:flex;gap:14px;align-items:center;flex-wrap:wrap">';
+  h+='<div><div style="font-size:22px;font-weight:800;color:'+(tot>0?'var(--red)':'var(--green)')+'">'+plata(tot)+'</div><div style="font-size:10px;color:var(--muted)">EN LA CALLE</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800">'+lista.length+'</div><div style="font-size:10px;color:var(--muted)">DEUDORES</div></div>';
+  h+='<button class="sm g" onclick="elegirClienteDeuda()" style="margin-left:auto">+ Cargar deuda</button>';
+  h+='</div><div style="padding:10px 14px">';
+  if(!lista.length){
+    h+='<div class="empty">Nadie debe nada.<br><span style="font-size:11px">La deuda se genera sola cuando guardas un pedido y elegis que no lo cobraste entero.</span></div></div>';
+    return h;
+  }
+  agruparPorBarrio(lista).forEach(function(g){
+    var totB=g.items.reduce(function(t,d){return t+d.saldo;},0);
+    h+='<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px"><div style="font-size:12px;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:.4px">&#128205; '+es(g.barrio)+'</div><div style="font-size:11px;color:var(--red);font-weight:700">'+plata(totB)+'</div><div style="flex:1;height:1px;background:var(--border)"></div></div>';
+    g.items.forEach(function(it){h+=tarjetaDeudor(it,'tab');});
+  });
+  h+='</div>';
+  return h;
+}
+// Elegir a quien cargarle una deuda vieja, sin tener que entrar a su ficha
+function elegirClienteDeuda(){
+  var lista=misContactos(true).filter(function(c){return !c.esP;}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  var h='<div class="srch" style="margin:0 0 10px"><input type="text" id="dqBusq" placeholder="Buscar cliente..." oninput="filtrarClienteDeuda()" style="background:none;border:none;outline:none;color:var(--text);font-size:14px;width:100%;font-family:inherit"></div>';
+  h+='<div id="dqLista" style="max-height:52vh;overflow-y:auto">'+listaClienteDeudaHTML(lista)+'</div>';
+  oMod('Cargar deuda - elegir cliente',h);
+}
+function listaClienteDeudaHTML(lista){
+  if(!lista.length)return '<div style="color:var(--muted);font-size:13px;padding:10px 0">Sin resultados.</div>';
+  var h='';
+  lista.slice(0,40).forEach(function(c){
+    var sal=saldoDe(c.id);
+    h+='<div onclick="cMod();cargarDeudaManual(\''+c.id+'\')" style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer">';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted)">'+es(c.bar||c.ciu||'')+'</div></div>';
+    if(sal>0)h+='<span style="font-size:12px;font-weight:800;color:var(--red)">'+plata(sal)+'</span>';
+    h+='<span style="color:var(--cyan);font-size:18px">&rsaquo;</span></div>';
+  });
+  return h;
+}
+function filtrarClienteDeuda(){
+  var q=(document.getElementById('dqBusq').value||'').toLowerCase();
+  var lista=misContactos(true).filter(function(c){return !c.esP&&((c.nm||'').toLowerCase().indexOf(q)>=0||(c.fan||'').toLowerCase().indexOf(q)>=0||(c.bar||'').toLowerCase().indexOf(q)>=0);}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  document.getElementById('dqLista').innerHTML=listaClienteDeudaHTML(lista);
 }
 // ── VER RECORRIDO (solo admin): trazado del vendedor en un dia ────────
 var recorridoActivo={vend:'',dia:''};
@@ -3292,7 +3461,12 @@ function guardarPedido(){
   } else {
     toast('Pedido guardado y cobrado: '+plata(tot),'ok');
   }
+  // Si el pedido se tomo desde una visita, se vuelve al wizard con el resumen.
+  // Se lee el flag ANTES de cMod(), porque cMod lo consume.
+  var desdeVisita=volverAlWizard;
+  if(desdeVisita){W.data.pid=ped.id;W.data.vendio=true;W.data.monto=tot;}
   cMod();
+  if(desdeVisita){refrescarPedidoEnVisita();return;}
   if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGC();else renderVC();
 }
 // ══════════════════════════════════════════════════════════════════════
@@ -3423,7 +3597,7 @@ function guardarPago(cid,volverA){
     logEvento('venta',cid,(D.cli.find(function(x){return x.id===cid;})||{}).nm||'','Se comprometio a pagar '+plata(resto)+' el '+fmt(promEl.value),'','');
   }
   toast(resto>0?'Pago registrado. Le queda '+plata(resto)+(promEl&&promEl.value?' — vuelve el '+fmt(promEl.value):''):'Pago registrado: quedo al dia','ok');
-  if(volverA==='panel')verDeudores();else if(volverA==='cuenta')verCuenta(cid);else cMod();
+  if(volverA==='panel')verDeudores();else if(volverA==='cuenta')verCuenta(cid);else{cMod();if(volverA==='tab')renderVV();}
   refrescarVistaActual();
 }
 // ── Cargar una deuda a mano (fuera de un pedido) ─────────────────────
@@ -3444,7 +3618,7 @@ function guardarDeudaManual(cid,volverA){
   var nota=document.getElementById('dmNota');
   nuevoMovimiento(cid,'cargo',monto,nota?nota.value.trim():'','');
   toast('Deuda cargada: '+plata(monto),'ok');
-  if(volverA==='panel')verDeudores();else if(volverA==='cuenta')verCuenta(cid);else cMod();
+  if(volverA==='panel')verDeudores();else if(volverA==='cuenta')verCuenta(cid);else{cMod();if(volverA==='tab')renderVV();}
   refrescarVistaActual();
 }
 // ── Cuenta corriente de un cliente ───────────────────────────────────
@@ -3490,6 +3664,29 @@ function borrarMovimiento(mid){
   verCuenta(cid);
   refrescarVistaActual();
 }
+// Tarjeta de un deudor. 'panel' es el modal de HOY (al cobrar vuelve al modal);
+// 'tab' es la pestania Ventas (al cobrar se refresca la pestania).
+function tarjetaDeudor(it,ctx){
+  var c=it.c;
+  var vuelta=ctx==='tab'?'tab':'panel';
+  var col=it.dias===null?'var(--muted)':it.dias>30?'var(--red)':it.dias>15?'var(--orange)':'var(--yellow)';
+  if(it.promVenc)col='var(--red)';
+  var h='<div class="cc" style="margin-bottom:8px;border-left:4px solid '+col+'">';
+  if(it.promVenc)h+='<div style="font-size:11px;font-weight:800;color:var(--red);margin-bottom:4px">&#9888; PROMETIO PAGAR EL '+fmt(it.prom)+' Y NO PAGO</div>';
+  else if(it.promHoy)h+='<div style="font-size:11px;font-weight:800;color:var(--yellow);margin-bottom:4px">&#128197; HOY VIENE POR EL SALDO</div>';
+  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;min-width:0">';
+  h+='<div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
+  if(c.dir)h+='<div style="font-size:11px;color:var(--muted)">&#128205; '+es(c.dir)+'</div>';
+  h+='<div style="font-size:11px;color:'+col+'">'+(it.dias===null?'sin fecha':'hace '+it.dias+' dias')+(it.prom&&!it.promVenc&&!it.promHoy?' · paga el '+fmt(it.prom):'')+'</div>';
+  h+='</div><div style="font-size:17px;font-weight:900;color:var(--red);flex-shrink:0">'+plata(it.saldo)+'</div></div>';
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
+  h+='<button class="sm g" onclick="registrarPago(\''+c.id+'\',\''+vuelta+'\')">Cobrar</button>';
+  h+='<button class="sm" onclick="verCuenta(\''+c.id+'\')">Cuenta</button>';
+  if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')">WhatsApp</button>';
+  h+='<button class="sm" onclick="agregarAGiraRapido(\''+c.id+'\',\'deu\')">+ Gira</button>';
+  h+='</div></div>';
+  return h;
+}
 // ── Panel de deudores, agrupado por barrio para salir a cobrar ───────
 function verDeudores(){
   var lista=deudores();
@@ -3505,25 +3702,7 @@ function verDeudores(){
     agruparPorBarrio(lista).forEach(function(g){
       var totB=g.items.reduce(function(t,d){return t+d.saldo;},0);
       h+='<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px"><div style="font-size:12px;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:.4px">&#128205; '+es(g.barrio)+'</div><div style="font-size:11px;color:var(--red);font-weight:700">'+plata(totB)+'</div><div style="flex:1;height:1px;background:var(--border)"></div></div>';
-      g.items.forEach(function(it){
-        var c=it.c;
-        var col=it.dias===null?'var(--muted)':it.dias>30?'var(--red)':it.dias>15?'var(--orange)':'var(--yellow)';
-        if(it.promVenc)col='var(--red)';
-        h+='<div class="cc" style="margin-bottom:8px;border-left:4px solid '+col+'">';
-        if(it.promVenc)h+='<div style="font-size:11px;font-weight:800;color:var(--red);margin-bottom:4px">&#9888; PROMETIO PAGAR EL '+fmt(it.prom)+' Y NO PAGO</div>';
-        else if(it.promHoy)h+='<div style="font-size:11px;font-weight:800;color:var(--yellow);margin-bottom:4px">&#128197; HOY VIENE POR EL SALDO</div>';
-        h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;min-width:0">';
-        h+='<div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
-        if(c.dir)h+='<div style="font-size:11px;color:var(--muted)">&#128205; '+es(c.dir)+'</div>';
-        h+='<div style="font-size:11px;color:'+col+'">'+(it.dias===null?'sin fecha':'hace '+it.dias+' dias')+(it.prom&&!it.promVenc&&!it.promHoy?' · paga el '+fmt(it.prom):'')+'</div>';
-        h+='</div><div style="font-size:17px;font-weight:900;color:var(--red);flex-shrink:0">'+plata(it.saldo)+'</div></div>';
-        h+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
-        h+='<button class="sm g" onclick="registrarPago(\''+c.id+'\',\'panel\')">Cobrar</button>';
-        h+='<button class="sm" onclick="verCuenta(\''+c.id+'\')">Cuenta</button>';
-        if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')">WhatsApp</button>';
-        h+='<button class="sm" onclick="agregarAGiraRapido(\''+c.id+'\',\'deu\')">+ Gira</button>';
-        h+='</div></div>';
-      });
+      g.items.forEach(function(it){h+=tarjetaDeudor(it,'panel');});
     });
   }
   oMod('Deudores ('+lista.length+')',h);
@@ -4467,9 +4646,21 @@ function avanzarComodato(id,nuevoEstado){
     co.fe=fechaLocal(); // fecha real de entrega
     // El cliente pasa a Cliente Activo (ahora si tiene freezer funcionando)
     var c=D.cli.find(function(x){return x.id===co.cid;});
-    if(c){c.esP=false;c.etapaEmbudo='Cliente Activo';fsSetContacto(c);}
-    logEvento('comodato',co.cid,co.cnm||'?','Freezer entregado · #'+co.nro,'por_entregar','activo');
+    if(c){
+      c.esP=false;c.etapaEmbudo='Cliente Activo';
+      // La carga inicial baja junto con el equipo: cuenta como su primer pedido.
+      c.uv=co.fe;
+      co.cargaInicial=true;
+      fsSetContacto(c);
+    }
+    logEvento('comodato',co.cid,co.cnm||'?','Freezer entregado · #'+co.nro+' · la carga inicial cuenta como primer pedido','por_entregar','activo');
     toast('Freezer entregado. Cliente activado','ok');
+    // Se ofrece cargar el detalle, sin obligar
+    if(c&&confirm('Queres cargar el detalle de la carga inicial como pedido?\n\nSi decis que no, igual queda registrada la fecha como primer pedido.')){
+      fsSetComodato(co);
+      abrirPedido(co.cid);
+      return;
+    }
   }
   fsSetComodato(co);
   refrescarComodatos();
@@ -4574,8 +4765,14 @@ function saveCo(){
   var c=D.cli.find(function(x){return x.id===cid;});
   var nCom={id:uid(),cid:cid,cnm:c?c.nm:'?',nro:nro,marca:document.getElementById('coM').value,fe:document.getElementById('coF').value,obs:document.getElementById('coO').value,ret:false,fr:'',estado:estado};
   D.com.push(nCom);
-  // Si se entrega de una, el cliente pasa a activo
-  if(estado==='activo'&&c){c.esP=false;c.etapaEmbudo='Cliente Activo';fsSetContacto(c);}
+  // Si se entrega de una, el cliente pasa a activo y la carga inicial cuenta
+  // como su primer pedido (baja junto con el equipo).
+  if(estado==='activo'&&c){
+    c.esP=false;c.etapaEmbudo='Cliente Activo';
+    if(nCom.fe)c.uv=nCom.fe;
+    nCom.cargaInicial=true;
+    fsSetContacto(c);
+  }
   var msgEstado={por_firmar:'acordado, pendiente de firma',por_entregar:'firmado, pendiente de entrega',activo:'firmado y entregado'}[estado];
   logEvento('comodato',cid,c?c.nm:'?','Comodato '+msgEstado+(nro?' · Freezer #'+nro:''),'',estado);
   fsSetComodato(nCom);
@@ -5509,7 +5706,8 @@ function htmlLog(cid,limit){
 
 // ── MODAL ─────────────────────────────────────────────────────────────
 function oMod(t,h){document.getElementById('mT').textContent=t;document.getElementById('mB').innerHTML=h;document.getElementById('modal').classList.add('on');}
-function cMod(){document.getElementById('modal').classList.remove('on');}
+function cMod(){
+  if(volverAlWizard){volverAlWizard=false;var _w=document.getElementById('sWiz');if(_w)_w.classList.add('on');}document.getElementById('modal').classList.remove('on');}
 
 // ── ADMIN NAV ─────────────────────────────────────────────────────────
 function toggleGSide(){
@@ -5548,9 +5746,9 @@ function gGo(sec){
   gSecActual=sec;
   document.querySelectorAll('#gCont .sc').forEach(function(s){s.classList.remove('on');});
   document.querySelectorAll('.gb').forEach(function(b){b.classList.remove('on');});
-  var ids={D:'sGD',C:'sGC',E:'sGE',V:'sGV',Co:'sGCo',M:'sGM',I:'sGI',Cfg:'sGCfg'};
-  var bids={D:'gbD',C:'gbC',E:'gbE',V:'gbV',Co:'gbCo',M:'gbM',I:'gbI',Cfg:'gbCfg'};
-  var rend={D:renderGD,C:renderGC,E:renderGE,V:renderGV,Co:renderGCo,M:renderGM,I:renderGI,Cfg:renderGCfg};
+  var ids={D:'sGD',C:'sGC',E:'sGE',V:'sGV',Co:'sGCo',P:'sGP',M:'sGM',I:'sGI',Cfg:'sGCfg'};
+  var bids={D:'gbD',C:'gbC',E:'gbE',V:'gbV',Co:'gbCo',P:'gbP',M:'gbM',I:'gbI',Cfg:'gbCfg'};
+  var rend={D:renderGD,C:renderGC,E:renderGE,V:renderGV,Co:renderGCo,P:renderGP,M:renderGM,I:renderGI,Cfg:renderGCfg};
   if(ids[sec]){document.getElementById(ids[sec]).classList.add('on');}
   if(bids[sec]){document.getElementById(bids[sec]).classList.add('on');}
   if(rend[sec])rend[sec]();
@@ -5606,6 +5804,7 @@ function wFin(){
   if(c){
     c.ul=v.fecha;
     if(v.vendio===true)c.uv=v.fecha;
+    // El pedido ya actualizo uv y la deuda: aca solo queda el vinculo
     if(v.eta){c.etapaEmbudo=v.eta;
       // Misma regla que en la visita a prospecto, y para los dos lados:
       // "Cliente Activo" convierte, cualquier otra etapa lo devuelve al embudo.
@@ -5916,12 +6115,42 @@ function aVisita(id){
     {sub:'Venta',
      render:function(){
        var rzH=rz.map(function(r){return ch(r,r,'nv',true,'');}).join('');
-       return '<div style="font-size:20px;font-weight:800;margin-bottom:14px">Venta</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px"><div id="bS" onclick="tgV(true)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">SI</div><div id="bN" onclick="tgV(false)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">NO</div></div><div id="nvSi" style="display:none"><div class="fg"><label class="fl">Monto de la venta <span style="font-size:10px;color:var(--muted)">(opcional, sin puntos ni comas)</span></label><input class="fi" id="mtoV" type="number" inputmode="numeric" min="0" step="1" placeholder="Ej: 45000"></div></div><div id="nvS" style="display:none"><div class="ct">Motivo (podes elegir varios)</div><div class="chips">'+rzH+'</div><div id="nvO" style="display:none;margin-top:8px"><input class="fi" id="otroT" placeholder="Especifica el motivo..."></div></div><div class="fg" style="margin-top:14px"><label class="fl">Notas de la visita</label><textarea class="fi fta" id="ntV" placeholder="Observaciones, acuerdos..."></textarea></div><div class="fg"><label class="fl">Proxima visita</label><input class="fi" type="date" id="prV"></div><div class="sr"><span style="font-weight:700;color:var(--red)">Marcar como deudor</span><label class="sw"><input type="checkbox" id="chD"><span class="sl3"></span></label></div>';
+       return '<div style="font-size:20px;font-weight:800;margin-bottom:14px">Venta</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px"><div id="bS" onclick="tgV(true)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">SI</div><div id="bN" onclick="tgV(false)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">NO</div></div><div id="nvSi" style="display:none">'+pedidoEnVisitaHTML()+'</div><div id="nvS" style="display:none"><div class="ct">Motivo (podes elegir varios)</div><div class="chips">'+rzH+'</div><div id="nvO" style="display:none;margin-top:8px"><input class="fi" id="otroT" placeholder="Especifica el motivo..."></div></div><div class="fg" style="margin-top:14px"><label class="fl">Notas de la visita</label><textarea class="fi fta" id="ntV" placeholder="Observaciones, acuerdos..."></textarea></div><div class="fg"><label class="fl">Proxima visita</label><input class="fi" type="date" id="prV"></div>';
      },
      init:function(){if(W.data.vendio===true)tgV(true);else if(W.data.vendio===false)tgV(false);},
-     sv:function(d){d.nt=document.getElementById('ntV').value;d.prox=document.getElementById('prV').value;d.deu=document.getElementById('chD').checked;var _m=document.getElementById('mtoV');if(_m&&_m.value!==''&&d.vendio===true)d.monto=Number(_m.value)||0;if(d.vendio===false){d.razones=gcs('nv');var ot=document.getElementById('otroT');if(ot&&ot.value)d.otroM=ot.value;}}}
+     sv:function(d){d.nt=document.getElementById('ntV').value;d.prox=document.getElementById('prV').value;if(d.vendio===false){d.razones=gcs('nv');var ot=document.getElementById('otroT');if(ot&&ot.value)d.otroM=ot.value;}}}
   ].filter(function(s){return !s.skip;}); // saca el paso freezer si no corresponde
   wInit(c.nm,steps,id,'cliente',false);
+}
+// Lo que se ve cuando el vendedor marca que SI vendio: o el boton para tomar
+// el pedido, o el resumen del pedido que ya cargo en esta misma visita.
+function pedidoEnVisitaHTML(){
+  var p=W.data.pid?D.ped.find(function(x){return x.id===W.data.pid;}):null;
+  if(p){
+    var debe=p.cobrado!==undefined?(Number(p.total||0)-Number(p.cobrado||0)):0;
+    var h='<div class="card" style="border:1px solid var(--green)"><div class="ct" style="color:var(--green)">PEDIDO CARGADO</div>';
+    h+='<div style="font-size:20px;font-weight:900;color:var(--green)">'+plata(p.total)+'</div>';
+    h+='<div style="font-size:12px;color:var(--muted)">'+(p.items?p.items.length:0)+' renglones</div>';
+    if(debe>0)h+='<div style="font-size:12px;color:var(--red);font-weight:700;margin-top:4px">Quedo debiendo '+plata(debe)+'</div>';
+    h+='<button class="sm" onclick="tomarPedidoEnVisita()" style="margin-top:8px">Corregir el pedido</button>';
+    h+='</div>';
+    return h;
+  }
+  return '<div class="card"><div style="font-size:12px;color:var(--muted);margin-bottom:8px">Carga el pedido con los productos: de ahi salen el total, el texto para fabrica y la deuda si no lo cobraste entero.</div>'+
+    '<button class="btn" onclick="tomarPedidoEnVisita()" style="margin:0">Tomar el pedido</button></div>';
+}
+// Abre el modulo de pedidos desde el wizard. Al guardar, guardarPedido detecta
+// que venimos de una visita y vuelve solo a este paso.
+var volverAlWizard=false;
+function tomarPedidoEnVisita(){
+  if(!W.cid)return;
+  volverAlWizard=true;
+  abrirPedido(W.cid);
+}
+// Refresca el bloque del pedido cuando se vuelve de cargarlo
+function refrescarPedidoEnVisita(){
+  var box=document.getElementById('nvSi');
+  if(box)box.innerHTML=pedidoEnVisitaHTML();
 }
 function tgV(si){
   W.data.vendio=si;

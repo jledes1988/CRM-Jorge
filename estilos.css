@@ -18,6 +18,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 /* BOTTOM NAV */
 #vNav{display:flex;background:var(--s1);border-top:1px solid var(--border);flex-shrink:0}
 .vb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 2px 12px;border:none;background:none;color:var(--muted);font-size:9px;font-weight:700;cursor:pointer;letter-spacing:.2px}
+.vb{min-width:0;overflow:hidden;white-space:nowrap}
+@media(max-width:420px){.vb{font-size:8px;padding:9px 1px 11px;letter-spacing:0}.vb svg{width:18px;height:18px}}
 .vb svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .vb.on{color:var(--cyan)}
 /* CARDS */
