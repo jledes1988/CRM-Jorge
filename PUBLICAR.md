@@ -1,72 +1,99 @@
-# CRM-Jorge — Versión 8.1
+# CRM-Jorge — Versión 8.2
 
-**Solo cambió `app.js`.** `index.html` y `estilos.css` de la 8.0 quedan como
-están.
+**Van `app.js` y `index.html`.** `estilos.css` no cambió, pero lo dejé en la
+carpeta para que subas los tres juntos y no haya dudas.
 
-> Las reglas de Firestore ya están publicadas (hoy 2:08 p.m.). No hay que
-> tocar nada más ahí.
-
----
-
-## 1 · Editar el pedido entero
-
-Antes la pantalla de un pedido solo te dejaba **bajar** cantidades. Si te
-olvidaste de sumarle algo, no había forma.
-
-Ahora, adentro de cualquier pedido, botón **"Editar el pedido completo
-(agregar productos)"**. Te reabre el formulario original con **todo lo que ya
-tenía cargado**: productos, sabores, cajas y sueltos, materiales en comodato,
-las notas y cómo lo habías cobrado. Agregás lo que falte y guardás.
-
-**Se pisa el mismo pedido, no se crea uno nuevo.** El encabezado te avisa en
-amarillo qué pedido estás editando.
-
-**Lo que pasa con la deuda** — esto es lo que más cuidé:
-
-- Si el pedido pasa de $100.000 a $150.000 y habías cobrado $40.000, la deuda
-  de ese pedido pasa de $60.000 a $110.000. **No se duplica.**
-- **Los pagos que el cliente ya hizo no se tocan nunca.** Si te había pagado
-  $50.000 a cuenta, ese pago sigue ahí después de editar.
-- Si al final lo cobrás entero, la deuda de ese pedido desaparece sola.
-- Si borrás el pedido, su deuda se va con él (antes quedaba colgada).
-
-Lo llegás desde **VENTAS → Pedidos**, desde **Pedidos y deudas** en el admin,
-o desde el historial del cliente.
+> ⚠ **Ojo con esto:** el `index.html` que tenías en Descargas **no era el de la
+> app** — era de otro proyecto tuyo (Smarteeth, 398 KB). Si lo hubieras subido
+> a GitHub, el CRM dejaba de abrir. Ya lo reemplacé por el bueno (15 KB). Si
+> te aparece un `index.html` raro en Descargas más adelante, no lo subas.
 
 ---
 
-## 2 · La visita desde Embudo
+## 1 · Gira para el administrador
 
-Tenías razón y fue un olvido mío. En la 8.0 cambié la visita a **clientes**,
-pero desde Embudo se usa la visita a **prospectos**, que es otra pantalla —
-y esa quedó igual, con el monto suelto.
+**Ítem nuevo en el menú: "Gira".** Antes no existía — tenías Dashboard,
+Contactos, Embudo, Visitas, Comodatos, Pedidos y deudas, Mapa, Informes y
+Config, pero la gira era solo del vendedor.
 
-Ya está unificada. En la visita a prospecto, **SÍ** ahora te da **"Tomar el
-pedido"**, abre el módulo con los productos y al guardarlo volvés a la visita
-con el resumen verde. **No perdés lo que ya habías escrito**: las
-observaciones, la etapa y la próxima visita quedan como las dejaste.
+Es la misma pantalla que usa el vendedor (semana Lun–Vie, mañana y tarde,
+mapa, reordenar), con un **selector de vendedor arriba**. Elegís *Todos* y ves
+todo, o elegís uno y ves solo su gira.
 
-Saqué tres campos que ahora los resuelve el pedido:
+- **Sumar:** botón "+ Agregar" de cada día. Con un vendedor elegido, la lista
+  te ofrece **solo los contactos de ese vendedor**, así no le metés un cliente
+  de otro por error.
+- **Sacar:** la × de cada parada, como el vendedor.
+- Los días pasados los podés tocar vos (el vendedor no).
 
-- *Fecha de la venta* → es la del pedido.
-- *Monto de la venta* → es el total del pedido.
-- *Convertir a Cliente Activo* → pasa solo, porque cargar un pedido **es** lo
-  que lo convierte en cliente.
+Verificado contra tu backup: con *Todos* son 414 paradas; con Jorge, 314; con
+Pablo, 100.
 
-Si marcás SÍ y no cargás el pedido, no te deja guardar y te avisa.
+---
+
+## 2 · Agendar desde la ficha del cliente
+
+Bloque **"EN LA GIRA"** en la ficha, arriba de Cuenta corriente. Está en la
+ficha del vendedor **y** en la del admin.
+
+Te muestra en qué días está agendado de hoy en adelante, con un botón **Sacar**
+en cada uno, y abajo un campo de fecha con **Agendar**. Si elegís un sábado o
+domingo lo corre al lunes solo, como en el resto de la app.
+
+Las paradas de días donde ya registraste la visita dicen *"ya visitado"* y no
+se pueden sacar: eso es historial, no plan.
+
+---
+
+## 3 · El bug de los perdidos
+
+Confirmado y arreglado. En el Embudo del vendedor las solapas **"No Le
+Interesa"** y **"Perdido"** estaban dibujadas y se podían tocar, pero la lista
+se armaba con una función que **ya los excluía**. Tocabas la solapa y no
+aparecía nada.
+
+Ahora:
+
+- Las dos solapas funcionan y **muestran el número al lado** (por ejemplo
+  *"No Le Interesa (16)"*), así se ve de una que hay gente ahí.
+- En **Contactos** hay un filtro nuevo, *Estado en el embudo*, con dos
+  opciones: **ver los descartados junto al resto**, o **ver solo los
+  descartados**. Por defecto siguen ocultos, para que la lista de todos los
+  días no se llene.
+
+**A vos te afecta ahora mismo:** como vendedor, Jorge tiene **17 contactos**
+que no podía ver — 16 en "No Le Interesa" y 1 en "Perdido".
+
+---
+
+## 4 · Cobrar en la visita
+
+Si el cliente debe plata, el paso **Venta** de la visita arranca con un cartel
+rojo: **cuánto debe**, **hace cuántos días** que arrastra, y si había prometido
+pagar, **qué día** — en rojo si esa promesa ya venció.
+
+Dos botones: **Registrar el cobro** (el mismo que ya usabas, con monto parcial
+y la fecha del próximo pago) y **Ver la cuenta**.
+
+Al volver del cobro, el cartel se actualiza solo y **no perdés nada de lo que
+habías cargado** en la visita. Si el cliente no debe nada, el cartel no
+aparece.
+
+Está en la visita a clientes **y** en la de prospectos.
 
 ---
 
 ## Probá esto apenas subas
 
-1. **Embudo** → entrá a un prospecto → Visita → escribí una observación → **SÍ**
-   → "Tomar el pedido" → cargá algo → guardá. Tenés que volver a la visita
-   **con la observación todavía escrita** y el resumen verde.
-2. Guardá esa visita → el prospecto tiene que quedar en **Cliente Activo**.
-3. **VENTAS → Pedidos** → entrá a ese pedido → **"Editar el pedido completo"**
-   → sumale un producto → guardá.
-4. **VENTAS → Deudores** → si había quedado debiendo, el monto tiene que
-   reflejar el pedido nuevo, no el viejo ni los dos sumados.
+1. **Admin → Gira** → elegí "Jorge" arriba → tenés que ver su semana. Sumale
+   un cliente con "+ Agregar" y después sacalo con la ×.
+2. **Vendedor → Embudo → "No Le Interesa"** → tienen que aparecer los 16.
+3. **Contactos → Filtros → Estado en el embudo → "Ver solo los descartados"**.
+4. Abrí la ficha de cualquier cliente → bloque **EN LA GIRA** → agendalo para
+   mañana → volvé a entrar y fijate que figure.
+5. Registrá una visita a un cliente **que deba plata** → el paso Venta tiene
+   que arrancar con el cartel rojo → tocá "Registrar el cobro" → al volver el
+   monto tiene que estar actualizado.
 
 ---
 
@@ -75,5 +102,3 @@ Si marcás SÍ y no cargás el pedido, no te deja guardar y te avisa.
 - Definir el **Pote Tutto 3 Lts** ($9.900 provisorio).
 - CUIT, condición impositiva y horarios de los clientes.
 - Segundas visitas.
-- Revisar si los pedidos de antes de hoy se perdieron (VENTAS → Pedidos →
-  Todo). Los que falten hay que volver a cargarlos.

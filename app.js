@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='8.1 - 09/09/2026';
+var VERSION='8.2 - 18/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -1137,6 +1137,7 @@ function today(){return fechaLocal();}
 function vGo(t){
   document.querySelectorAll('#sVen .sc').forEach(function(s){s.classList.remove('on');});
   document.querySelectorAll('.vb').forEach(function(b){b.classList.remove('on');});
+  if(t==='G')giraCont='vGB';
   var m={H:['sVH','vbH',renderVH],C:['sVC','vbC',renderVC],E:['sVE','vbE',renderVE],G:['sVG','vbG',renderVG],M:['sVM','vbM',renderVM],V:['sVV','vbV',renderVV],Co:['sVCo','vbCo',renderVCo]};
   if(m[t]){
     var el0=document.getElementById(m[t][0]);
@@ -1419,8 +1420,8 @@ function verDetalleDiaVH(dia){
 
 // ── CONTACTOS ─────────────────────────────────────────────────────────
 // Todos los filtros son multiseleccion (arrays): se pueden elegir varias opciones a la vez.
-var vcF={tipo_ctx:[],bar:[],tipOneg:[],vis:[],frez:[],comp:[],calU:[],trans:[],prods:[]};
-function vcFvacio(){return {tipo_ctx:[],bar:[],tipOneg:[],vis:[],frez:[],comp:[],calU:[],trans:[],prods:[]};}
+var vcF={tipo_ctx:[],bar:[],tipOneg:[],vis:[],frez:[],comp:[],calU:[],trans:[],prods:[],est:[]};
+function vcFvacio(){return {tipo_ctx:[],bar:[],tipOneg:[],vis:[],frez:[],comp:[],calU:[],trans:[],prods:[],est:[]};}
 function qFiltro(k){vcF[k]=[];renderVC();}
 function setFiltro(k,v){
   var arr=vcF[k];if(!Array.isArray(arr)){vcF[k]=[];arr=vcF[k];}
@@ -1454,6 +1455,7 @@ function abrirFiltros(){
   }
   var h='';
   h+=fgrupo('tipo_ctx','Tipo de contacto',[['prospecto','Prospecto'],['cliente','Cliente activo']]);
+  h+=fgrupo('est','Estado en el embudo <span style="font-size:10px;color:var(--muted)">(por defecto no se muestran los descartados)</span>',[['fuera','Ver No Le Interesa y Perdido'],['solofuera','Ver SOLO los descartados']]);
   h+=fgrupo('vis','Visita',[['v','Visitados'],['sv','Sin visitar']]);
   h+=fgrupo('frez','Freezer',[['sin','Sin freezer'],['pro','Freezer propio'],['comp','De competencia']]);
   if(lugares.length)h+=fgrupo('bar','Barrio / Ciudad (podes elegir varias)',lugares);
@@ -1565,6 +1567,7 @@ function abrirFichaV(id){
   }
   h+='</div>';
   // "Acordo freezer": aparece en Negociacion si todavia no tiene un comodato en curso.
+  h+=giraFichaHTML(id,'v');
   h+='<button class="btn sec" onclick="verCuenta(\''+id+'\')" style="margin:0 0 8px">Cuenta corriente'+(saldoDe(id)>0?' — debe '+plata(saldoDe(id)):'')+'</button>';
   if(c.etapaEmbudo==='Negociacion'&&!D.com.some(function(co){return co.cid===id&&comVigente(co);})){
     h+='<button class="btn" onclick="acordoFreezer(\''+id+'\')" style="margin:0 0 8px;background:linear-gradient(90deg,#fbbf24,#22d3ee);color:#0b1220;font-weight:800">❄ Acordó freezer</button>';
@@ -1736,9 +1739,67 @@ function cambiarEtapa(id,eta){
 // ── GIRA ─────────────────────────────────────────────────────────────
 // EJECUTAR HOY
 // PLANIFICAR
+// Contactos que se pueden sumar a la gira. Para el admin, los del vendedor que
+// tenga elegido arriba (si eligio "Todos", cualquiera).
+function contactosParaGira(){
+  var base=misContactos();
+  if(D.user&&(D.user.r==='admin'||D.user.r==='gerente')&&gVendSel)
+    base=base.filter(function(c){return c.vend===gVendSel;});
+  return base;
+}
+// Paradas agendadas de un contacto, de hoy en adelante.
+function giraDeContacto(cid){
+  var hoy=today();
+  return D.gira.filter(function(g){return g.cid===cid&&g.fecha>=hoy;})
+    .sort(function(a,b){return (a.fecha||'').localeCompare(b.fecha||'');});
+}
+// Bloque para la ficha: que dias esta agendado, con como sacarlo y como sumarlo.
+// 'ctx' dice a que ficha volver despues de tocar algo ('v' vendedor / 'a' admin).
+function giraFichaHTML(cid,ctx){
+  var gs=giraDeContacto(cid);
+  var h='<div class="card" style="margin-bottom:10px"><div class="ct">EN LA GIRA</div>';
+  if(!gs.length)h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">No esta agendado en ningun dia.</div>';
+  else{
+    gs.forEach(function(g){
+      var nom=new Date(g.fecha+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'short'});
+      var bloq=giraBloqueada(cid,g.fecha);
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+      h+='<span style="flex:1;font-size:13px;font-weight:700;text-transform:capitalize">'+es(nom)+'</span>';
+      if(bloq)h+='<span style="font-size:10px;color:var(--muted)">ya visitado</span>';
+      else h+='<button class="sm rd" onclick="quitarDeGiraFicha(\''+cid+'\',\''+g.fecha+'\',\''+ctx+'\')" style="font-size:11px;padding:3px 9px">Sacar</button>';
+      h+='</div>';
+    });
+  }
+  h+='<div style="display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap">';
+  h+='<input class="fi" type="date" id="gfFecha_'+es(cid)+'" min="'+today()+'" value="'+today()+'" style="margin:0;width:auto;flex:1;min-width:140px">';
+  h+='<button class="sm g" onclick="agendarDesdeFicha(\''+cid+'\',\''+ctx+'\')">Agendar</button>';
+  h+='</div></div>';
+  return h;
+}
+function agendarDesdeFicha(cid,ctx){
+  if(soloLectura())return;
+  var el=document.getElementById('gfFecha_'+cid);
+  var f=el&&el.value;
+  if(!f){toast('Elegi una fecha','err');return;}
+  f=ajustarDiaHabil(f);
+  if(D.gira.some(function(g){return g.cid===cid&&g.fecha===f;})){toast('Ya estaba agendado ese dia','err');return;}
+  agregarAGira(cid,f);
+  volverAFicha(cid,ctx);
+}
+function quitarDeGiraFicha(cid,fecha,ctx){
+  if(giraBloqueada(cid,fecha)){toast('Ya tiene una visita registrada ese dia: no se puede sacar','err');return;}
+  D.gira=D.gira.filter(function(g){return !(g.cid===cid&&g.fecha===fecha);});
+  fsDelGira(cid,fecha);
+  toast('Sacado de la gira','ok');
+  volverAFicha(cid,ctx);
+}
+function volverAFicha(cid,ctx){
+  if(ctx==='a')aFicha(cid);else abrirFichaV(cid);
+  refrescarVistaActual();
+}
 function abrirAgregarAGira(fecha){
   var yaEnDia=D.gira.filter(function(g){return g.fecha===fecha;}).map(function(g){return g.cid;});
-  var disp=misContactos().filter(function(c){return yaEnDia.indexOf(c.id)<0;}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  var disp=contactosParaGira().filter(function(c){return yaEnDia.indexOf(c.id)<0;}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   var nomDia=new Date(fecha+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'short'});
   var h='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Fecha: '+es(nomDia)+'</div>';
   h+='<div class="srch" style="margin:0 0 10px;position:sticky;top:0;z-index:2"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="gBusq" placeholder="Buscar local, cliente o barrio..." oninput="filtrarAgregarGira(\''+fecha+'\')" style="background:none;border:none;outline:none;color:var(--text);font-size:14px;flex:1;font-family:inherit;width:100%"></div>';
@@ -1764,7 +1825,7 @@ function giraResultadosHTML(lista,fecha){
 function filtrarAgregarGira(fecha){
   var q=(document.getElementById('gBusq').value||'').toLowerCase();
   var yaEnDia=D.gira.filter(function(g){return g.fecha===fecha;}).map(function(g){return g.cid;});
-  var disp=misContactos().filter(function(c){return yaEnDia.indexOf(c.id)<0&&(c.nm.toLowerCase().includes(q)||(c.fan||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q));}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
+  var disp=contactosParaGira().filter(function(c){return yaEnDia.indexOf(c.id)<0&&(c.nm.toLowerCase().includes(q)||(c.fan||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q));}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   document.getElementById('gBusqR').innerHTML=giraResultadosHTML(disp,fecha);
 }
 function agregarAGira(cid,fecha){
@@ -1790,7 +1851,8 @@ function quitarDeGira(cid,fecha){
   if(giraBloqueada(cid,fecha))return;
   D.gira=D.gira.filter(function(g){return !(g.cid===cid&&g.fecha===fecha);});
   fsDelGira(cid,fecha);
-  renderVG();toast('Quitado de la gira','ok');
+  if(giraCont==='gGB')renderGG();else renderVG();
+  toast('Quitado de la gira','ok');
 }
 
 // ── NUEVA VISITA: adaptada segun tipo de contacto ─────────────────────
@@ -1805,6 +1867,7 @@ function abrirVisitaProspecto(id){
   if(!vpEstado||vpEstado.cid!==id){vpVendio=null;vpPedidoId='';}
   var h='<div style="font-size:22px;font-weight:800;margin-bottom:6px">'+es(c.nm)+'</div>';
   h+='<div style="font-size:13px;color:var(--muted);margin-bottom:16px">'+es(c.etapaEmbudo||'Prospecto')+(c.bar?' · '+es(c.bar):'')+'</div>';
+  h+='<div id="deuPros">'+deudaEnVisitaHTML(id,'pros')+'</div>';
   h+='<div class="fg"><label class="fl">Observaciones de la visita</label><textarea class="fi fta" id="vpObs" rows="3" placeholder="Que paso en la visita? Mostro interes? Datos importantes..."></textarea></div>';
   h+='<div class="fg"><label class="fl">Se realizo una venta?</label>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">';
@@ -1827,6 +1890,35 @@ function abrirVisitaProspecto(id){
     var p=document.getElementById('vpProx');if(p&&vpEstado.prox)p.value=vpEstado.prox;
     if(vpEstado.vendio!==null&&vpEstado.vendio!==undefined)togVP(vpEstado.vendio);
   }
+}
+// Recordatorio de deuda para el paso Venta de cualquier visita. Si el cliente
+// no debe nada no muestra nada, para no ensuciar la pantalla.
+// 'ctx': 'wiz' vuelve al wizard de cliente, 'pros' a la visita a prospecto.
+function deudaEnVisitaHTML(cid,ctx){
+  var sal=saldoDe(cid);
+  if(sal<=0)return '';
+  var prom=compromisoDe(cid), desde=deudaDesde(cid), d=desde?dias(desde):null;
+  var venc=prom&&prom<today();
+  var h='<div class="card" style="border:1px solid var(--red);margin-bottom:12px"><div class="ct" style="color:var(--red)">&#9888; TE DEBE PLATA</div>';
+  h+='<div style="font-size:22px;font-weight:900;color:var(--red)">'+plata(sal)+'</div>';
+  h+='<div style="font-size:11px;color:var(--muted)">'+(d!==null?'arrastra hace '+d+' dias':'sin fecha')+'</div>';
+  if(prom)h+='<div style="font-size:11px;font-weight:700;color:'+(venc?'var(--red)':'var(--yellow)')+';margin-top:2px">'+(venc?'Prometio pagar el '+fmt(prom)+' y no pago':'Se comprometio a pagar el '+fmt(prom))+'</div>';
+  h+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
+  h+='<button class="sm g" onclick="cobrarEnVisita(\''+cid+'\',\''+ctx+'\')">Registrar el cobro</button>';
+  h+='<button class="sm" onclick="verCuenta(\''+cid+'\')">Ver la cuenta</button>';
+  h+='</div></div>';
+  return h;
+}
+// Abre el cobro desde la visita y al volver refresca el bloque, sin perder nada
+// de lo que el vendedor ya haya cargado en el formulario.
+function cobrarEnVisita(cid,ctx){
+  registrarPago(cid,ctx==='pros'?'vpros':'vwiz');
+}
+function refrescarDeudaEnVisita(){
+  var w=document.getElementById('deuWiz');
+  if(w)w.innerHTML=deudaEnVisitaHTML(W.cid,'wiz');
+  var p=document.getElementById('deuPros');
+  if(p&&vpCid)p.innerHTML=deudaEnVisitaHTML(vpCid,'pros');
 }
 // Estado del formulario mientras se va a cargar el pedido, para no perder lo escrito
 var vpEstado=null;
@@ -3692,7 +3784,10 @@ function guardarPago(cid,volverA){
     logEvento('venta',cid,(D.cli.find(function(x){return x.id===cid;})||{}).nm||'','Se comprometio a pagar '+plata(resto)+' el '+fmt(promEl.value),'','');
   }
   toast(resto>0?'Pago registrado. Le queda '+plata(resto)+(promEl&&promEl.value?' — vuelve el '+fmt(promEl.value):''):'Pago registrado: quedo al dia','ok');
-  if(volverA==='panel')verDeudores();else if(volverA==='cuenta')verCuenta(cid);else{cMod();if(volverA==='tab')renderVV();}
+  if(volverA==='panel')verDeudores();
+  else if(volverA==='cuenta')verCuenta(cid);
+  else if(volverA==='vpros'){cMod();abrirVisitaProspecto(cid);}
+  else{cMod();if(volverA==='tab')renderVV();if(volverA==='vwiz')refrescarDeudaEnVisita();}
   refrescarVistaActual();
 }
 // ── Cargar una deuda a mano (fuera de un pedido) ─────────────────────
@@ -4171,6 +4266,7 @@ function aFicha(id){
     h+='<button class="btn sec" onclick="exportarVCard(\''+id+'\')" style="margin:0">📋 Agregar a agenda</button>';
   }
   h+='</div>';
+  h+=giraFichaHTML(id,'a');
   h+='<button class="btn sec" onclick="verCuenta(\''+id+'\')" style="margin:0 0 8px">Cuenta corriente'+(saldoDe(id)>0?' — debe '+plata(saldoDe(id)):'')+'</button>';
   if(c.etapaEmbudo==='Negociacion'&&!D.com.some(function(co){return co.cid===id&&comVigente(co);})){
     h+='<button class="btn" onclick="acordoFreezer(\''+id+'\')" style="margin:0 0 8px;background:linear-gradient(90deg,#fbbf24,#22d3ee);color:#0b1220;font-weight:800">❄ Acordó freezer</button>';
@@ -5722,7 +5818,14 @@ function misContactos(incluirPerdidos){
 }
 // Gira filtrada por vendedor: cada vendedor solo ve sus propias paradas
 function misGira(){
-  if(!D.user||D.user.r==='admin'||D.user.r==='gerente')return D.gira;
+  if(!D.user||D.user.r==='admin'||D.user.r==='gerente'){
+    // Si el admin eligio un vendedor, ve solo la gira de ese vendedor
+    if(!gVendSel)return D.gira;
+    return D.gira.filter(function(g){
+      var c=D.cli.find(function(x){return x.id===g.cid;});
+      return c&&c.vend===gVendSel;
+    });
+  }
   return D.gira.filter(function(g){
     var c=D.cli.find(function(x){return x.id===g.cid;});
     return c&&c.vend===D.user.n;
@@ -5881,9 +5984,9 @@ function gGo(sec){
   gSecActual=sec;
   document.querySelectorAll('#gCont .sc').forEach(function(s){s.classList.remove('on');});
   document.querySelectorAll('.gb').forEach(function(b){b.classList.remove('on');});
-  var ids={D:'sGD',C:'sGC',E:'sGE',V:'sGV',Co:'sGCo',P:'sGP',M:'sGM',I:'sGI',Cfg:'sGCfg'};
-  var bids={D:'gbD',C:'gbC',E:'gbE',V:'gbV',Co:'gbCo',P:'gbP',M:'gbM',I:'gbI',Cfg:'gbCfg'};
-  var rend={D:renderGD,C:renderGC,E:renderGE,V:renderGV,Co:renderGCo,P:renderGP,M:renderGM,I:renderGI,Cfg:renderGCfg};
+  var ids={D:'sGD',C:'sGC',E:'sGE',V:'sGV',G:'sGG',Co:'sGCo',P:'sGP',M:'sGM',I:'sGI',Cfg:'sGCfg'};
+  var bids={D:'gbD',C:'gbC',E:'gbE',V:'gbV',G:'gbG',Co:'gbCo',P:'gbP',M:'gbM',I:'gbI',Cfg:'gbCfg'};
+  var rend={D:renderGD,C:renderGC,E:renderGE,V:renderGV,G:renderGG,Co:renderGCo,P:renderGP,M:renderGM,I:renderGI,Cfg:renderGCfg};
   if(ids[sec]){document.getElementById(ids[sec]).classList.add('on');}
   if(bids[sec]){document.getElementById(bids[sec]).classList.add('on');}
   if(rend[sec])rend[sec]();
@@ -6250,7 +6353,7 @@ function aVisita(id){
     {sub:'Venta',
      render:function(){
        var rzH=rz.map(function(r){return ch(r,r,'nv',true,'');}).join('');
-       return '<div style="font-size:20px;font-weight:800;margin-bottom:14px">Venta</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px"><div id="bS" onclick="tgV(true)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">SI</div><div id="bN" onclick="tgV(false)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">NO</div></div><div id="nvSi" style="display:none">'+pedidoEnVisitaHTML()+'</div><div id="nvS" style="display:none"><div class="ct">Motivo (podes elegir varios)</div><div class="chips">'+rzH+'</div><div id="nvO" style="display:none;margin-top:8px"><input class="fi" id="otroT" placeholder="Especifica el motivo..."></div></div><div class="fg" style="margin-top:14px"><label class="fl">Notas de la visita</label><textarea class="fi fta" id="ntV" placeholder="Observaciones, acuerdos..."></textarea></div><div class="fg"><label class="fl">Proxima visita</label><input class="fi" type="date" id="prV"></div>';
+       return '<div style="font-size:20px;font-weight:800;margin-bottom:14px">Venta</div><div id="deuWiz">'+deudaEnVisitaHTML(W.cid,'wiz')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px"><div id="bS" onclick="tgV(true)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">SI</div><div id="bN" onclick="tgV(false)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">NO</div></div><div id="nvSi" style="display:none">'+pedidoEnVisitaHTML()+'</div><div id="nvS" style="display:none"><div class="ct">Motivo (podes elegir varios)</div><div class="chips">'+rzH+'</div><div id="nvO" style="display:none;margin-top:8px"><input class="fi" id="otroT" placeholder="Especifica el motivo..."></div></div><div class="fg" style="margin-top:14px"><label class="fl">Notas de la visita</label><textarea class="fi fta" id="ntV" placeholder="Observaciones, acuerdos..."></textarea></div><div class="fg"><label class="fl">Proxima visita</label><input class="fi" type="date" id="prV"></div>';
      },
      init:function(){if(W.data.vendio===true)tgV(true);else if(W.data.vendio===false)tgV(false);},
      sv:function(d){d.nt=document.getElementById('ntV').value;d.prox=document.getElementById('prV').value;if(d.vendio===false){d.razones=gcs('nv');var ot=document.getElementById('otroT');if(ot&&ot.value)d.otroM=ot.value;}}}
@@ -6356,6 +6459,24 @@ function renderGiraSemanaHTML(lunes,hoy){
 var gTab="ejec"; // compatibilidad con wFin y guardarVisitaProspecto
 var gDiaActivo='';   // fecha 'YYYY-MM-DD' del día expandido
 
+// La misma pantalla de Gira sirve para el vendedor y para el admin: lo unico
+// que cambia es en que contenedor se dibuja y de quien son las paradas.
+var giraCont='vGB';
+function renderGG(){
+  giraCont='gGB';
+  var vendedores=D.usrs.filter(function(u){return u.r==='vendedor'&&u.activo!==false;});
+  var enc='<div style="padding:10px 14px;background:var(--s1);border-bottom:1px solid var(--border)">';
+  enc+='<div style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin-bottom:6px">GIRA DE</div>';
+  enc+='<div style="display:flex;flex-wrap:wrap;gap:5px">';
+  enc+='<span class="fb'+(gVendSel===''?' on':'')+'" onclick="setVendGlobal(\'\')" style="font-size:11px;padding:5px 11px">Todos</span>';
+  vendedores.forEach(function(u){
+    enc+='<span class="fb'+(gVendSel===u.n?' on':'')+'" onclick="setVendGlobal(this.getAttribute(\'data-v\'))" data-v="'+es(u.n)+'" style="font-size:11px;padding:5px 11px">'+es(u.n)+'</span>';
+  });
+  enc+='</div></div>';
+  renderVG();
+  var cont=document.getElementById('gGB');
+  if(cont)cont.innerHTML=enc+cont.innerHTML;
+}
 function renderVG(){
   var hoy=today();
   if(!gDiaActivo){
@@ -6485,7 +6606,7 @@ function renderVG(){
   }
   h+='</div>';
   }
-  var _vgb=document.getElementById('vGB');if(_vgb)_vgb.innerHTML=h;
+  var _vgb=document.getElementById(giraCont);if(_vgb)_vgb.innerHTML=h;
 }
 // Alias para dias() con nombre diferente para usar dentro de renderVG sin conflicto de scope
 function dias_fn(f){return dias(f);}
@@ -6576,7 +6697,11 @@ function setVEFiltro(el){
 // ── EMBUDO: ordenamiento ──────────────────────────────────────────────
 var vEOrd='nm';var vEBar='';var vETipNeg='';
 function renderVE(){
-  var mc=misContactos();
+  // Se traen TODOS (incluidos los que estan fuera del embudo) y se filtran mas
+  // abajo segun la solapa elegida: asi las solapas "No Le Interesa" y "Perdido"
+  // muestran algo, sin inundar la vista por defecto.
+  var mcAll=misContactos(true);
+  var mc=mcAll.filter(function(c){return c.etapaEmbudo!=='No Le Interesa'&&c.etapaEmbudo!=='Perdido';});
   var all=['Todos','Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo','No Le Interesa','Perdido'];
   // Valores dinámicos de zona y tipo
   var eSet={};mc.forEach(function(c){if(c.bar)eSet[c.bar]=true;if(c.ciu)eSet[c.ciu]=true;});
@@ -6591,7 +6716,10 @@ function renderVE(){
   fh+='</div>';
   // Etapas - fila compacta con scroll horizontal
   fh+='<div class="veRow">';
-  fh+=all.map(function(e){return '<span class="fb'+(vEFil===e?' on':'')+'" onclick="setVEF(this.getAttribute(\'data-e\'))" data-e="'+es(e)+'" style="font-size:11px;padding:6px 12px">'+es(e)+'</span>';}).join('');
+  fh+=all.map(function(e){
+    var n=(e==='No Le Interesa'||e==='Perdido')?mcAll.filter(function(c){return c.etapaEmbudo===e;}).length:0;
+    return '<span class="fb'+(vEFil===e?' on':'')+'" onclick="setVEF(this.getAttribute(\'data-e\'))" data-e="'+es(e)+'" style="font-size:11px;padding:6px 12px">'+es(e)+(n?' ('+n+')':'')+'</span>';
+  }).join('');
   fh+='</div>';
   // Zona y Tipo como desplegables (solo opciones cargadas)
   fh+='<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">';
@@ -6616,7 +6744,9 @@ function renderVE(){
   fh+='</div>';
   var _vef=document.getElementById('vEF');if(_vef)_vef.innerHTML=fh;
   // Filtrar
-  var cs=vEFil==='Todos'?mc.slice():mc.filter(function(c){
+  var fueraDelEmbudo=(vEFil==='No Le Interesa'||vEFil==='Perdido');
+  var baseE=fueraDelEmbudo?mcAll:mc;
+  var cs=vEFil==='Todos'?baseE.slice():baseE.filter(function(c){
     if(vEFil==='Nuevo Prospecto')return c.esP&&(!c.etapaEmbudo||c.etapaEmbudo==='Nuevo Prospecto');
     return c.etapaEmbudo===vEFil;
   });
@@ -6690,7 +6820,15 @@ function embudoCardHTML(c){
 // ── CONTACTOS: tarjetas mejoradas con todos los datos ─────────────────
 function renderVC(){
   var q=(document.getElementById('vCQ')&&document.getElementById('vCQ').value||'').toLowerCase();
-  var cs=misContactos().slice();
+  // Por defecto se esconden los descartados; el filtro "Estado" los trae.
+  var cs=misContactos(true).slice();
+  var verFuera=vcF.est.indexOf('fuera')>=0, soloFuera=vcF.est.indexOf('solofuera')>=0;
+  cs=cs.filter(function(c){
+    var fuera=(c.etapaEmbudo==='No Le Interesa'||c.etapaEmbudo==='Perdido');
+    if(soloFuera)return fuera;
+    if(verFuera)return true;
+    return !fuera;
+  });
   if(vcF.tipo_ctx.length)cs=cs.filter(function(c){return (vcF.tipo_ctx.indexOf('prospecto')>=0&&c.esP)||(vcF.tipo_ctx.indexOf('cliente')>=0&&!c.esP);});
   if(vcF.bar.length)cs=cs.filter(function(c){return vcF.bar.indexOf(c.bar)>=0||vcF.bar.indexOf(c.ciu)>=0;});
   if(vcF.tipOneg.length)cs=cs.filter(function(c){return vcF.tipOneg.indexOf(c.tipo)>=0;});
@@ -6713,6 +6851,7 @@ function renderVC(){
   if(vcF.calU.length)chips+=chipF('calU','Ubic: '+vcF.calU.join(', '));
   if(vcF.trans.length)chips+=chipF('trans','Transito: '+vcF.trans.join(', '));
   if(vcF.prods.length)chips+=chipF('prods','Vende: '+es(vcF.prods.join(', ')));
+  if(vcF.est.length)chips+=chipF('est',vcF.est.indexOf('solofuera')>=0?'Solo descartados':'Incluye descartados');
   var actDiv=document.getElementById('vCActivos');
   if(actDiv){actDiv.innerHTML=chips;actDiv.style.display=chips?'block':'none';}
   var vDiv=document.getElementById('vCVista');if(vDiv)vDiv.innerHTML=botonesVistaHTML();
