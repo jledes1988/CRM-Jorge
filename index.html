@@ -64,13 +64,13 @@
       <button class="sm g" onclick="nuevoPros()">+ Nuevo</button>
     </div>
     <div id="vCActivos" style="padding:6px 14px;border-bottom:1px solid var(--border);display:none;overflow-x:auto;white-space:nowrap"></div>
-    <div class="srch"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="vCQ" placeholder="Buscar por local, cliente o direccion..." oninput="renderVC()"></div>
+    <div class="srch"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="vCQ" placeholder="Buscar por local, cliente o direccion..." oninput="resetPagina('vc');renderVC()"></div>
     <div class="scr" id="vCB"></div>
   </div>
   <!-- EMBUDO -->
   <div class="sc" id="sVE">
     <div class="tb"><div class="tb-t">Embudo de venta</div></div>
-    <div class="srch"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="vEQ" placeholder="Buscar local o cliente..." oninput="renderVE()"></div>
+    <div class="srch"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="vEQ" placeholder="Buscar local o cliente..." oninput="resetPagina('ve');renderVE()"></div>
     <div class="filts" id="vEF"></div>
     <div class="scr" id="vEB"></div>
   </div>
@@ -164,7 +164,7 @@
       </div>
       <div class="filts" id="gCF"></div>
       <div id="gCActivos" style="padding:6px 14px;border-bottom:1px solid var(--border);display:none;overflow-x:auto;white-space:nowrap"></div>
-      <div class="srch"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="gCS" placeholder="Buscar..." oninput="renderGC()"></div>
+      <div class="srch"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="gCS" placeholder="Buscar..." oninput="resetPagina('gc');renderGC()"></div>
       <div class="scr" id="gCB"></div>
     </div>
     <div class="sc" id="sGE"><div class="filts" id="gEF"></div><div class="scr" id="gEB"></div></div>

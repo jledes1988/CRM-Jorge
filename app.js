@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='8.2 - 18/09/2026';
+var VERSION='8.3 - 22/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -200,34 +200,34 @@ function fsSetupListeners(){
   safeSnap('contactos',function(snap){
     D.cli=fsSnapToArr(snap);
     normalizarDatos();
-    if(FS_READY)refrescarVistaActual();
+    pedirRefresco('contactos');
   });
 
   safeSnap('visitas',function(snap){
     D.vis=fsSnapToArr(snap);
-    if(FS_READY)refrescarVistaActual();
+    pedirRefresco('visitas');
   },function(ref){return ref.where('fecha','>=',DESDE_VIS);});
 
   safeSnap('comodatos',function(snap){
     D.com=fsSnapToArr(snap);
-    if(FS_READY)refrescarVistaActual();
+    pedirRefresco('comodatos');
   });
 
   safeSnap('gira',function(snap){
     D.gira=fsSnapToArr(snap);
-    if(FS_READY)refrescarVistaActual();
+    pedirRefresco('gira');
   },function(ref){return ref.where('fecha','>=',DESDE_GIRA);});
 
   safeSnap('pedidos',function(snap){
     D.ped=fsSnapToArr(snap);
-    if(FS_READY)refrescarVistaActual();
+    pedirRefresco('pedidos');
   },function(ref){return ref.where('fecha','>=',DESDE_VIS);});
 
   // Las deudas NO se filtran por fecha: una deuda vieja sigue siendo una deuda.
   // El volumen es bajo (un movimiento por venta impaga y uno por pago).
   safeSnap('deudas',function(snap){
     D.deudas=fsSnapToArr(snap);
-    if(FS_READY)refrescarVistaActual();
+    pedirRefresco('deudas');
   });
 
   // recorrido y log: NO se suscriben aca. Ver cargarRecorridoDia() y cargarLogCompleto().
@@ -305,14 +305,61 @@ function fsArrancarApp(){
 }
 
 // Refresca la pantalla que esté visible en este momento (vendedor o admin)
+// Que colecciones le importan a cada pantalla. Si llega un cambio de una
+// coleccion que la pantalla activa no muestra, no se redibuja nada.
+var DEPENDE={
+  sVH:['contactos','visitas','gira','comodatos','deudas','pedidos'],
+  sVC:['contactos'],
+  sVE:['contactos','visitas'],
+  sVG:['gira','contactos','visitas'],
+  sVV:['pedidos','deudas','contactos'],
+  sVCo:['comodatos','contactos'],
+  sGD:['contactos','visitas','comodatos','pedidos','deudas'],
+  sGC:['contactos'],
+  sGE:['contactos','visitas'],
+  sGV:['visitas','contactos'],
+  sGG:['gira','contactos','visitas'],
+  sGCo:['comodatos','contactos'],
+  sGP:['pedidos','deudas','contactos'],
+  sGI:['contactos','visitas','comodatos','pedidos'],
+  sGCfg:['contactos','pedidos']
+};
+var _refTimer=null, _refPend={};
+// Junta los avisos que llegan casi al mismo tiempo en un solo redibujado.
+function pedirRefresco(coleccion){
+  if(!FS_READY)return;
+  if(coleccion)_refPend[coleccion]=true;
+  if(_refTimer)return;
+  _refTimer=setTimeout(function(){
+    _refTimer=null;
+    var cambiadas=Object.keys(_refPend);
+    _refPend={};
+    var act=pantallaActiva();
+    if(!act)return;
+    var dep=DEPENDE[act];
+    // Si no se sabe de que depende la pantalla, se redibuja por las dudas
+    if(dep&&cambiadas.length&&!cambiadas.some(function(c){return dep.indexOf(c)>=0;}))return;
+    refrescarVistaActual();
+  },300);
+}
+function pantallaActiva(){
+  var ids=(D.user&&D.user.r==='admin')
+    ?['sGD','sGC','sGE','sGV','sGG','sGCo','sGP','sGI','sGCfg']
+    :['sVH','sVC','sVE','sVG','sVV','sVCo'];
+  for(var i=0;i<ids.length;i++){
+    var el=document.getElementById(ids[i]);
+    if(el&&el.classList.contains('on'))return ids[i];
+  }
+  return null;
+}
 function refrescarVistaActual(){
   if(!D.user)return;
   if(D.user.r==='admin'){
     var activeId=null;
-    ['sGD','sGC','sGE','sGV','sGCo','sGP','sGI','sGCfg'].forEach(function(id){
+    ['sGD','sGC','sGE','sGV','sGG','sGCo','sGP','sGI','sGCfg'].forEach(function(id){
       var el=document.getElementById(id);if(el&&el.classList.contains('on'))activeId=id;
     });
-    var map={sGD:renderGD,sGC:renderGC,sGE:renderGE,sGV:renderGV,sGCo:renderGCo,sGP:renderGP,sGI:renderGI,sGCfg:renderGCfg};
+    var map={sGD:renderGD,sGC:renderGC,sGE:renderGE,sGV:renderGV,sGG:renderGG,sGCo:renderGCo,sGP:renderGP,sGI:renderGI,sGCfg:renderGCfg};
     if(activeId&&map[activeId])map[activeId]();
   } else {
     var activeIdV=null;
@@ -487,7 +534,25 @@ function ls(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 function lg(k,d){try{var v=localStorage.getItem(k);return v!=null?JSON.parse(v):d;}catch(e){return d;}}
 // Preferencia de vista (lista o tarjetas), por dispositivo. Se cambia desde Contactos
 // y aplica a Contactos, Embudo y Gira. La elige cada persona en su celular.
-var vistaModo=lg('jvista','tarjetas'); // 'tarjetas' | 'lista'
+// En celular arranca en modo lista, que pesa 5 veces menos que las tarjetas
+// (71 KB contra 366 KB). Si el usuario elige otra cosa, se respeta su eleccion.
+var vistaModo=lg('jvista', (typeof window!=='undefined'&&window.innerWidth<900)?'lista':'tarjetas'); // 'tarjetas' | 'lista'
+// Cuantas fichas se dibujan por tanda en cada pantalla larga
+var PAGINA=40;
+var paginas={};                       // {pantalla: cuantas se muestran}
+function tope(k){return paginas[k]||PAGINA;}
+function verMas(k){
+  paginas[k]=tope(k)+PAGINA;
+  refrescarVistaActual();
+}
+function resetPagina(k){paginas[k]=PAGINA;}
+// Renglon de "mostrando X de Y" + boton. Va al final de cada lista larga.
+function masHTML(k,mostrados,total){
+  if(mostrados>=total)return total>PAGINA?'<div style="text-align:center;padding:14px 0 4px;font-size:11px;color:var(--muted)">Los '+total+' contactos estan a la vista</div>':'';
+  return '<div style="text-align:center;padding:14px 0 4px">'+
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Mostrando '+mostrados+' de '+total+'</div>'+
+    '<button class="btn sec" onclick="verMas(\''+k+'\')" style="margin:0;max-width:260px;margin:0 auto">Ver '+Math.min(PAGINA,total-mostrados)+' mas</button></div>';
+}
 function setVistaModo(m){vistaModo=m;ls('jvista',m);refrescarVistaActual();}
 function botonesVistaHTML(){
   var bl='<button class="vwb'+(vistaModo==='lista'?' on':'')+'" onclick="setVistaModo(\'lista\')" title="Ver en lista"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>';
@@ -1422,8 +1487,9 @@ function verDetalleDiaVH(dia){
 // Todos los filtros son multiseleccion (arrays): se pueden elegir varias opciones a la vez.
 var vcF={tipo_ctx:[],bar:[],tipOneg:[],vis:[],frez:[],comp:[],calU:[],trans:[],prods:[],est:[]};
 function vcFvacio(){return {tipo_ctx:[],bar:[],tipOneg:[],vis:[],frez:[],comp:[],calU:[],trans:[],prods:[],est:[]};}
-function qFiltro(k){vcF[k]=[];renderVC();}
+function qFiltro(k){vcF[k]=[];resetPagina('vc');renderVC();}
 function setFiltro(k,v){
+  resetPagina('vc');
   var arr=vcF[k];if(!Array.isArray(arr)){vcF[k]=[];arr=vcF[k];}
   var i=arr.indexOf(v);
   if(i>=0)arr.splice(i,1);else arr.push(v);
@@ -1709,7 +1775,7 @@ function guardarEdicionContacto(id){
 // ── EMBUDO ────────────────────────────────────────────────────────────
 var vEFil='Todos';
 var vEChartOpen=false;
-function setVEF(v){vEFil=v||'Todos';renderVE();}
+function setVEF(v){vEFil=v||'Todos';resetPagina('ve');renderVE();}
 // La etapa manda sobre la marca interna de cliente. Antes esto era de ida
 // nomas: poner "Cliente Activo" convertia, pero volver a Negociacion NO
 // revertia, y el contacto quedaba contando como cliente para siempre sin
@@ -2047,29 +2113,25 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin,filtroTipo){
     if(filtroTipo==='freezerPend'&&!coAcordado)return;
     var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
     if(filtroEtapa&&eta!==filtroEtapa)return;
+    // RELLENO = etapa del embudo. Siempre. Sin excepciones.
     var col=EC[eta]||'#94a3b8';
     var esNeg=(eta==='Negociacion');
-    var bordeCol='#0b1220';
-    if(coAcordado)col='#ec4899';
-    // Cliente activo que ya tiene freezer nuestro entregado: se destaca con relleno celeste
-    // y borde verde, para diferenciarlo de un "Cliente Activo" que compra pero no tiene freezer.
-    if(!c.esP&&tieneFreezerNuestro(c.id)){col='#22d3ee';bordeCol='#4ade80';}
-    // Sucursal de otro local: punto mas chico, con el color de la casa central
-    // (salvo que la sucursal tenga su propio estado de freezer, que manda primero).
+    // BORDE = situacion del freezer, que antes pisaba el relleno y confundia.
+    var bordeCol='#0b1220', bordeAncho=2;
+    var tieneFz=!c.esP&&tieneFreezerNuestro(c.id);
+    if(tieneFz){bordeCol='#4ade80';bordeAncho=4;}          // freezer nuestro puesto
+    else if(coAcordado){bordeCol='#ec4899';bordeAncho=4;}  // lo acordo, falta entregar
+    // Sucursal: punto mas chico, pero con SU color, no el de la casa central.
     var radio=esNeg?12:9;
-    if(c.sucursalDe){
-      radio=6;
-      if(!coAcordado&&!(!c.esP&&tieneFreezerNuestro(c.id))){
-        var padreM=D.cli.find(function(x){return x.id===c.sucursalDe;});
-        if(padreM){var etaPadreM=padreM.etapaEmbudo||(padreM.esP?'Nuevo Prospecto':'Cliente Activo');col=EC[etaPadreM]||col;}
-      }
-    }
-    var m=L.circleMarker([c.lat,c.lng],{radius:radio,fillColor:col,color:bordeCol,weight:2,fillOpacity:.92});
+    if(c.sucursalDe)radio=6;
+    var m=L.circleMarker([c.lat,c.lng],{radius:radio,fillColor:col,color:bordeCol,weight:bordeAncho,fillOpacity:.92});
     var pop='<div style="font-family:inherit;min-width:170px">';
     pop+='<div style="font-weight:800;font-size:14px;margin-bottom:2px">'+es(c.nm)+'</div>';
     if(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase())pop+='<div style="font-size:12px;font-weight:700;color:#0891b2">'+es(c.fan)+'</div>';
     pop+='<div style="font-size:11px;color:#666">'+es(c.bar||c.ciu||'')+(c.tipo?' · '+es(c.tipo):'')+'</div>';
     pop+='<div style="font-size:11px;margin-top:3px"><span style="background:'+col+';color:'+(col.toLowerCase()==='#ffffff'?'#0b1220':'#fff')+';padding:2px 8px;border-radius:10px;font-weight:700">'+es(eta)+'</span></div>';
+    if(tieneFz)pop+='<div style="font-size:11px;color:#16a34a;font-weight:700;margin-top:3px">&#10052; Freezer nuestro puesto</div>';
+    else if(coAcordado)pop+='<div style="font-size:11px;color:#db2777;font-weight:700;margin-top:3px">&#10052; Acordo freezer, falta entregar</div>';
     if(c.sucursalDe){var padrePop=D.cli.find(function(x){return x.id===c.sucursalDe;});if(padrePop)pop+='<div style="font-size:10px;color:#888;margin-top:3px">Sucursal de '+es(padrePop.nm)+'</div>';}
     pop+='<div style="display:flex;gap:6px;margin-top:8px">';
     pop+='<button onclick="'+(esAdmin?'aFicha':'abrirFichaV')+'(\''+c.id+'\')" style="background:#0891b2;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">Ver ficha</button>';
@@ -2103,7 +2165,9 @@ function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro,filtroTipo,fnFiltroT
   h+='</div>';
   h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">';
   ET.forEach(function(e){h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:'+(EC[e]||'#94a3b8')+';display:inline-block'+(e==='Negociacion'?';box-shadow:0 0 0 1px var(--border)':'')+'"></span>'+es(e)+'</span>';});
-  h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:#ec4899;display:inline-block"></span>Acordo freezer (por firmar/entregar)</span>';
+  h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:11px;height:11px;border-radius:50%;background:var(--muted);border:3px solid #4ade80;display:inline-block;box-sizing:border-box"></span>borde verde: freezer puesto</span>';
+  h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:11px;height:11px;border-radius:50%;background:var(--muted);border:3px solid #ec4899;display:inline-block;box-sizing:border-box"></span>borde rosa: acordo freezer</span>';
+  h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block"></span>punto chico: sucursal</span>';
   h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:#22d3ee;border:2px solid #4ade80;box-sizing:border-box;display:inline-block"></span>Cliente con freezer nuestro</span>';
   h+='</div>';
   if(!conf)h+='<div style="font-size:11px;color:var(--orange);margin-top:6px">Todavia no hay contactos confirmados en el mapa. La ubicacion se confirma con GPS al crear un prospecto o en la primera visita a un cliente, parado en el local.</div>';
@@ -3172,6 +3236,8 @@ function renderGC(){
   if(gaDiv){gaDiv.innerHTML=actChips;gaDiv.style.display=actChips?'block':'none';}
   var h='<div style="padding:8px 14px;font-size:11px;color:var(--muted);font-weight:700">'+cs.length+' REGISTROS</div>';
   if(!cs.length){h+='<div class="empty">Sin resultados</div>';document.getElementById('gCB').innerHTML=h;return;}
+  var _totGC=cs.length, _topeGC=tope('gc');
+  cs=cs.slice(0,_topeGC);
   if(vistaModo==='lista'){
     cs.forEach(function(c){
       var d7=dias(c.ul);var col=d7===null?'var(--red)':d7>14?'var(--red)':d7>7?'var(--orange)':'var(--green)';
@@ -3183,6 +3249,7 @@ function renderGC(){
       if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:2px 6px;border-radius:5px;font-size:9px;font-weight:900;flex-shrink:0">DEU</span>';
       h+='</div>';
     });
+    h+=masHTML('gc',cs.length,_totGC);
     document.getElementById('gCB').innerHTML=h;return;
   }
   cs.forEach(function(c){
@@ -3198,9 +3265,10 @@ function renderGC(){
     h+='</div></div>';
     h+='<div style="font-size:11px;color:'+col+';text-align:right;flex-shrink:0">'+(c.ul?fmt(c.ul):'Sin visitar')+'</div></div></div>';
   });
+  h+=masHTML('gc',cs.length,_totGC);
   document.getElementById('gCB').innerHTML=h;
 }
-function sGCF(f){gCF2=f;renderGC();}
+function sGCF(f){gCF2=f;resetPagina('gc');renderGC();}
 function qGCF(k){gCFo[k]=[];renderGC();}
 function toggleGCFo(k,v){
   if(!Array.isArray(gCFo[k]))gCFo[k]=[];
@@ -4436,6 +4504,8 @@ function renderGE(){
   var cs=gEF2==='Todos'?base.slice():base.filter(function(c){return c.etapaEmbudo===gEF2;});
   var h='<div style="padding:8px 14px;font-size:11px;color:var(--muted);font-weight:700">'+cs.length+' REGISTROS</div>';
   if(!cs.length){h+='<div class="empty">Sin contactos</div>';document.getElementById('gEB').innerHTML=h;return;}
+  var _totGE=cs.length, _topeGE=tope('ge');
+  cs=cs.slice(0,_topeGE);
   if(vistaModo==='lista'){
     cs.forEach(function(c){
       var col=EC[c.etapaEmbudo]||'var(--muted)';
@@ -4445,15 +4515,17 @@ function renderGE(){
       h+='<div class="lsub" style="color:'+col+'">'+es(c.etapaEmbudo||'')+'<span style="color:var(--muted)"> · '+es(c.bar||c.tipo||'')+(c.vend?' · '+es(c.vend):'')+'</span></div></div>';
       h+='</div>';
     });
+    h+=masHTML('ge',cs.length,_totGE);
     document.getElementById('gEB').innerHTML=h;return;
   }
   cs.forEach(function(c){
     var col=EC[c.etapaEmbudo]||'var(--muted)';var nv=D.vis.filter(function(v){return v.cid===c.id;}).length;
     h+='<div class="cc" onclick="aFicha(\''+c.id+'\')" style="cursor:pointer"><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>'+(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase()?'<div style="font-size:13px;font-weight:700;color:var(--cyan)">'+es(c.fan)+'</div>':'')+'<div style="font-size:12px;color:var(--muted)">'+es(c.bar||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div><div style="text-align:right"><span style="background:rgba('+h2r(col)+',.15);color:'+col+';padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">'+es(c.etapaEmbudo||'')+'</span><div style="font-size:10px;color:var(--muted);margin-top:3px">'+nv+' visita'+(nv!==1?'s':'')+'</div></div></div></div>';
   });
+  h+=masHTML('ge',cs.length,_totGE);
   document.getElementById('gEB').innerHTML=h;
 }
-function sGEF(f){gEF2=f;renderGE();}
+function sGEF(f){gEF2=f;resetPagina('ge');renderGE();}
 // GERENTE VISITAS
 // ── VISITAS CON FILTROS COMPLETOS ─────────────────────────────────────
 var gVF={per:'30d',vend:'',res:'',tipNeg:'',prov:'',eta:'',bar:'',comp:'',q:'',desde:'',hasta:''};
@@ -6777,6 +6849,8 @@ function renderVE(){
     return;
   }
   if(!cs.length){_veb.innerHTML='<div class="empty">Sin contactos con los filtros actuales</div>';return;}
+  var _totVE=cs.length, _topeVE=tope('ve');
+  cs=cs.slice(0,_topeVE);
   var h='';
   if(vistaModo==='lista'){
     cs.forEach(function(c){
@@ -6788,9 +6862,11 @@ function renderVE(){
       h+='<div class="lsub" style="color:'+colE+'">'+es(eta)+'<span style="color:var(--muted)"> · '+es(c.bar||c.ciu||c.tipo||'')+'</span></div></div>';
       h+='</div>';
     });
+    h+=masHTML('ve',cs.length,_totVE);
     _veb.innerHTML=h;return;
   }
   cs.forEach(function(c){h+=embudoCardHTML(c);});
+  h+=masHTML('ve',cs.length,_totVE);
   _veb.innerHTML=h;
 }
 // Tarjeta de contacto del Embudo (reusada en la lista mobile y en el tablero Kanban de escritorio)
@@ -6858,6 +6934,8 @@ function renderVC(){
   var _vcbLm=document.getElementById('vCB');if(_vcbLm)_vcbLm.classList.toggle('lmode',vistaModo==='lista');
   var h='<div style="padding:6px 14px;font-size:11px;color:var(--muted);font-weight:700">'+cs.length+' CONTACTOS</div>';
   if(!cs.length){h+='<div class="empty">Sin resultados</div>';document.getElementById('vCB').innerHTML=h;return;}
+  var _totVC=cs.length, _topeVC=tope('vc');
+  cs=cs.slice(0,_topeVC);
   if(vistaModo==='lista'){
     cs.forEach(function(c){
       var d7=dias(c.ul);
@@ -6869,6 +6947,7 @@ function renderVC(){
       h+='<span class="tg '+(c.esP?'o':'g')+' ltg">'+(c.esP?'PROS':'CLI')+'</span>';
       h+='</div>';
     });
+    h+=masHTML('vc',cs.length,_totVC);
     var _vcb0=document.getElementById('vCB');if(_vcb0)_vcb0.innerHTML=h;return;
   }
   cs.forEach(function(c){
@@ -6892,6 +6971,7 @@ function renderVC(){
     if(c.tel){h+='<button class="sm wa" onclick="event.stopPropagation();envWA(\''+c.id+'\')" title="WhatsApp"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>';}
     h+='</div></div>';
   });
+  h+=masHTML('vc',cs.length,_totVC);
   var _vcb=document.getElementById('vCB');if(_vcb)_vcb.innerHTML=h;
 }
 
