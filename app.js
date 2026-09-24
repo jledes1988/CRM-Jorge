@@ -4,11 +4,11 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='8.3 - 22/09/2026';
+var VERSION='9.0 - 24/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
-var EC={'Nuevo Prospecto':'#fb923c','Contactado':'#fbbf24','Propuesta Enviada':'#a78bfa','Negociacion':'#ffffff','Cliente Activo':'#4ade80','No Le Interesa':'#f87171','Perdido':'#f87171'};
+var EC={'Nuevo Prospecto':'#fb923c','Contactado':'#fbbf24','Propuesta Enviada':'#a78bfa','Negociacion':'#facc15','Cliente Activo':'#4ade80','No Le Interesa':'#f87171','Perdido':'#f87171'};
 var MD={'Nuevo Prospecto':'Hola! Soy de Sei Tu Helados, pase por tu local y me gustaria contarte nuestra propuesta. Tenes un minuto?','Contactado':'Hola! Te escribo para coordinar una visita y mostrarte la propuesta de Sei Tu. Que dia te viene bien?','Propuesta Enviada':'Hola! Pudiste ver la propuesta? Queda alguna duda que pueda responder?','Negociacion':'Hola! Como venimos con la propuesta? Si necesitas ajustar algo avisame.','Cliente Activo':'Hola! Como va la venta? Aviso si hay novedades o promos.','No Le Interesa':'Gracias por tu tiempo! Si cambia la situacion quedo disponible.','Perdido':'Hola! Hace tiempo no hablamos. Segui interesado en Sei Tu?'};
 // Provincias donde opera la empresa. Si se suma una nueva, agregarla aca y en ARG_CIU.
 var ARG_PROV=['Cordoba','Santa Fe','Catamarca','La Rioja','Santiago del Estero','Tucuman','Salta','Jujuy'];
@@ -816,6 +816,19 @@ function migrarCargaInicial(){
   fsSetConfig({cargaInicialV:1});
   if(arreglados.length)toast(arreglados.length+' cliente'+(arreglados.length!==1?'s':'')+' con freezer: se registro su carga inicial','ok');
 }
+// Limpia de la base la marca vieja "deudor si/no". Quedaron contactos
+// marcados sin ningun movimiento cargado: figuraban como deudores y en Ventas
+// no les aparecia nada. El saldo real es el unico dato valido.
+function limpiarMarcaDeudorVieja(){
+  if(!D.user||D.user.r!=='admin')return;
+  if(!CFG_CARGADA)return;
+  if(D.cfg&&D.cfg.deuLimpiadaV>=1)return;
+  var conMarca=D.cli.filter(function(c){return c.deu!==undefined;});
+  conMarca.forEach(function(c){delete c.deu;fsSetContacto(c);});
+  D.cfg.deuLimpiadaV=1;
+  fsSetConfig({deuLimpiadaV:1});
+  if(conMarca.length)logEvento('edicion','','','Se limpio la marca vieja de deudor en '+conMarca.length+' contactos','','');
+}
 function repararEsP(){
   if(!D.user||D.user.r!=='admin')return;
   if(!CFG_CARGADA)return;
@@ -1006,7 +1019,7 @@ function limpiarPassViejas(){
 function normalizarDatos(){
   if(!Array.isArray(D.deudas))D.deudas=[];
   D.cli.forEach(function(c){if(c.tipo&&MAPA_TIPOS[c.tipo]){c._tipoViejo=c.tipo;c.tipo=MAPA_TIPOS[c.tipo];}});
-  D.cli.forEach(function(c){if(!c.etapaEmbudo||c.etapaEmbudo==='')c.etapaEmbudo=c.esP?'Nuevo Prospecto':'Cliente Activo';if(!c.uv)c.uv='';if(!c.ex)c.ex={};if(c.deu===undefined)c.deu=false;if(!c.ing)c.ing='';if(!c.vend)c.vend='';if(!c.prods)c.prods=[];if(!c.prov)c.prov='';if(!c.ciu)c.ciu='';if(c.agendado===undefined)c.agendado=false;if(!c.tel2)c.tel2='';if(!c.email)c.email='';if(c.eliminado===undefined)c.eliminado=false;if(!c.fuente)c.fuente=c.esP?'Prospeccion directa':'';});
+  D.cli.forEach(function(c){if(!c.etapaEmbudo||c.etapaEmbudo==='')c.etapaEmbudo=c.esP?'Nuevo Prospecto':'Cliente Activo';if(!c.uv)c.uv='';if(!c.ex)c.ex={};if(c.deu!==undefined)delete c.deu;if(!c.ing)c.ing='';if(!c.vend)c.vend='';if(!c.prods)c.prods=[];if(!c.prov)c.prov='';if(!c.ciu)c.ciu='';if(c.agendado===undefined)c.agendado=false;if(!c.tel2)c.tel2='';if(!c.email)c.email='';if(c.eliminado===undefined)c.eliminado=false;if(!c.fuente)c.fuente=c.esP?'Prospeccion directa':'';});
   D.usrs.forEach(function(u){if(u.activo===undefined)u.activo=true;if(!u.creado)u.creado='';if(!u.ua)u.ua='';});
   if(!D.cfg.msgPedido)D.cfg.msgPedido='Hola {nombre}! Te escribo de parte de Sei Tu Helados. Nos podés pasar el pedido de {negocio}? Gracias!';
   if(!D.cfg.metaFreezers)D.cfg.metaFreezers=80;
@@ -1151,6 +1164,7 @@ function startApp(){
   try{migrarInstagramARedesSociales();}catch(e){} // renombra Instagram -> Redes Sociales (solo admin)
   try{migrarClientesActivos();}catch(e){} // convierte los que tenian la etapa pero seguian como prospecto
   try{migrarClientesPabloAProspecto();}catch(e){} // los contactos de Pablo vuelven a prospecto (decision comercial)
+  try{limpiarMarcaDeudorVieja();}catch(e){}   // saca el si/no viejo de deudor
   try{migrarCargaInicial();}catch(e){}         // la entrega del freezer cuenta como primer pedido
   try{repararEsP();}catch(e){}                // destraba los que quedaron como clientes por el bug viejo
   try{migrarFraccionProductos();}catch(e){}   // suma la fraccion al catalogo ya guardado
@@ -1561,7 +1575,7 @@ function verEnMapaMini(id){
     miniMapaObj=L.map('miniMapa',{zoomControl:true,attributionControl:false}).setView([c.lat,c.lng],16);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(miniMapaObj);
     var etaMini=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
-    L.circleMarker([c.lat,c.lng],{radius:11,fillColor:(EC[etaMini]||'#22d3ee'),color:(etaMini==='Negociacion'?'#0b1220':'#fff'),weight:2,fillOpacity:.95}).addTo(miniMapaObj);
+    L.circleMarker([c.lat,c.lng],{radius:11,fillColor:(EC[etaMini]||'#22d3ee'),color:'#0b1220',weight:2,fillOpacity:.95}).addTo(miniMapaObj);
     miniMapaObj.invalidateSize();
   },250);
 }
@@ -1595,7 +1609,6 @@ function abrirFichaV(id){
   h+=(c.esP?'<span class="tg o">'+es(c.etapaEmbudo||'PROSPECTO')+'</span>':'<span class="tg g">CLIENTE ACTIVO</span>');
   var _sal=saldoDe(c.id);
   if(_sal>0)h+='<span onclick="verCuenta(\''+c.id+'\')" style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900;cursor:pointer">⚠ DEBE '+plata(_sal)+'</span>';
-  else if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900">⚠ DEUDOR</span>';
   if(c.cFr)h+='<span class="tg m">'+es(c.cFr)+'</span>';
   if(c.calU)h+='<span class="tg m">Ubic: '+c.calU+'</span>';
   if(c.trans)h+='<span class="tg m">Transito: '+es(c.trans)+'</span>';
@@ -1781,6 +1794,46 @@ function setVEF(v){vEFil=v||'Todos';resetPagina('ve');renderVE();}
 // revertia, y el contacto quedaba contando como cliente para siempre sin
 // forma de arreglarlo desde la app (le paso a Kiosco vale y a 6yS).
 // Devuelve 'alta', 'baja' o '' segun lo que haya cambiado.
+// Pide los datos que fabrica necesita antes de dar de alta el cliente.
+// Devuelve true si quedaron cargados. Se llama en TODOS los caminos que
+// convierten un prospecto en Cliente Activo.
+function pedirDatosAlta(cid,despues){
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  var faltan=[];
+  if(!c.cuit)faltan.push('CUIT');
+  if(!c.horarios)faltan.push('horarios');
+  if(!faltan.length){if(despues)despues();return;}
+  var h='<div style="font-size:15px;font-weight:800">'+es(c.nm)+'</div>';
+  h+='<div style="font-size:12px;color:var(--red);font-weight:700;margin:6px 0 12px">Para darlo de alta como cliente falta cargar: '+faltan.join(' y ')+'.</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Son los datos que fabrica necesita en el encabezado del pedido.</div>';
+  h+='<div class="fg"><label class="fl">CUIT</label><input class="fi" id="daCuit" inputmode="numeric" value="'+es(c.cuit||'')+'" placeholder="20321547460"></div>';
+  h+='<div class="fg"><label class="fl">Horarios del negocio</label><input class="fi" id="daHor" value="'+es(c.horarios||'')+'" placeholder="07 A 00"></div>';
+  h+='<div class="fg"><label class="fl">Condicion impositiva <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="daCond" value="'+es(c.condImp||'')+'" placeholder="MONOTRIBUTO"></div>';
+  h+='<div class="fg"><label class="fl">Localidad <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="daCiu" value="'+es(c.ciu||'')+'"></div>';
+  h+='<button class="btn" onclick="guardarDatosAlta(\''+cid+'\')" style="margin:0">Guardar y continuar</button>';
+  _altaDespues=despues||null;
+  oMod('Datos para dar de alta',h);
+}
+var _altaDespues=null;
+function guardarDatosAlta(cid){
+  if(soloLectura())return;
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  var cuit=(document.getElementById('daCuit')||{}).value||'';
+  var hor=(document.getElementById('daHor')||{}).value||'';
+  if(!cuit.trim()||!hor.trim()){toast('El CUIT y los horarios son obligatorios','err');return;}
+  c.cuit=cuit.trim();
+  c.horarios=hor.trim();
+  var cond=(document.getElementById('daCond')||{}).value;if(cond!==undefined)c.condImp=cond.trim();
+  var ciu=(document.getElementById('daCiu')||{}).value;if(ciu!==undefined&&ciu.trim())c.ciu=ciu.trim();
+  c._modBy=D.user?D.user.n:'?';c._modAt=new Date().toISOString();
+  fsSetContacto(c);
+  logEvento('edicion',c.id,c.nm,'Datos de alta cargados (CUIT y horarios)','','');
+  toast('Datos guardados','ok');
+  cMod();
+  var f=_altaDespues;_altaDespues=null;
+  if(f)f();
+  refrescarVistaActual();
+}
 function sincronizarEsP(c,eta){
   if(eta==='Cliente Activo'){ if(c.esP){c.esP=false;return 'alta';} return ''; }
   if(!c.esP)  { c.esP=true; return 'baja'; }
@@ -1798,6 +1851,7 @@ function cambiarEtapa(id,eta){
   c._modAt=new Date().toISOString();
   logEvento(conv?'conversion':'etapa',c.id,c.nm,(conv?'Prospecto convertido a Cliente Activo':(baja?'Dejo de ser cliente y volvio al embudo: '+ant+' -> '+eta:'Etapa: '+ant+' -> '+eta)),ant,eta);
   fsSetContacto(c);
+  if(conv)pedirDatosAlta(c.id);
   renderVE();
   toast(es(c.nm)+' '+(conv?'convertido a Cliente Activo':(baja?'volvio a prospecto en '+es(eta):'movido a '+es(eta))),'ok');
 }
@@ -1912,6 +1966,66 @@ function giraBloqueada(cid,fecha){
   var visitado=D.vis.some(function(v){return v.cid===cid&&v.fecha===fecha;});
   if(visitado&&!esAdmin){toast('Ya se registro la visita: no se puede quitar de la gira','err');return true;}
   return false;
+}
+// Agrupa las paradas del dia por barrio, respetando el orden que ya tenian
+// dentro de cada barrio. Devuelve [{barrio, gs:[...]}] en orden de recorrido.
+function gruposGiraDia(plan){
+  var orden=[],mapa={};
+  plan.forEach(function(g){
+    var c=D.cli.find(function(x){return x.id===g.cid;});
+    var b=((c&&c.bar)||'').trim()||'Sin barrio';
+    if(!mapa[b]){mapa[b]=[];orden.push(b);}
+    mapa[b].push(g);
+  });
+  return orden.map(function(b){return {barrio:b,gs:mapa[b]};});
+}
+// Reescribe el campo 'orden' de todas las paradas del dia segun una lista de
+// barrios. Es lo que hace que el mapa dibuje la ruta por zona.
+function aplicarOrdenGira(fecha,grupos){
+  var n=0;
+  grupos.forEach(function(gr){
+    gr.gs.forEach(function(g){
+      if(g.orden!==n){g.orden=n;fsSetGira(g);}
+      n++;
+    });
+  });
+}
+function agruparGiraPorBarrio(fecha){
+  if(soloLectura())return;
+  var plan=misGira().filter(function(g){return g.fecha===fecha;}).sort(function(a,b){return(a.orden||0)-(b.orden||0);});
+  if(!plan.length)return;
+  var grupos=gruposGiraDia(plan);
+  // Los barrios con mas paradas primero: se arranca por la zona mas cargada
+  grupos.sort(function(a,b){
+    if(a.barrio==='Sin barrio')return 1;
+    if(b.barrio==='Sin barrio')return -1;
+    return b.gs.length-a.gs.length;
+  });
+  aplicarOrdenGira(fecha,grupos);
+  toast('Gira agrupada en '+grupos.length+' barrio'+(grupos.length!==1?'s':''),'ok');
+  if(giraCont==='gGB')renderGG();else renderVG();
+}
+// Mueve un barrio entero al principio o al final del recorrido
+function moverBarrio(fecha,barrio,dir){
+  if(soloLectura())return;
+  var plan=misGira().filter(function(g){return g.fecha===fecha;}).sort(function(a,b){return(a.orden||0)-(b.orden||0);});
+  var grupos=gruposGiraDia(plan);
+  var i=grupos.findIndex(function(gr){return gr.barrio===barrio;});
+  if(i<0)return;
+  var gr=grupos.splice(i,1)[0];
+  if(dir==='arriba')grupos.unshift(gr);else grupos.push(gr);
+  aplicarOrdenGira(fecha,grupos);
+  if(giraCont==='gGB')renderGG();else renderVG();
+}
+function encabezadoBarrioGira(fecha,barrio,cuantos,esPrimero,esUltimo){
+  var h='<div style="display:flex;align-items:center;gap:8px;padding:12px 14px 6px">';
+  h+='<div style="font-size:12px;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:.4px">&#128205; '+es(barrio)+'</div>';
+  h+='<div style="font-size:11px;color:var(--muted)">'+cuantos+'</div>';
+  h+='<div style="flex:1;height:1px;background:var(--border)"></div>';
+  if(!esPrimero)h+='<button class="lx" title="Llevar este barrio al principio" style="color:var(--cyan)" onclick="moverBarrio(\''+fecha+'\',\''+es(barrio).replace(/'/g,"")+'\',\'arriba\')">&#9650;</button>';
+  if(!esUltimo)h+='<button class="lx" title="Llevar este barrio al final" style="color:var(--cyan)" onclick="moverBarrio(\''+fecha+'\',\''+es(barrio).replace(/'/g,"")+'\',\'abajo\')">&#9660;</button>';
+  h+='</div>';
+  return h;
 }
 function quitarDeGira(cid,fecha){
   if(giraBloqueada(cid,fecha))return;
@@ -2129,7 +2243,7 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin,filtroTipo){
     pop+='<div style="font-weight:800;font-size:14px;margin-bottom:2px">'+es(c.nm)+'</div>';
     if(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase())pop+='<div style="font-size:12px;font-weight:700;color:#0891b2">'+es(c.fan)+'</div>';
     pop+='<div style="font-size:11px;color:#666">'+es(c.bar||c.ciu||'')+(c.tipo?' · '+es(c.tipo):'')+'</div>';
-    pop+='<div style="font-size:11px;margin-top:3px"><span style="background:'+col+';color:'+(col.toLowerCase()==='#ffffff'?'#0b1220':'#fff')+';padding:2px 8px;border-radius:10px;font-weight:700">'+es(eta)+'</span></div>';
+    pop+='<div style="font-size:11px;margin-top:3px"><span style="background:'+col+';color:'+(esNeg?'#0b1220':'#fff')+';padding:2px 8px;border-radius:10px;font-weight:700">'+es(eta)+'</span></div>';
     if(tieneFz)pop+='<div style="font-size:11px;color:#16a34a;font-weight:700;margin-top:3px">&#10052; Freezer nuestro puesto</div>';
     else if(coAcordado)pop+='<div style="font-size:11px;color:#db2777;font-weight:700;margin-top:3px">&#10052; Acordo freezer, falta entregar</div>';
     if(c.sucursalDe){var padrePop=D.cli.find(function(x){return x.id===c.sucursalDe;});if(padrePop)pop+='<div style="font-size:10px;color:#888;margin-top:3px">Sucursal de '+es(padrePop.nm)+'</div>';}
@@ -2164,7 +2278,7 @@ function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro,filtroTipo,fnFiltroT
   h+='<span style="font-size:11px;color:var(--muted);margin-left:auto">'+conf+' en el mapa'+(sinConf?' &middot; <span style="color:var(--orange)">'+sinConf+' por confirmar</span>':'')+'</span>';
   h+='</div>';
   h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">';
-  ET.forEach(function(e){h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:'+(EC[e]||'#94a3b8')+';display:inline-block'+(e==='Negociacion'?';box-shadow:0 0 0 1px var(--border)':'')+'"></span>'+es(e)+'</span>';});
+  ET.forEach(function(e){h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;background:'+(EC[e]||'#94a3b8')+';display:inline-block'+''+'"></span>'+es(e)+'</span>';});
   h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:11px;height:11px;border-radius:50%;background:var(--muted);border:3px solid #4ade80;display:inline-block;box-sizing:border-box"></span>borde verde: freezer puesto</span>';
   h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:11px;height:11px;border-radius:50%;background:var(--muted);border:3px solid #ec4899;display:inline-block;box-sizing:border-box"></span>borde rosa: acordo freezer</span>';
   h+='<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block"></span>punto chico: sucursal</span>';
@@ -2330,7 +2444,7 @@ function filtrarAcuerdoFreezer(){
 // deudores solo aparecia si ya habia alguien debiendo: si estaba vacio no
 // habia forma de llegar. Ahora es una pestania fija.
 // ══════════════════════════════════════════════════════════════════════
-var vVSolapa='ped';   // 'ped' | 'deu'
+var vVSolapa='ped';   // 'ped' | 'ronda' | 'entr' | 'deu' | 'pagos'
 var vVPer='sem';      // hoy | sem | mes | todo
 function setVVSolapa(x){vVSolapa=x;renderVV();}
 function setVVPer(p){vVPer=p;renderVV();}
@@ -2360,25 +2474,41 @@ function renderGP(){
   if(!top||!cont)return;
   var deuL=deudores();
   var totDeu=deuL.reduce(function(t,d){return t+d.saldo;},0);
+  var _faltaG=faltanPreguntar(), _pendG=misPendientes().length;
   top.innerHTML='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+
+    '<span class="fb'+(gPSolapa==='ronda'?' on':'')+'" onclick="setGPSolapa(\'ronda\')">Ronda'+(_faltaG?' ('+_faltaG+')':'')+'</span>'+
+    '<span class="fb'+(gPSolapa==='entr'?' on':'')+'" onclick="setGPSolapa(\'entr\')">Entregas'+(_pendG?' ('+_pendG+')':'')+'</span>'+
     '<span class="fb'+(gPSolapa==='ped'?' on':'')+'" onclick="setGPSolapa(\'ped\')">Pedidos</span>'+
     '<span class="fb'+(gPSolapa==='deu'?' on':'')+'" onclick="setGPSolapa(\'deu\')">Deudores'+(deuL.length?' ('+deuL.length+')':'')+'</span>'+
+    '<span class="fb'+(gPSolapa==='pagos'?' on':'')+'" onclick="setGPSolapa(\'pagos\')">Pagos</span>'+
     '</div>';
   // gVendSel: si el admin esta mirando a un vendedor puntual, se respeta
   var base=D.ped.slice();
   if(gVendSel){var ids={};cliGlobal().forEach(function(c){ids[c.id]=true;});base=base.filter(function(p){return ids[p.cid];});}
-  cont.innerHTML=gPSolapa==='ped'?htmlPedidosPanel(base):htmlDeudoresPanel(deuL,totDeu);
+  cont.innerHTML=gPSolapa==='ronda'?htmlRondaPanel():
+                 gPSolapa==='entr'?htmlEntregasPanel():
+                 gPSolapa==='pagos'?htmlPagosPanel():
+                 gPSolapa==='deu'?htmlDeudoresPanel(deuL,totDeu):
+                 htmlPedidosPanel(base);
 }
 function renderVV(){
   var top=document.getElementById('vVF'),cont=document.getElementById('vVB');
   if(!top||!cont)return;
   var deuL=deudores();
   var totDeu=deuL.reduce(function(t,d){return t+d.saldo;},0);
+  var _falta=faltanPreguntar(), _pend=misPendientes().length;
   top.innerHTML='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+
+    '<span class="fb'+(vVSolapa==='ronda'?' on':'')+'" onclick="setVVSolapa(\'ronda\')">Ronda'+(_falta?' ('+_falta+')':'')+'</span>'+
+    '<span class="fb'+(vVSolapa==='entr'?' on':'')+'" onclick="setVVSolapa(\'entr\')">Entregas'+(_pend?' ('+_pend+')':'')+'</span>'+
     '<span class="fb'+(vVSolapa==='ped'?' on':'')+'" onclick="setVVSolapa(\'ped\')">Pedidos</span>'+
     '<span class="fb'+(vVSolapa==='deu'?' on':'')+'" onclick="setVVSolapa(\'deu\')">Deudores'+(deuL.length?' ('+deuL.length+')':'')+'</span>'+
+    '<span class="fb'+(vVSolapa==='pagos'?' on':'')+'" onclick="setVVSolapa(\'pagos\')">Pagos</span>'+
     '</div>';
-  cont.innerHTML=vVSolapa==='ped'?htmlPedidosPanel(misPedidos()):htmlDeudoresPanel(deuL,totDeu);
+  cont.innerHTML=vVSolapa==='ronda'?htmlRondaPanel():
+                 vVSolapa==='entr'?htmlEntregasPanel():
+                 vVSolapa==='pagos'?htmlPagosPanel():
+                 vVSolapa==='deu'?htmlDeudoresPanel(deuL,totDeu):
+                 htmlPedidosPanel(misPedidos());
 }
 // ── Solapa Pedidos ───────────────────────────────────────────────────
 function htmlPedidosPanel(base){
@@ -2419,6 +2549,224 @@ function htmlPedidosPanel(base){
   });
   h+='</div>';
   return h;
+}
+// ── Solapa PAGOS: todo lo que se cobro, aunque el cliente ya este al dia ──
+function pagosDelPeriodo(per){
+  var desde=desdePeriodo(per);
+  var ms=(D.deudas||[]).filter(function(m){return m.tipo==='pago'&&(m.fecha||'')>=desde;});
+  if(D.user&&D.user.r==='vendedor'){
+    var mios={};D.cli.forEach(function(c){if(c.vend===D.user.n)mios[c.id]=true;});
+    ms=ms.filter(function(m){return mios[m.cid]||m.vend===D.user.n;});
+  } else if(gVendSel){
+    var ids={};cliGlobal().forEach(function(c){ids[c.id]=true;});
+    ms=ms.filter(function(m){return ids[m.cid];});
+  }
+  return ms.sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+}
+var vPagosPer='mes';
+function setPagosPer(p){vPagosPer=p;if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGP();else renderVV();}
+function htmlPagosPanel(){
+  var ms=pagosDelPeriodo(vPagosPer);
+  var tot=ms.reduce(function(t,m){return t+Number(m.monto||0);},0);
+  var h='<div style="padding:12px 14px;background:var(--s1);border-bottom:1px solid var(--border)">';
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">';
+  [['hoy','Hoy'],['sem','Esta semana'],['mes','Este mes'],['todo','Todo']].forEach(function(o){
+    h+='<span class="fb'+(vPagosPer===o[0]?' on':'')+'" onclick="setPagosPer(\''+o[0]+'\')">'+o[1]+'</span>';
+  });
+  h+='</div>';
+  h+='<div style="display:flex;gap:14px;flex-wrap:wrap">';
+  h+='<div><div style="font-size:22px;font-weight:800;color:var(--green)">'+plata(tot)+'</div><div style="font-size:10px;color:var(--muted)">COBRADO</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800">'+ms.length+'</div><div style="font-size:10px;color:var(--muted)">PAGOS</div></div>';
+  h+='</div></div><div style="padding:10px 14px">';
+  if(!ms.length){h+='<div class="empty">Sin pagos en este periodo.</div></div>';return h;}
+  var diaAnt='';
+  ms.forEach(function(m){
+    if(m.fecha!==diaAnt){
+      diaAnt=m.fecha;
+      var tDia=ms.filter(function(x){return x.fecha===m.fecha;}).reduce(function(t,x){return t+Number(x.monto||0);},0);
+      h+='<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px"><div style="font-size:12px;font-weight:800;color:var(--cyan)">'+fmt(m.fecha)+'</div><div style="font-size:11px;color:var(--green);font-weight:700">'+plata(tDia)+'</div><div style="flex:1;height:1px;background:var(--border)"></div></div>';
+    }
+    var sal=saldoDe(m.cid);
+    h+='<div onclick="verCuenta(\''+m.cid+'\')" style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer">';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(m.cliente||'')+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted)">'+(m.concepto?es(m.concepto)+' · ':'')+(m.vend?es(m.vend):'')+'</div></div>';
+    h+='<div style="text-align:right;flex-shrink:0"><div style="font-size:14px;font-weight:800;color:var(--green)">'+plata(m.monto)+'</div>';
+    h+='<div style="font-size:10px;color:'+(sal>0?'var(--red)':'var(--muted)')+'">'+(sal>0?'debe '+plata(sal):'al dia')+'</div></div>';
+    h+='<span style="color:var(--muted)">&rsaquo;</span></div>';
+  });
+  h+='</div>';
+  return h;
+}
+// ── Solapa RONDA: a quien falta preguntarle el pedido esta semana ────
+// Marcar "no pide esta vez" se guarda en el contacto con la fecha del ciclo,
+// asi la marca se cae sola cuando arranca el ciclo siguiente.
+function clientesDeLaRonda(){
+  var base=misContactos(true).filter(function(c){return !c.esP&&!c.eliminado;});
+  if(D.user&&(D.user.r==='admin'||D.user.r==='gerente')&&gVendSel)
+    base=base.filter(function(c){return c.vend===gVendSel;});
+  var ciclo=cicloActual();
+  return base.map(function(c){
+    var ped=D.ped.find(function(p){return p.cid===c.id&&estadoPedido(p)!=='anulado'&&(p.fecha||'')>=ciclo.desde;});
+    var paso=c.sinPedido===ciclo.hasta;
+    return {c:c, ped:ped||null, estado: ped?'pidio':(paso?'paso':'falta')};
+  }).sort(function(a,b){
+    var o={falta:0,paso:1,pidio:2};
+    if(o[a.estado]!==o[b.estado])return o[a.estado]-o[b.estado];
+    return (a.c.nm||'').localeCompare(b.c.nm||'');
+  });
+}
+function faltanPreguntar(){
+  return clientesDeLaRonda().filter(function(x){return x.estado==='falta';}).length;
+}
+// "Esta vez no pide": se marca con la fecha de entrega del ciclo
+function marcarSinPedido(cid,deshacer){
+  if(soloLectura())return;
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  c.sinPedido=deshacer?'':cicloActual().hasta;
+  c._modBy=D.user?D.user.n:'?';c._modAt=new Date().toISOString();
+  fsSetContacto(c);
+  if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGP();else renderVV();
+}
+function htmlRondaPanel(){
+  var lista=clientesDeLaRonda();
+  var ciclo=cicloActual();
+  var pidio=lista.filter(function(x){return x.estado==='pidio';}).length;
+  var paso=lista.filter(function(x){return x.estado==='paso';}).length;
+  var falta=lista.filter(function(x){return x.estado==='falta';}).length;
+  var f=function(d){return new Date(d+'T12:00:00').toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'});};
+  var h='<div style="padding:12px 14px;background:var(--s1);border-bottom:1px solid var(--border)">';
+  h+='<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Ciclo en curso</div>';
+  h+='<div style="font-size:13px;font-weight:700;text-transform:capitalize;margin-bottom:8px">'+es(f(ciclo.desde))+' &rarr; entrega '+es(f(ciclo.hasta))+'</div>';
+  h+='<div style="display:flex;gap:14px;flex-wrap:wrap">';
+  h+='<div><div style="font-size:22px;font-weight:800;color:'+(falta?'var(--red)':'var(--green)')+'">'+falta+'</div><div style="font-size:10px;color:var(--muted)">FALTA PREGUNTAR</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:var(--green)">'+pidio+'</div><div style="font-size:10px;color:var(--muted)">YA PIDIERON</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:var(--muted)">'+paso+'</div><div style="font-size:10px;color:var(--muted)">NO PIDEN</div></div>';
+  h+='</div></div><div style="padding:10px 14px">';
+  if(!lista.length){h+='<div class="empty">Todavia no tenes clientes activos.</div></div>';return h;}
+  if(!falta)h+='<div style="background:rgba(74,222,128,.10);border:1px solid rgba(74,222,128,.3);border-radius:var(--rsm);padding:10px 12px;margin-bottom:10px;font-size:13px;font-weight:700;color:var(--green)">&#10003; No falta preguntarle a nadie</div>';
+  var grupoAnt='';
+  lista.forEach(function(it){
+    if(it.estado!==grupoAnt){
+      grupoAnt=it.estado;
+      var tit={falta:'FALTA PREGUNTAR',paso:'NO PIDEN ESTA VEZ',pidio:'YA PASARON PEDIDO'}[it.estado];
+      var colT={falta:'var(--red)',paso:'var(--muted)',pidio:'var(--green)'}[it.estado];
+      h+='<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px"><div style="font-size:12px;font-weight:800;color:'+colT+'">'+tit+'</div><div style="flex:1;height:1px;background:var(--border)"></div></div>';
+    }
+    var c=it.c;
+    h+='<div class="cc" style="margin-bottom:8px;padding:11px">';
+    h+='<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0">';
+    h+='<div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted)">'+es(c.bar||c.ciu||'')+(c.uv?' · ultimo pedido '+fmt(c.uv):'')+'</div>';
+    if(it.ped)h+='<div style="font-size:12px;font-weight:700;color:var(--green)">'+plata(it.ped.total)+' · '+labelEstadoPed(estadoPedido(it.ped)).toLowerCase()+'</div>';
+    h+='</div></div>';
+    h+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
+    if(it.estado==='pidio'){
+      h+='<button class="sm" onclick="verPedido(\''+it.ped.id+'\')">Ver el pedido</button>';
+    } else {
+      h+='<button class="sm g" onclick="abrirPedido(\''+c.id+'\')">Tomar pedido</button>';
+      if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')">WhatsApp</button>';
+      if(it.estado==='falta')h+='<button class="sm" onclick="marcarSinPedido(\''+c.id+'\')">Esta vez no pide</button>';
+      else h+='<button class="sm" onclick="marcarSinPedido(\''+c.id+'\',1)">Deshacer</button>';
+    }
+    h+='</div></div>';
+  });
+  h+='</div>';
+  return h;
+}
+// ── Solapa ENTREGAS: los pedidos tomados esperando el miercoles ──────
+// Aca es donde la mercaderia realmente baja y, por lo tanto, donde nace la
+// deuda. Marcar entregado hace tres cosas: actualiza la ultima compra del
+// cliente, lo convierte en Cliente Activo si era prospecto, y carga a su
+// cuenta lo que no se cobro.
+function htmlEntregasPanel(){
+  var ps=misPendientes();
+  var tot=ps.reduce(function(t,p){return t+Number(p.total||0);},0);
+  var prox=proximaEntrega();
+  var h='<div style="padding:12px 14px;background:var(--s1);border-bottom:1px solid var(--border)">';
+  h+='<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Proxima entrega</div>';
+  h+='<div style="font-size:15px;font-weight:800;color:var(--cyan);text-transform:capitalize;margin-bottom:8px">'+es(new Date(prox+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}))+'</div>';
+  h+='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">';
+  h+='<div><div style="font-size:22px;font-weight:800">'+ps.length+'</div><div style="font-size:10px;color:var(--muted)">PEDIDOS TOMADOS</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:var(--green)">'+plata(tot)+'</div><div style="font-size:10px;color:var(--muted)">A ENTREGAR</div></div>';
+  if(ps.length)h+='<button class="sm g" onclick="entregarTodos()" style="margin-left:auto">Marcar todo entregado</button>';
+  h+='</div></div><div style="padding:10px 14px">';
+  if(!ps.length){
+    h+='<div class="empty">No hay pedidos esperando entrega.<br><span style="font-size:11px">Los pedidos que tomes quedan aca hasta que los marques entregados.</span></div></div>';
+    return h;
+  }
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Al marcar entregado se genera la deuda de lo que no se cobro.</div>';
+  ps.forEach(function(p){
+    var debe=p.cobrado!==undefined?(Number(p.total||0)-Number(p.cobrado||0)):0;
+    var c=D.cli.find(function(x){return x.id===p.cid;});
+    h+='<div class="cc" style="margin-bottom:8px;border-left:4px solid #fbbf24">';
+    h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;min-width:0">';
+    h+='<div style="font-size:14px;font-weight:700">'+es(p.cliente||'')+'</div>';
+    if(c&&c.dir)h+='<div style="font-size:11px;color:var(--muted)">&#128205; '+es(c.dir)+(c.bar?' · '+es(c.bar):'')+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted)">Tomado el '+fmt(p.fecha)+' · '+(p.items?p.items.length:0)+' renglones'+(p.vend?' · '+es(p.vend):'')+'</div>';
+    if(debe>0)h+='<div style="font-size:11px;color:var(--red);font-weight:700">Al entregar queda debiendo '+plata(debe)+'</div>';
+    h+='</div><div style="font-size:16px;font-weight:900;color:var(--green);flex-shrink:0">'+plata(p.total)+'</div></div>';
+    h+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
+    h+='<button class="sm g" onclick="marcarEntrega(\''+p.id+'\',\'entregado\')">Entregado</button>';
+    h+='<button class="sm" onclick="verPedido(\''+p.id+'\')">Ver / corregir</button>';
+    h+='<button class="sm rd" onclick="marcarEntrega(\''+p.id+'\',\'anulado\')">No se entrego</button>';
+    h+='</div></div>';
+  });
+  h+='</div>';
+  return h;
+}
+// El momento en que la mercaderia baja de verdad
+function marcarEntrega(pid,estado){
+  if(soloLectura())return;
+  var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
+  var c=D.cli.find(function(x){return x.id===p.cid;});
+  if(estado==='anulado'){
+    if(!confirm('Marcar como NO ENTREGADO el pedido de "'+(p.cliente||'')+'" por '+plata(p.total)+'?\n\nNo va a generar deuda ni contar como venta.'))return;
+    p.estado='anulado';
+    p._modBy=D.user?D.user.n:'?';p._modAt=new Date().toISOString();
+    fsSetPedido(p);
+    ajustarDeudaDePedido(p,0);
+    logEvento('venta',p.cid,p.cliente,'Pedido NO entregado ('+plata(p.total)+')','tomado','anulado');
+    toast('Marcado como no entregado','ok');
+  } else {
+    p.estado='entregado';
+    p.fechaEntrega=fechaLocal();
+    p._modBy=D.user?D.user.n:'?';p._modAt=new Date().toISOString();
+    fsSetPedido(p);
+    // Recien ahora es una venta: cuenta como ultima compra y convierte a cliente
+    var convertido=false;
+    if(c){
+      c.uv=p.fechaEntrega;
+      if(c.esP){c.esP=false;c.etapaEmbudo='Cliente Activo';convertido=true;}
+      fsSetContacto(c);
+    }
+    var debe=Number(p.total||0)-(p.cobrado!==undefined?Number(p.cobrado||0):Number(p.total||0));
+    ajustarDeudaDePedido(p,debe);
+    logEvento('venta',p.cid,p.cliente,'Pedido ENTREGADO por '+plata(p.total)+(debe>0?' · queda debiendo '+plata(debe):' · cobrado'),'tomado','entregado');
+    toast(debe>0?'Entregado. Quedo debiendo '+plata(debe):'Entregado y cobrado','ok');
+    if(convertido)pedirDatosAlta(p.cid);
+  }
+  if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGP();else renderVV();
+  refrescarVistaActual();
+}
+function entregarTodos(){
+  if(soloLectura())return;
+  var ps=misPendientes();
+  if(!ps.length)return;
+  var tot=ps.reduce(function(t,p){return t+Number(p.total||0);},0);
+  if(!confirm('Marcar los '+ps.length+' pedidos como ENTREGADOS?\n\nTotal '+plata(tot)+'.\nSe va a generar la deuda de cada uno que no este cobrado.\n\nSi alguno no se entrego, marcalo aparte despues.'))return;
+  ps.forEach(function(p){
+    p.estado='entregado';p.fechaEntrega=fechaLocal();
+    p._modBy=D.user?D.user.n:'?';p._modAt=new Date().toISOString();
+    fsSetPedido(p);
+    var c=D.cli.find(function(x){return x.id===p.cid;});
+    if(c){c.uv=p.fechaEntrega;if(c.esP){c.esP=false;c.etapaEmbudo='Cliente Activo';}fsSetContacto(c);}
+    var debe=Number(p.total||0)-(p.cobrado!==undefined?Number(p.cobrado||0):Number(p.total||0));
+    ajustarDeudaDePedido(p,debe);
+  });
+  logEvento('venta','','','Entrega del dia: '+ps.length+' pedidos por '+plata(tot),'tomado','entregado');
+  toast(ps.length+' pedidos entregados','ok');
+  if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGP();else renderVV();
+  refrescarVistaActual();
 }
 // ── Solapa Deudores (misma info que el panel, pero como pantalla fija) ─
 function htmlDeudoresPanel(lista,tot){
@@ -3218,7 +3566,7 @@ function renderGC(){
   else if(gCF2==='Prospectos')cs=cs.filter(function(c){return c.esP;});
   else if(gCF2==='Sin visitar')cs=cs.filter(function(c){return !c.ul;});
   else if(gCF2==='Con freezer')cs=cs.filter(function(c){return c.cFr==='Propio';});
-  else if(gCF2==='Deudores')cs=cs.filter(function(c){return saldoDe(c.id)>0||c.deu;});
+  else if(gCF2==='Deudores')cs=cs.filter(function(c){return saldoDe(c.id)>0;});
   if(q)cs=cs.filter(function(c){return c.nm.toLowerCase().includes(q)||(c.dir||'').toLowerCase().includes(q)||(c.bar||'').toLowerCase().includes(q);});
   cs.sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   // Resumen de filtros activos (fuera del flujo normal, arriba de la lista) + boton para limpiar todo.
@@ -3246,7 +3594,7 @@ function renderGC(){
       h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase()?' <span class="lfan">· '+es(c.fan)+'</span>':'')+'</div>';
       h+='<div class="lsub">'+es(c.dir||c.bar||c.ciu||'')+(c.vend?' · '+es(c.vend):'')+'</div></div>';
       h+=(c.esP?'<span class="tg o ltg">PROS</span>':'<span class="tg g ltg">CLI</span>');
-      if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:2px 6px;border-radius:5px;font-size:9px;font-weight:900;flex-shrink:0">DEU</span>';
+      if(saldoDe(c.id)>0)h+='<span style="background:var(--red);color:#fff;padding:2px 6px;border-radius:5px;font-size:9px;font-weight:900;flex-shrink:0">DEU</span>';
       h+='</div>';
     });
     h+=masHTML('gc',cs.length,_totGC);
@@ -3261,7 +3609,7 @@ function renderGC(){
     h+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">';
     h+=(c.esP?'<span class="tg o">'+es(c.etapaEmbudo||'PROSPECTO')+'</span>':'<span class="tg g">CLIENTE</span>');
     if(c.vend)h+='<span class="tg m">'+es(c.vend)+'</span>';
-    if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:900;letter-spacing:.5px">⚠ DEUDOR</span>';
+    if(saldoDe(c.id)>0)h+='<span style="background:var(--red);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:900;letter-spacing:.5px">⚠ DEBE '+plata(saldoDe(c.id))+'</span>';
     h+='</div></div>';
     h+='<div style="font-size:11px;color:'+col+';text-align:right;flex-shrink:0">'+(c.ul?fmt(c.ul):'Sin visitar')+'</div></div></div>';
   });
@@ -3364,6 +3712,45 @@ function productos(){ return (D.cfg.productos&&D.cfg.productos.length)?D.cfg.pro
 function materiales(){ return (D.cfg.materiales&&D.cfg.materiales.length)?D.cfg.materiales:MATERIALES_DEF; }
 function pedidosDe(cid){ return D.ped.filter(function(p){return p.cid===cid;}).sort(function(a,b){return(b.fecha||'').localeCompare(a.fecha||'');}); }
 function esPrimerPedido(cid){ return pedidosDe(cid).length===0; }
+// ── Calendario del negocio ───────────────────────────────────────────
+// Los pedidos se toman de jueves a lunes y se entregan el miercoles siguiente.
+// Los dias son editables desde Config por si el dia de entrega cambia.
+function diaEntrega(){ var n=D.cfg&&D.cfg.diaEntrega; return (n>=0&&n<=6)?n:3; }   // 3 = miercoles
+// Proximo dia de entrega a partir de hoy (si hoy es el dia, es hoy)
+function proximaEntrega(desde){
+  var d=desde?new Date(desde+'T12:00:00'):new Date();
+  var obj=diaEntrega();
+  var delta=(obj-d.getDay()+7)%7;
+  d.setDate(d.getDate()+delta);
+  return fechaLocal(d);
+}
+// La ventana de toma de pedidos del ciclo actual: desde el dia siguiente a la
+// ultima entrega, hasta la proxima entrega.
+function cicloActual(){
+  var hasta=proximaEntrega();
+  var d=new Date(hasta+'T12:00:00');
+  d.setDate(d.getDate()-6);
+  return {desde:fechaLocal(d), hasta:hasta};
+}
+function estadoPedido(p){ return p.estado||'entregado'; }
+function pedidoEntregado(p){ return estadoPedido(p)==='entregado'; }
+function pedidosPendientes(){
+  return D.ped.filter(function(p){return estadoPedido(p)==='tomado';})
+    .sort(function(a,b){return (a.fecha||'').localeCompare(b.fecha||'');});
+}
+// Los pedidos pendientes del usuario actual
+function misPendientes(){
+  var ps=pedidosPendientes();
+  if(!D.user||D.user.r==='admin'||D.user.r==='gerente'){
+    if(!gVendSel)return ps;
+    var ids={};cliGlobal().forEach(function(c){ids[c.id]=true;});
+    return ps.filter(function(p){return ids[p.cid];});
+  }
+  var mios={};D.cli.forEach(function(c){if(c.vend===D.user.n)mios[c.id]=true;});
+  return ps.filter(function(p){return mios[p.cid]||p.vend===D.user.n;});
+}
+function labelEstadoPed(e){ return {tomado:'TOMADO',entregado:'ENTREGADO',anulado:'NO ENTREGADO'}[e]||'ENTREGADO'; }
+function colorEstadoPed(e){ return {tomado:'#fbbf24',entregado:'#4ade80',anulado:'#f87171'}[e]||'#4ade80'; }
 
 // Fraccion de un producto: cuantas sub-unidades entran en la caja cerrada y
 // como se llaman. Ej: un pack de postres viene en caja de 6 cajitas x8, y las
@@ -3593,7 +3980,7 @@ function textoFabrica(){
   if(!Object.keys(pedActual.items).length&&!Object.keys(pedActual.frac||{}).length&&!Object.keys(pedActual.mats).length)return '';
   var L=[];
   if(esPrimerPedido(c.id)){
-    L.push('Nombre del negocio: '+(c.nm||''));
+    L.push('Nombre del negocio: *'+(c.nm||'')+'*');
     L.push('Direccion: '+(c.dir||''));
     L.push('Localidad: '+(c.ciu||''));
     L.push('Provincia: '+(c.prov||''));
@@ -3603,8 +3990,11 @@ function textoFabrica(){
     L.push('Condicion impositiva: '+(c.condImp||''));
     L.push('Cel: '+(c.tel||''));
   } else {
-    L.push(c.nm||'');
-    L.push(c.dir||'');
+    // Encabezado corto: negocio en NEGRITA (los asteriscos los interpreta
+    // WhatsApp), ciudad y horarios.
+    L.push('*'+(c.nm||'')+'*');
+    if(c.dir)L.push(c.dir);
+    L.push('Localidad: '+(c.ciu||''));
     L.push('Horarios: '+(c.horarios||''));
   }
   var mats=Object.keys(pedActual.mats);
@@ -3690,19 +4080,18 @@ function guardarPedido(){
     ped={id:uid(),cid:c.id,cliente:c.nm,fecha:today(),vend:D.user?D.user.n:'',
       items:items,total:tot,mats:Object.keys(pedActual.mats),
       notaPago:pedActual.notaPago,notaConv:pedActual.notaConv,obs:pedActual.obs,
-      cobrado:tot-debe};
+      cobrado:tot-debe, estado:'tomado', entrega:proximaEntrega()};
     D.ped.push(ped);
-    // El pedido es una venta: actualiza la ultima compra del cliente
-    c.uv=ped.fecha;
-    if(c.esP){c.esP=false;c.etapaEmbudo='Cliente Activo';}
-    fsSetContacto(c);
-    logEvento('venta',c.id,c.nm,'Pedido cargado por '+plata(tot),'','');
+    // OJO: aca ya NO se toca c.uv ni se convierte a cliente. El pedido todavia
+    // no se entrego: eso pasa el miercoles, en marcarEntrega().
+    logEvento('venta',c.id,c.nm,'Pedido TOMADO por '+plata(tot)+' · entrega '+fmt(ped.entrega),'','');
   }
   fsSetPedido(ped);
-  // La deuda que genero ESTE pedido se deja igual a lo que quedo sin cobrar.
-  // Los pagos que el cliente haya hecho no se tocan: son movimientos aparte.
-  ajustarDeudaDePedido(ped,debe);
-  if(debe>0){
+  // La deuda solo existe si la mercaderia ya bajo.
+  if(pedidoEntregado(ped))ajustarDeudaDePedido(ped,debe);
+  if(estadoPedido(ped)==='tomado'){
+    toast((editando?'Pedido actualizado':'Pedido tomado')+': '+plata(tot)+' — se entrega el '+fmt(ped.entrega),'ok');
+  } else if(debe>0){
     var pEl=document.getElementById('pedProm');
     var prom=(pEl&&pEl.value)||pedActual.prom||'';
     if(prom){setCompromiso(c.id,prom);logEvento('venta',c.id,c.nm,'Se comprometio a pagar '+plata(debe)+' el '+fmt(prom),'','');}
@@ -3794,13 +4183,16 @@ function totalDeuda(){
 }
 // Mantiene la marca "DEUDOR" del contacto en linea con el saldo real, para que
 // el filtro y los badges que ya existian sigan funcionando sin tocarlos.
+// Antes esto mantenia una marca "deu" si/no en el contacto. Esa marca se saco:
+// el saldo se calcula siempre de los movimientos. Lo unico que queda es soltar
+// el compromiso de pago cuando el cliente termina de pagar.
 function sincronizarMarcaDeudor(cid){
   var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
-  var debe=saldoDe(cid)>0;
-  var cambio=false;
-  if(!!c.deu!==debe){c.deu=debe;cambio=true;}
-  if(!debe&&c.promPago){c.promPago='';cambio=true;}  // quedo al dia: se cae el compromiso
-  if(cambio){c._modBy=D.user?D.user.n:'?';c._modAt=new Date().toISOString();fsSetContacto(c);}
+  if(saldoDe(cid)<=0&&c.promPago){
+    c.promPago='';
+    c._modBy=D.user?D.user.n:'?';c._modAt=new Date().toISOString();
+    fsSetContacto(c);
+  }
 }
 // Registra un movimiento. concepto y pid son opcionales.
 function nuevoMovimiento(cid,tipo,monto,concepto,pid){
@@ -4293,7 +4685,6 @@ function aFicha(id){
   h+=(c.esP?'<span class="tg o">'+es(c.etapaEmbudo||'PROSPECTO')+'</span>':'<span class="tg g">CLIENTE</span>');
   var _sal=saldoDe(c.id);
   if(_sal>0)h+='<span onclick="verCuenta(\''+c.id+'\')" style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900;cursor:pointer">⚠ DEBE '+plata(_sal)+'</span>';
-  else if(c.deu)h+='<span style="background:var(--red);color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900">⚠ DEUDOR</span>';
   if(c.vend)h+='<span class="tg m">'+es(c.vend)+'</span>';
   if(c.fuente&&c.esP)h+='<span class="tg" style="background:rgba(139,92,246,.18);color:#a78bfa">'+iconoFuente(c.fuente)+' '+es(c.fuente)+'</span>';
   h+='</div></div>';
@@ -4947,19 +5338,21 @@ function avanzarComodato(id,nuevoEstado){
     }
     co.estado='activo';
     co.fe=fechaLocal(); // fecha real de entrega
-    // El cliente pasa a Cliente Activo (ahora si tiene freezer funcionando)
+    // El cliente pasa a Cliente Activo (ahora si tiene freezer funcionando).
+    // La carga inicial NO se da por hecha aca: es un pedido como cualquier
+    // otro, que se toma en su dia y se entrega el miercoles.
     var c=D.cli.find(function(x){return x.id===co.cid;});
+    var _conv=false;
     if(c){
+      if(c.esP)_conv=true;
       c.esP=false;c.etapaEmbudo='Cliente Activo';
-      // La carga inicial baja junto con el equipo: cuenta como su primer pedido.
-      c.uv=co.fe;
-      co.cargaInicial=true;
       fsSetContacto(c);
     }
+    if(_conv)pedirDatosAlta(co.cid);
     logEvento('comodato',co.cid,co.cnm||'?','Freezer entregado · #'+co.nro+' · la carga inicial cuenta como primer pedido','por_entregar','activo');
     toast('Freezer entregado. Cliente activado','ok');
     // Se ofrece cargar el detalle, sin obligar
-    if(c&&confirm('Queres cargar el detalle de la carga inicial como pedido?\n\nSi decis que no, igual queda registrada la fecha como primer pedido.')){
+    if(c&&confirm('Queres tomarle la carga inicial ahora?\n\nQueda como pedido tomado y se entrega el '+fmt(proximaEntrega())+', igual que el resto.')){
       fsSetComodato(co);
       abrirPedido(co.cid);
       return;
@@ -5072,8 +5465,6 @@ function saveCo(){
   // como su primer pedido (baja junto con el equipo).
   if(estado==='activo'&&c){
     c.esP=false;c.etapaEmbudo='Cliente Activo';
-    if(nCom.fe)c.uv=nCom.fe;
-    nCom.cargaInicial=true;
     fsSetContacto(c);
   }
   var msgEstado={por_firmar:'acordado, pendiente de firma',por_entregar:'firmado, pendiente de entrega',activo:'firmado y entregado'}[estado];
@@ -6120,7 +6511,6 @@ function wFin(){
       // "Cliente Activo" convierte, cualquier otra etapa lo devuelve al embudo.
       if(sincronizarEsP(c,v.eta)==='alta')v.conversion=true;
     }
-    if(v.deu!==undefined)c.deu=v.deu;
     if(v.prox)v.prox=ajustarDiaHabil(v.prox);
     if(!v.prox&&v.vendio!==true){
       var etaRef=v.eta||c.etapaEmbudo||'Nuevo Prospecto';
@@ -6615,12 +7005,17 @@ function renderVG(){
   var limiteMapa=new Date();limiteMapa.setDate(limiteMapa.getDate()+7);
   var dentroDeRango=gDiaActivo>=hoy&&gDiaActivo<=fechaLocal(limiteMapa);
   if(dentroDeRango&&planActivo.length)h+='<button class="sm" onclick="toggleGiraMapaVG()">'+(giraMapaOn?'&#9776; Lista':'&#128506; Mapa')+'</button>';
+  if(planActivo.length>1)h+='<button class="sm" onclick="agruparGiraPorBarrio(\''+gDiaActivo+'\')" title="Ordenar las paradas por zona">&#128205; Por barrio</button>';
   h+='<button class="sm g" onclick="abrirAgregarAGira(\''+gDiaActivo+'\')">+ Agregar</button>';
   h+='</div>';
   if(!planActivo.length){
     h+='<div style="text-align:center;padding:30px 14px;color:var(--muted)"><div style="font-size:28px;margin-bottom:8px">📅</div><div style="font-size:13px">Sin visitas para este día</div></div>';
   } else if(vistaModo==='lista'){
-    planActivo.forEach(function(g,idx){
+    var _gr=gruposGiraDia(planActivo), _i=0;
+    _gr.forEach(function(gru,gi){
+      h+=encabezadoBarrioGira(gDiaActivo,gru.barrio,gru.gs.length,gi===0,gi===_gr.length-1);
+      gru.gs.forEach(function(g){
+      var idx=_i++;
       var c=D.cli.find(function(x){return x.id===g.cid;});if(!c)return;
       var yaVis=D.vis.some(function(v){return v.cid===g.cid&&v.fecha===gDiaActivo;});
       var etaCol=EC[c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo')]||'#94a3b8';
@@ -6632,6 +7027,7 @@ function renderVG(){
       h+='<button class="lx" title="Pasar al dia siguiente" style="color:var(--cyan)" onclick="event.stopPropagation();pasarAlDiaSiguiente(\''+g.cid+'\',\''+gDiaActivo+'\')">▶</button>';
       h+='<button class="lx" onclick="event.stopPropagation();quitarDeGira(\''+g.cid+'\',\''+gDiaActivo+'\')">✕</button>';
       h+='</div>';
+      });
     });
   } else {
     var n=planActivo.length;

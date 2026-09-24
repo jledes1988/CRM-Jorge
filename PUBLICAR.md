@@ -1,122 +1,149 @@
-# CRM-Jorge — Versión 8.3 · Optimización
+# CRM-Jorge — Versión 9.0
 
-**Van `app.js` e `index.html`.** `estilos.css` no cambió; lo dejo igual en la
-carpeta para que subas los tres juntos.
+**Solo cambió `app.js`.** `index.html` y `estilos.css` son los mismos de la
+8.3; los dejo en la carpeta para que subas los tres juntos sin dudar.
 
----
-
-## Qué encontré
-
-Medí la app con tus datos reales (el backup del 19/9: 318 contactos, 502
-visitas). El JavaScript es rápido — 7 a 15 milésimas de segundo. **El problema
-era el HTML que generaba:**
-
-| Pantalla | Antes | Ahora |
-|---|---|---|
-| Contactos (vendedor) | 366 KB · 9.048 nodos | **12 KB · 568** |
-| Embudo (vendedor) | 333 KB · 9.404 nodos | **13 KB · 566** |
-| Contactos (admin) | 190 KB · 9.000 nodos | **12 KB · 570** |
-| Embudo (admin) | 103 KB · 4.450 nodos | **13 KB · 564** |
-
-Son **30 veces menos**. En una computadora no se notaba; en un celular, armar
-9.000 nodos son varios segundos de pantalla congelada.
+Es la entrega más grande hasta ahora: cambia cómo funciona el pedido.
 
 ---
 
-## 1 · Las listas se dibujan de a 40
+# El cambio de fondo: el pedido ahora tiene estado
 
-Contactos y Embudo ahora muestran los primeros 40 y abajo dice **"Mostrando 40
-de 232"** con un botón **"Ver 40 más"**. Cuando llegás al final te avisa que
-están todos a la vista.
+Antes, cargar el pedido era lo mismo que entregarlo. Pero vos tomás los
+pedidos de **jueves a lunes** y entregás el **miércoles**. Ahora:
 
-Al buscar o cambiar un filtro vuelve a la primera tanda, así no te quedás
-mirando el final de una lista vieja.
+| Estado | Qué significa |
+|---|---|
+| **Tomado** | Lo cargaste. **No genera deuda** ni cuenta como venta todavía. |
+| **Entregado** | Bajó la mercadería. Recién acá nace la deuda y cuenta la venta. |
+| **No entregado** | No se entregó y no se va a entregar. No genera nada. |
 
-**En celular ahora arranca en modo lista** en vez de tarjetas: pesa 5 veces
-menos (71 KB contra 366 KB). Si preferís tarjetas, tocás el botón de arriba y
-queda guardada tu elección, como siempre.
+Los pedidos que ya tenías cargados se consideran **entregados**, que es como
+venían funcionando.
 
----
+## La solapa ENTREGAS
 
-## 2 · Los botones que no respondían
+En **VENTAS → Entregas** (y en *Pedidos y deudas* del admin) están todos los
+pedidos tomados esperando el miércoles, con la fecha de entrega arriba.
 
-Esta era la causa, y es la que más te molestaba.
+Cada uno tiene tres botones: **Entregado**, **Ver / corregir** y **No se
+entregó**. Y arriba, **"Marcar todo entregado"** para despachar la tanda
+completa de una.
 
-Había **seis escuchas de Firestore** (contactos, visitas, comodatos, gira,
-pedidos, deudas) y **cada una redibujaba la pantalla entera por su cuenta**. Al
-abrir la app llegan las seis casi juntas: seis redibujados seguidos de 9.000
-nodos cada uno.
+Al marcar entregado pasan tres cosas de golpe: se actualiza la última compra
+del cliente, el prospecto se convierte en Cliente Activo si hacía falta, y se
+carga a su cuenta lo que no se cobró.
 
-Si uno de esos redibujados caía justo entre que tocabas un botón y que el toque
-se procesaba, **el botón que tocaste ya había sido reemplazado** por un nodo
-nuevo y el click se perdía. Por eso salías y volvías a entrar y ahí sí andaba.
+## La solapa RONDA
 
-Dos cambios:
+Para que no se te pase preguntarle a nadie entre jueves y lunes.
 
-- **Se juntan en un solo redibujado.** Los avisos que llegan en menos de un
-  tercio de segundo se agrupan.
-- **Solo se redibuja si hace falta.** Cada pantalla declara de qué datos
-  depende. Si cambia una deuda mientras mirás el Mapa, el Mapa ya no se
-  redibuja.
+Lista **todos tus clientes activos** del ciclo, separados en tres grupos:
+**FALTA PREGUNTAR** (rojo), **NO PIDEN ESTA VEZ** (gris) y **YA PASARON
+PEDIDO** (verde). Arriba, los tres contadores.
 
-Esto también explica lo de **"a veces no se ven todos los clientes"**: el
-redibujado se cortaba a la mitad. Con las listas 30 veces más livianas y sin
-redibujados encimados, no debería volver a pasar.
+Desde cada uno tomás el pedido, le escribís por WhatsApp, o marcás **"esta vez
+no pide"**. Esa marca **se borra sola** cuando arranca el ciclo siguiente.
 
----
+> Con tus datos de hoy: **19 clientes activos, 18 sin preguntar**.
 
-## 3 · Los colores del mapa
-
-Encontré las tres reglas que pisaban el color del embudo. Sobre tus datos:
-**34 de 224 puntos mostraban un color que no era el de su etapa** — 3 rosas
-por freezer acordado, 11 celestes por cliente con freezer, y 20 sucursales que
-tomaban el color de la casa central. La leyenda solo explicaba el rosa.
-
-Ahora, como elegiste:
-
-- **El relleno es SIEMPRE la etapa del embudo.** Verificado: 0 puntos con
-  color equivocado.
-- **El freezer pasó al borde:** borde verde grueso si tiene freezer nuestro
-  puesto (11 casos), borde rosa si lo acordó y falta entregarlo (3 casos).
-- **Las sucursales** quedan con su propio color, solo más chicas (20 casos).
-- **La leyenda ahora explica los tres**, que antes no figuraban.
-- Al tocar un punto, el cartelito te dice si tiene freezer puesto o acordado.
+El número también aparece en la propia solapa: *Ronda (18)*.
 
 ---
 
-## Sobre la cuota de Firestore
+# Lo que preguntaste
 
-Aproveché y miré la consola: hoy llevás **17.000 lecturas de las 50.000**
-gratuitas. No es lo que causaba la lentitud, pero conviene tenerlo a la vista.
+**Las listas de 40:** la búsqueda filtra sobre los 232 completos y después
+corta los primeros 40 resultados. Lo que busques siempre aparece, y sí, es lo
+que acelera todo.
 
-Cada apertura de la app baja **1.166 documentos**, así que entran unas **42
-aperturas por día**, y ese número baja alrededor de un 9% por cada 100
-contactos nuevos que cargues.
+**Los contactos que faltaban:** debería estar resuelto, pero no te lo
+garantizo. Si vuelve a pasar, **anotame el nombre** y lo busco en la base.
 
-No es urgente. Cuando quieras lo atacamos: se puede hacer que cada vendedor
-baje solo sus contactos en vez de los 318, y acortar la ventana de visitas.
+**La cuota de Firestore:** en el plan Spark **no hay facturación**. Al llegar
+a 50.000 lecturas simplemente deja de responder hasta la medianoche del
+Pacífico (unas 4 de la mañana acá). Para pasar de ahí habría que activar
+Blaze: las primeras 50.000 diarias siguen gratis y después son **US$ 0,06 cada
+100.000 lecturas**. Si duplicaras tu consumo a 100.000 por día, pagarías
+**menos de US$ 1 por mes**. Hoy estás en 17.000.
+
+---
+
+# Las modificaciones
+
+**1 · Colores.** Volvió la gama de siempre y Negociación quedó en **amarillo
+oro**, como elegiste. Te repito el aviso: el oro y el ámbar de Contactado son
+vecinos. Le dejé a Negociación el punto más grande para que se distinga
+también por tamaño, pero si igual los confundís, avisame.
+
+**2 · Gira por barrio.** Las paradas del día ahora se muestran **agrupadas por
+barrio**, con el nombre de la zona y cuántas paradas tiene. Cada barrio tiene
+**▲** para llevarlo al principio del recorrido y **▼** para mandarlo al final.
+Y hay un botón **📍 Por barrio** que reordena todo el día de una, poniendo
+primero la zona con más paradas. Como el orden es el mismo que usa la línea
+del mapa, el recorrido deja de cruzar la ciudad.
+
+**3 · Los pagos.** Encontré por qué no los veías: cuando el cliente terminaba
+de pagar **desaparecía de Deudores** y ya no había forma de llegar a su
+cuenta. Ahora hay solapa **Pagos**, con todo lo cobrado por día, el total del
+período y si el cliente quedó al día o sigue debiendo. Tocás uno y entrás a su
+cuenta completa.
+
+**4 · CUIT y horarios obligatorios.** Cuando un prospecto pasa a Cliente
+Activo — por cambio de etapa, por entrega de pedido o por entrega de freezer —
+se abre una pantalla pidiendo **CUIT y horarios** (más condición impositiva y
+localidad, opcionales). Sin esos dos no deja continuar.
+
+**5 · Encabezado del pedido.** El nombre del negocio va entre asteriscos, que
+es como WhatsApp lo pone en **negrita**. Después la dirección, la **localidad**
+y los **horarios**. Si es el primer pedido sigue yendo la ficha completa, ahora
+también con el nombre en negrita.
+
+**6 · Carga inicial.** Tenías razón: el freezer se entrega el miércoles pero
+la carga inicial se toma el lunes. **Ya no se inventa una fecha de compra** al
+marcar el freezer entregado. En su lugar te ofrece tomarle el pedido ahí
+mismo, y ese pedido sigue el ciclo normal: queda tomado y se entrega el
+miércoles con todos los demás.
+
+---
+
+# Las situaciones
+
+**1 · La deuda al entregar.** Resuelto con el estado del pedido. Verificado:
+un pedido de $100.000 cobrando $40.000 **no genera deuda al cargarlo**; al
+marcarlo entregado aparecen los $60.000.
+
+**2 · No olvidarse de ningún cliente.** Es la solapa Ronda.
+
+**3 · Deudores sin deuda.** Confirmado: venía del botón viejo de "deudor
+sí/no". **Tres contactos** lo tenían marcado sin ningún movimiento cargado —
+Despensa Hidalgo, Di Navarro y Minimarket Ohana. Saqué ese campo de toda la
+app y se limpia solo de la base la primera vez que entres como admin. De acá
+en más, el único dato de deuda es el saldo real de los movimientos.
+
+**4 · Tu mensaje se cortó en "el día miércoles".** Contame qué seguía.
 
 ---
 
 ## Probá esto apenas subas
 
-1. Entrá como vendedor y andá pasando de pestaña: **Contactos, Embudo, Gira,
-   Ventas**. Tienen que abrir de una.
-2. En Contactos, bajá hasta el final: **"Mostrando 40 de 232"** y el botón
-   **Ver 40 más**.
-3. Tocá varios botones seguidos sin esperar — es lo que antes se perdía.
-4. **Mapa**: buscá un cliente con freezer puesto. El punto tiene que ser
-   **verde** (Cliente Activo) con **borde verde grueso**, no celeste.
-5. Fijate que la leyenda de abajo tenga las tres líneas nuevas.
-
-> Si algún cliente puntual sigue sin aparecer después de esto, decime el nombre
-> y lo busco directo en la base.
+1. Entrá como admin: tiene que limpiarse sola la marca vieja de deudor. Fijate
+   que **Despensa Hidalgo, Di Navarro y Minimarket Ohana** ya no figuren como
+   deudores.
+2. **VENTAS → Ronda** → tiene que decir **18 sin preguntar**. Marcá a uno
+   "esta vez no pide" y fijate que baje a 17.
+3. Tomá un pedido de prueba con "Cobré una parte" → **no tiene que generar
+   deuda**. Andá a **Deudores** y confirmalo.
+4. **VENTAS → Entregas** → ese pedido tiene que estar ahí → **Entregado** →
+   ahora sí aparece la deuda.
+5. **VENTAS → Pagos** → cobrale algo y verificá que el pago quede listado.
+6. **Gira** → botón **📍 Por barrio** → las paradas se agrupan. Probá el ▲ de
+   un barrio.
+7. Pasá un prospecto a Cliente Activo → tiene que pedirte CUIT y horarios.
 
 ---
 
 ## Tus pendientes
 
 - Definir el **Pote Tutto 3 Lts** ($9.900 provisorio).
-- CUIT, condición impositiva y horarios de los clientes.
-- **94 contactos sin coordenadas** cargadas: no pueden aparecer en el mapa.
-  Si querés te armo la lista para ir ubicándolos.
+- **94 contactos sin coordenadas**: no pueden salir en el mapa.
