@@ -2110,7 +2110,7 @@ function pedidoEnVisitaProsHTML(){
     var h='<div class="card" style="border:1px solid var(--green)"><div class="ct" style="color:var(--green)">PEDIDO CARGADO</div>';
     h+='<div style="font-size:20px;font-weight:900;color:var(--green)">'+plata(p.total)+'</div>';
     h+='<div style="font-size:12px;color:var(--muted)">'+(p.items?p.items.length:0)+' renglones · pasa a Cliente Activo al guardar</div>';
-    if(debe>0)h+='<div style="font-size:12px;color:var(--red);font-weight:700;margin-top:4px">Quedo debiendo '+plata(debe)+'</div>';
+    if(debe>0)h+='<div style="font-size:12px;color:var(--red);font-weight:700;margin-top:4px">'+(estadoPedido(p)==='tomado'?'Al entregar queda debiendo ':'Quedo debiendo ')+plata(debe)+'</div>';
     h+='<button class="sm" onclick="tomarPedidoEnVisitaPros()" style="margin-top:8px">Corregir el pedido</button>';
     h+='</div>';
     return h;
@@ -2513,8 +2513,12 @@ function renderVV(){
 // ── Solapa Pedidos ───────────────────────────────────────────────────
 function htmlPedidosPanel(base){
   var ps=pedidosDelPeriodo(base,vVPer);
-  var tot=ps.reduce(function(t,p){return t+Number(p.total||0);},0);
-  var cob=ps.reduce(function(t,p){return t+(p.cobrado!==undefined?Number(p.cobrado||0):Number(p.total||0));},0);
+  // Solo lo entregado es venta. Lo tomado todavia no bajo y lo anulado no cuenta.
+  var ents=ps.filter(pedidoEntregado);
+  var toms=ps.filter(function(p){return estadoPedido(p)==='tomado';});
+  var tot=ents.reduce(function(t,p){return t+Number(p.total||0);},0);
+  var totTom=toms.reduce(function(t,p){return t+Number(p.total||0);},0);
+  var cob=ents.reduce(function(t,p){return t+(p.cobrado!==undefined?Number(p.cobrado||0):Number(p.total||0));},0);
   var h='<div style="padding:12px 14px;background:var(--s1);border-bottom:1px solid var(--border)">';
   h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">';
   [['hoy','Hoy'],['sem','Esta semana'],['mes','Este mes'],['todo','Todo']].forEach(function(o){
@@ -2523,8 +2527,9 @@ function htmlPedidosPanel(base){
   h+='</div>';
   h+='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">';
   h+='<div><div style="font-size:22px;font-weight:800">'+ps.length+'</div><div style="font-size:10px;color:var(--muted)">PEDIDOS</div></div>';
-  h+='<div><div style="font-size:22px;font-weight:800;color:var(--green)">'+plata(tot)+'</div><div style="font-size:10px;color:var(--muted)">VENDIDO</div></div>';
-  h+='<div><div style="font-size:22px;font-weight:800;color:'+(tot-cob>0?'var(--red)':'var(--muted)')+'">'+plata(tot-cob)+'</div><div style="font-size:10px;color:var(--muted)">SIN COBRAR</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:var(--green)">'+plata(tot)+'</div><div style="font-size:10px;color:var(--muted)">ENTREGADO</div></div>';
+  if(toms.length)h+='<div><div style="font-size:22px;font-weight:800;color:#fbbf24">'+plata(totTom)+'</div><div style="font-size:10px;color:var(--muted)">TOMADO ('+toms.length+') SIN ENTREGAR</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:'+(tot-cob>0?'var(--red)':'var(--muted)')+'">'+plata(tot-cob)+'</div><div style="font-size:10px;color:var(--muted)">NO COBRADO AL ENTREGAR</div></div>';
   h+='</div></div>';
   if(!ps.length){
     h+='<div class="empty">Sin pedidos en este periodo.<br><span style="font-size:11px">Los pedidos se cargan desde la ficha del cliente o desde la visita.</span></div>';
@@ -2539,9 +2544,10 @@ function htmlPedidosPanel(base){
       var tDia=delDia.reduce(function(t,x){return t+Number(x.total||0);},0);
       h+='<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px"><div style="font-size:12px;font-weight:800;color:var(--cyan)">'+fmt(p.fecha)+'</div><div style="font-size:11px;color:var(--green);font-weight:700">'+plata(tDia)+'</div><div style="flex:1;height:1px;background:var(--border)"></div></div>';
     }
-    var debe=p.cobrado!==undefined?(Number(p.total||0)-Number(p.cobrado||0)):0;
-    h+='<div onclick="verPedido(\''+p.id+'\')" style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer">';
-    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(p.cliente||'')+'</div>';
+    var estP=estadoPedido(p);
+    var debe=(estP==='entregado'&&p.cobrado!==undefined)?(Number(p.total||0)-Number(p.cobrado||0)):0;
+    h+='<div onclick="verPedido(\''+p.id+'\')" style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer'+(estP==='anulado'?';opacity:.5':'')+'">';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(p.cliente||'')+' <span style="font-size:9px;font-weight:800;padding:1px 6px;border-radius:8px;background:'+colorEstadoPed(estP)+';color:#111;vertical-align:middle">'+labelEstadoPed(estP)+'</span></div>';
     h+='<div style="font-size:11px;color:var(--muted)">'+(p.items?p.items.length:0)+' renglones'+(p.vend?' · '+es(p.vend):'')+'</div></div>';
     h+='<div style="text-align:right;flex-shrink:0"><div style="font-size:14px;font-weight:800;color:var(--green)">'+plata(p.total)+'</div>';
     if(debe>0)h+='<div style="font-size:10px;color:var(--red);font-weight:800">debe '+plata(debe)+'</div>';
@@ -4400,7 +4406,8 @@ function recalcularUltimaCompra(cid){
 function verPedido(pid){
   var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
   var h='<div style="font-size:15px;font-weight:800">'+es(p.cliente||'')+'</div>';
-  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:12px">'+fmt(p.fecha)+(p.vend?' · '+es(p.vend):'')+'</div>';
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">'+fmt(p.fecha)+(p.vend?' · '+es(p.vend):'')+'</div>';
+  h+=estadoPedidoHTML(p);
   h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Corregí las cantidades si algo no se entregó. Poné 0 en lo que no llegó.</div>';
   (p.items||[]).forEach(function(it,i){
     h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
@@ -4415,6 +4422,42 @@ function verPedido(pid){
   h+='<button class="btn sec" onclick="editarPedidoCompleto(\''+pid+'\')" style="margin:0 0 8px">Editar el pedido completo (agregar productos)</button>';
   h+='<button class="btn red" onclick="eliminarPedido(\''+pid+'\')" style="margin:0">Eliminar este pedido</button>';
   oMod('Pedido del '+fmt(p.fecha),h);
+}
+// Estado del pedido dentro del detalle, con los botones para corregirlo.
+// Sirve sobre todo para los pedidos cargados antes del control de entregas:
+// quedaron como ENTREGADOS aunque la mercaderia no haya bajado.
+function estadoPedidoHTML(p){
+  var est=estadoPedido(p);
+  var h='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">';
+  h+='<span style="font-size:10px;font-weight:800;padding:3px 9px;border-radius:10px;background:'+colorEstadoPed(est)+';color:#111">'+labelEstadoPed(est)+'</span>';
+  if(est==='entregado'&&p.fechaEntrega)h+='<span style="font-size:11px;color:var(--muted)">el '+fmt(p.fechaEntrega)+'</span>';
+  if(!p.estado)h+='<span style="font-size:10px;color:var(--muted)">cargado antes del control de entregas</span>';
+  h+='</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">';
+  if(est!=='entregado')h+='<button class="sm g" data-pid="'+p.id+'" data-est="entregado" onclick="cambiarEstadoPedido(this)">Entregado</button>';
+  if(est!=='tomado')h+='<button class="sm" data-pid="'+p.id+'" data-est="tomado" onclick="cambiarEstadoPedido(this)">Volver a TOMADO</button>';
+  if(est!=='anulado')h+='<button class="sm rd" data-pid="'+p.id+'" data-est="anulado" onclick="cambiarEstadoPedido(this)">No se entrego</button>';
+  h+='</div>';
+  return h;
+}
+function cambiarEstadoPedido(el){
+  if(soloLectura())return;
+  var pid=el.getAttribute('data-pid'),est=el.getAttribute('data-est');
+  var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
+  if(est==='entregado'||est==='anulado'){cMod();marcarEntrega(pid,est);return;}
+  // Volver a TOMADO: la mercaderia todavia no bajo, asi que no hay deuda
+  if(!confirm('Volver a TOMADO el pedido de "'+(p.cliente||'')+'" por '+plata(p.total)+'?\n\nSe borra la deuda que habia generado y vuelve a la lista de Entregas.'))return;
+  var antes=estadoPedido(p);
+  p.estado='tomado';
+  delete p.fechaEntrega;
+  if(!p.entrega||p.entrega<fechaLocal())p.entrega=proximaEntrega();
+  p._modBy=D.user?D.user.n:'?';p._modAt=new Date().toISOString();
+  fsSetPedido(p);
+  ajustarDeudaDePedido(p,0);
+  logEvento('venta',p.cid,p.cliente,'Pedido vuelto a TOMADO ('+plata(p.total)+')',antes,'tomado');
+  toast('Pedido pendiente de entrega','ok');
+  cMod();
+  if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGP();else renderVV();
+  refrescarVistaActual();
 }
 function guardarCambiosPedido(pid){
   var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
@@ -6831,7 +6874,7 @@ function pedidoEnVisitaHTML(){
     var h='<div class="card" style="border:1px solid var(--green)"><div class="ct" style="color:var(--green)">PEDIDO CARGADO</div>';
     h+='<div style="font-size:20px;font-weight:900;color:var(--green)">'+plata(p.total)+'</div>';
     h+='<div style="font-size:12px;color:var(--muted)">'+(p.items?p.items.length:0)+' renglones</div>';
-    if(debe>0)h+='<div style="font-size:12px;color:var(--red);font-weight:700;margin-top:4px">Quedo debiendo '+plata(debe)+'</div>';
+    if(debe>0)h+='<div style="font-size:12px;color:var(--red);font-weight:700;margin-top:4px">'+(estadoPedido(p)==='tomado'?'Al entregar queda debiendo ':'Quedo debiendo ')+plata(debe)+'</div>';
     h+='<button class="sm" onclick="tomarPedidoEnVisita()" style="margin-top:8px">Corregir el pedido</button>';
     h+='</div>';
     return h;
