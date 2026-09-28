@@ -5878,6 +5878,8 @@ function renderGCfg(){
 
   h+=auditoriaHTML();
 
+  h+=rutaConfigHTML();
+
   // ── MENSAJES WHATSAPP POR ETAPA ───────────────────────────────────
   h+='<div class="card"><div class="ct">MENSAJES DE WHATSAPP POR ETAPA</div>';
   h+='<div style="background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);border-radius:var(--rsm);padding:10px 12px;margin-bottom:14px">';
@@ -7049,8 +7051,11 @@ function renderVG(){
   var dentroDeRango=gDiaActivo>=hoy&&gDiaActivo<=fechaLocal(limiteMapa);
   if(dentroDeRango&&planActivo.length)h+='<button class="sm" onclick="toggleGiraMapaVG()">'+(giraMapaOn?'&#9776; Lista':'&#128506; Mapa')+'</button>';
   if(planActivo.length>1)h+='<button class="sm" onclick="agruparGiraPorBarrio(\''+gDiaActivo+'\')" title="Ordenar las paradas por zona">&#128205; Por barrio</button>';
+  if(barriosDeRuta(diaDeSemana(gDiaActivo)).length)h+='<button class="sm" onclick="cargarRutaDia(\''+gDiaActivo+'\')" title="Sumar los clientes de los barrios de este dia">&#128467; Cargar ruta</button>';
   h+='<button class="sm g" onclick="abrirAgregarAGira(\''+gDiaActivo+'\')">+ Agregar</button>';
   h+='</div>';
+  h+=rutaDiaHTML(gDiaActivo,planActivo);
+  var HR=horasGira(planActivo);
   if(!planActivo.length){
     h+='<div style="text-align:center;padding:30px 14px;color:var(--muted)"><div style="font-size:28px;margin-bottom:8px">📅</div><div style="font-size:13px">Sin visitas para este día</div></div>';
   } else if(vistaModo==='lista'){
@@ -7065,7 +7070,7 @@ function renderVG(){
       h+='<div class="lrow" onclick="abrirVisita(\''+g.cid+'\')" style="border-left:4px solid '+etaCol+'">';
       h+='<div class="lnum" style="background:'+(yaVis?'var(--green)':'var(--s3)')+';color:'+(yaVis?'#000':'var(--text)')+'">'+(yaVis?'✓':idx+1)+'</div>';
       h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan?' <span class="lfan">· '+es(c.fan)+'</span>':'')+'</div>';
-      h+='<div class="lsub">'+(c.dir?'📍 '+es(c.dir):es(c.ciu||c.bar||''))+'</div></div>';
+      h+='<div class="lsub">'+(HR[g.cid]?'<b style="color:var(--cyan)">'+hhmm(HR[g.cid].ini)+'</b> · ':'')+(c.dir?'📍 '+es(c.dir):es(c.ciu||c.bar||''))+'</div></div>';
       h+='<span class="tg '+(c.esP?'o':'g')+' ltg">'+(c.esP?'PROS':'CLI')+'</span>';
       h+='<button class="lx" title="Pasar al dia siguiente" style="color:var(--cyan)" onclick="event.stopPropagation();pasarAlDiaSiguiente(\''+g.cid+'\',\''+gDiaActivo+'\')">▶</button>';
       h+='<button class="lx" onclick="event.stopPropagation();quitarDeGira(\''+g.cid+'\',\''+gDiaActivo+'\')">✕</button>';
@@ -7092,7 +7097,7 @@ function renderVG(){
       h+='<div style="font-size:15px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.nm)+'</div>';
       if(c.fan)h+='<div style="font-size:15px;font-weight:700;color:var(--cyan);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.fan)+'</div>';
       if(c.dir)h+='<div style="font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📍 '+es(c.dir)+'</div>';
-      h+='<div style="font-size:11px;color:var(--muted)">'+es(c.tipo||'')+(c.ciu?' · '+es(c.ciu):c.bar?' · '+es(c.bar):'')+'</div>';
+      h+='<div style="font-size:11px;color:var(--muted)">'+(HR[g.cid]?'<b style="color:var(--cyan)">🕘 '+hhmm(HR[g.cid].ini)+' a '+hhmm(HR[g.cid].fin)+'</b> · ':'')+es(c.tipo||'')+(c.ciu?' · '+es(c.ciu):c.bar?' · '+es(c.bar):'')+'</div>';
       h+='</div>';
       h+='<span class="tg '+(c.esP?'o':'g')+' ltg">'+(c.esP?'PROS':'CLI')+'</span>';
       h+='<button title="Pasar al dia siguiente" onclick="pasarAlDiaSiguiente(\''+g.cid+'\',\''+gDiaActivo+'\')" style="background:none;border:none;color:var(--cyan);font-size:15px;cursor:pointer;padding:4px;flex-shrink:0">▶</button>';
@@ -7118,6 +7123,149 @@ function renderVG(){
   h+='</div>';
   }
   var _vgb=document.getElementById(giraCont);if(_vgb)_vgb.innerHTML=h;
+}
+// ══════════════════════════════════════════════════════════════════════
+// RUTA SEMANAL
+// Cada barrio tiene un dia fijo de visita. "Cargar ruta" suma a la gira de ese
+// dia a todos los clientes activos de sus barrios, ordenados por cercania (GPS),
+// y la gira muestra el horario estimado de cada parada. Los horarios NO se
+// guardan: se recalculan del orden actual, asi siempre coinciden con la lista.
+// ══════════════════════════════════════════════════════════════════════
+var DIAS_RUTA=['','Lunes','Martes','Miercoles','Jueves','Viernes'];
+var RUTA_DEF={dias:{'Bo.Nueva Córdoba':1,'Bo.Centro':1,'Alberdi':1,'Alta Cordoba':4,'Bo.Cofico':4,'Bo.General Paz':5,'Pueyrredon':5,'Yofre norte':5,'Yofre Norte':5},inicio:'09:00',tarde:'16:00',min:20,finManana:'14:00'};
+function rutaCfg(){
+  var r=D.cfg.ruta||RUTA_DEF;
+  return {dias:r.dias||{},inicio:r.inicio||'09:00',tarde:r.tarde||'16:00',min:Number(r.min)||20,finManana:r.finManana||'14:00'};
+}
+function barriosDeRuta(dow){
+  var d=rutaCfg().dias;
+  return Object.keys(d).filter(function(b){return Number(d[b])===dow;});
+}
+function diaDeSemana(fecha){return new Date(fecha+'T12:00:00').getDay();}
+// Distancia "de cuadras" (sumando norte-sur y este-oeste), en km
+function kmEntre(a,b){
+  if(!a||!b||!a.lat||!a.lng||!b.lat||!b.lng)return null;
+  var dy=(Number(a.lat)-Number(b.lat))*111, dx=(Number(a.lng)-Number(b.lng))*111*0.853;
+  return Math.abs(dx)+Math.abs(dy);
+}
+// Minutos de traslado: 18 km/h en ciudad + 3 de estacionar. Sin GPS, 8 minutos.
+function minViaje(a,b){var k=kmEntre(a,b);return k===null?8:Math.round(k/18*60)+3;}
+function aMin(s){var p=String(s||'09:00').split(':');return Number(p[0])*60+Number(p[1]||0);}
+function hhmm(m){return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
+// Vecino mas cercano, probando cada punto como arranque y quedandose con el
+// recorrido mas corto. Los que no tienen GPS van al final.
+function ordenarPorCercania(cs){
+  var con=cs.filter(function(c){return c.lat&&c.lng;}),sin=cs.filter(function(c){return !(c.lat&&c.lng);});
+  if(con.length<3)return con.concat(sin);
+  var best=null;
+  for(var s=0;s<con.length;s++){
+    var rem=con.slice(),r=[rem.splice(s,1)[0]],d=0;
+    while(rem.length){
+      var bi=0,bd=Infinity;
+      for(var i=0;i<rem.length;i++){var k=kmEntre(r[r.length-1],rem[i]);if(k<bd){bd=k;bi=i;}}
+      d+=bd;r.push(rem.splice(bi,1)[0]);
+    }
+    if(!best||d<best.d)best={d:d,r:r};
+  }
+  return best.r.concat(sin);
+}
+// Deja los barrios en bloques seguidos (en el orden en que aparecen), para que
+// la lista agrupada por barrio y el orden de recorrido sean lo mismo.
+function barriosContiguos(cs){
+  var orden=[],mapa={};
+  cs.forEach(function(c){var b=(c.bar||'').trim()||'Sin barrio';if(!mapa[b]){mapa[b]=[];orden.push(b);}mapa[b].push(c);});
+  var out=[];orden.forEach(function(b){out=out.concat(mapa[b]);});
+  return out;
+}
+// Horario estimado de cada parada segun el orden del dia
+function horasGira(plan){
+  var r=rutaCfg(),out={},t=aMin(r.inicio),tt=aMin(r.tarde),prev=null,prevT=null;
+  plan.forEach(function(g){
+    var c=D.cli.find(function(x){return x.id===g.cid;});if(!c)return;
+    if(g.turno==='tarde'){
+      if(prevT)tt+=minViaje(prevT,c);
+      out[g.cid]={ini:tt,fin:tt+r.min};tt+=r.min;prevT=c;
+    } else {
+      if(prev)t+=minViaje(prev,c);
+      out[g.cid]={ini:t,fin:t+r.min};t+=r.min;prev=c;
+    }
+  });
+  out._finManana=prev?t:null;
+  return out;
+}
+function rutaDiaHTML(fecha,plan){
+  var dow=diaDeSemana(fecha),bs=barriosDeRuta(dow),r=rutaCfg();
+  if(!bs.length&&!plan.length)return '';
+  var h='<div style="margin:0 14px 8px;padding:9px 12px;background:rgba(34,211,238,.06);border:1px solid rgba(34,211,238,.2);border-radius:var(--rsm);font-size:12px">';
+  if(bs.length)h+='<div><b style="color:var(--cyan)">Ruta del '+DIAS_RUTA[dow]+':</b> '+es(bs.map(function(b){return b.replace(/^Bo\./,'');}).join(', '))+'</div>';
+  else h+='<div style="color:var(--muted)">Este dia no tiene barrios asignados (dia de prospeccion).</div>';
+  if(plan.length){
+    var hs=horasGira(plan);
+    if(hs._finManana!==null){
+      var libre=aMin(r.finManana)-hs._finManana;
+      h+='<div style="color:var(--muted);margin-top:3px">Mañana: '+r.inicio+' a '+hhmm(hs._finManana)+(libre>=30?' · <b style="color:var(--green)">'+hhmm(hs._finManana)+' a '+r.finManana+' prospeccion ('+libre+' min)</b>':libre<0?' · <b style="color:var(--red)">se pasa '+(-libre)+' min de las '+r.finManana+'</b>':'')+'</div>';
+    }
+  }
+  h+='</div>';
+  return h;
+}
+function cargarRutaDia(fecha){
+  if(soloLectura())return;
+  var dow=diaDeSemana(fecha),bs=barriosDeRuta(dow);
+  if(!bs.length){toast('Este dia no tiene barrios. Asignalos en Config > Ruta semanal','err');return;}
+  var enRuta={};bs.forEach(function(b){enRuta[b]=true;});
+  var cs=contactosParaGira().filter(function(c){return !c.eliminado&&c.etapaEmbudo==='Cliente Activo'&&enRuta[(c.bar||'').trim()];});
+  if(!cs.length){toast('No hay clientes activos en '+bs.join(', '),'err');return;}
+  var nuevos=0;
+  cs.forEach(function(c){
+    if(!D.gira.some(function(g){return g.cid===c.id&&g.fecha===fecha;})){
+      D.gira.push({cid:c.id,fecha:fecha,orden:999,turno:'manana'});nuevos++;
+    }
+  });
+  var ids={};cs.forEach(function(c){ids[c.id]=true;});
+  var resto=misGira().filter(function(g){return g.fecha===fecha&&!ids[g.cid];}).sort(function(a,b){return(a.orden||0)-(b.orden||0);});
+  var n=0;
+  barriosContiguos(ordenarPorCercania(cs)).forEach(function(c){
+    var g=D.gira.find(function(x){return x.cid===c.id&&x.fecha===fecha;});
+    g.orden=n++;if(!g.turno)g.turno='manana';fsSetGira(g);
+  });
+  resto.forEach(function(g){if(g.orden!==n){g.orden=n;fsSetGira(g);}n++;});
+  toast('Ruta cargada: '+cs.length+' clientes'+(nuevos?' ('+nuevos+' nuevos en la gira)':'')+', ordenados por cercania','ok');
+  if(giraCont==='gGB')renderGG();else renderVG();
+}
+// ── Config: que barrio se visita cada dia ────────────────────────────
+function rutaConfigHTML(){
+  var r=rutaCfg(),cnt={};
+  D.cli.filter(function(c){return !c.eliminado&&c.ciu==='Córdoba Capital'&&(c.bar||'').trim();}).forEach(function(c){var b=c.bar.trim();cnt[b]=(cnt[b]||0)+1;});
+  Object.keys(r.dias).forEach(function(b){if(!cnt[b])cnt[b]=0;});
+  var act={};D.cli.filter(function(c){return !c.eliminado&&c.etapaEmbudo==='Cliente Activo';}).forEach(function(c){var b=(c.bar||'').trim();act[b]=(act[b]||0)+1;});
+  var bs=Object.keys(cnt).sort(function(a,b){return (act[b]||0)-(act[a]||0)||cnt[b]-cnt[a]||a.localeCompare(b);});
+  var h='<div class="card"><div class="ct">RUTA SEMANAL</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Que dia se visita cada barrio. En la Gira, el boton <b>Cargar ruta</b> suma a los clientes activos de esos barrios ordenados por cercania, con el horario estimado de cada parada.</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
+  h+='<div><label class="fl">Arranque</label><input class="fi" type="time" id="rutaIni" value="'+es(r.inicio)+'" style="margin:0"></div>';
+  h+='<div><label class="fl">Fin mañana</label><input class="fi" type="time" id="rutaFinM" value="'+es(r.finManana)+'" style="margin:0"></div>';
+  h+='<div><label class="fl">Min. por visita</label><input class="fi" type="number" min="5" id="rutaMin" value="'+r.min+'" style="margin:0"></div>';
+  h+='</div>';
+  bs.forEach(function(b){
+    var v=Number(r.dias[b])||0;
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+    h+='<div style="flex:1;min-width:0;font-size:13px;font-weight:700">'+es(b)+'<span style="font-size:11px;color:var(--muted);font-weight:400"> · '+(act[b]||0)+' clientes · '+cnt[b]+' contactos</span></div>';
+    h+='<select class="fi rutaSel" data-b="'+es(b)+'" style="width:120px;margin:0;padding:6px">';
+    DIAS_RUTA.forEach(function(d,i){h+='<option value="'+i+'"'+(i===v?' selected':'')+'>'+(i?d:'— sin dia —')+'</option>';});
+    h+='</select></div>';
+  });
+  h+='<button class="btn sec" onclick="savRuta()" style="margin:12px 0 0">Guardar ruta</button></div>';
+  return h;
+}
+function savRuta(){
+  var dias={};
+  document.querySelectorAll('.rutaSel').forEach(function(el){var v=Number(el.value)||0;if(v)dias[el.getAttribute('data-b')]=v;});
+  var r={dias:dias,inicio:(document.getElementById('rutaIni')||{}).value||'09:00',tarde:rutaCfg().tarde,
+    min:Math.max(5,Number((document.getElementById('rutaMin')||{}).value)||20),finManana:(document.getElementById('rutaFinM')||{}).value||'14:00'};
+  D.cfg.ruta=r;
+  fsSetConfig({ruta:r});
+  toast('Ruta semanal guardada','ok');
 }
 // Alias para dias() con nombre diferente para usar dentro de renderVG sin conflicto de scope
 function dias_fn(f){return dias(f);}
