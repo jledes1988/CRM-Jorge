@@ -1,149 +1,113 @@
-# CRM-Jorge — Versión 9.0
+# CRM-Jorge — Versión 9.1 · Lista de precios 21/09/2026
 
 **Solo cambió `app.js`.** `index.html` y `estilos.css` son los mismos de la
-8.3; los dejo en la carpeta para que subas los tres juntos sin dudar.
-
-Es la entrega más grande hasta ahora: cambia cómo funciona el pedido.
+9.0; los dejo en la carpeta para que subas los tres juntos.
 
 ---
 
-# El cambio de fondo: el pedido ahora tiene estado
+## Primero: la otra conversación
 
-Antes, cargar el pedido era lo mismo que entregarlo. Pero vos tomás los
-pedidos de **jueves a lunes** y entregás el **miércoles**. Ahora:
+Era sobre un **chatbot de WhatsApp para tomar pedidos**. Quedó en diseño, **no
+se tocó una línea de código**. La app estaba y sigue en 9.0 hasta esta entrega.
 
-| Estado | Qué significa |
-|---|---|
-| **Tomado** | Lo cargaste. **No genera deuda** ni cuenta como venta todavía. |
-| **Entregado** | Bajó la mercadería. Recién acá nace la deuda y cuenta la venta. |
-| **No entregado** | No se entregó y no se va a entregar. No genera nada. |
-
-Los pedidos que ya tenías cargados se consideran **entregados**, que es como
-venían funcionando.
-
-## La solapa ENTREGAS
-
-En **VENTAS → Entregas** (y en *Pedidos y deudas* del admin) están todos los
-pedidos tomados esperando el miércoles, con la fecha de entrega arriba.
-
-Cada uno tiene tres botones: **Entregado**, **Ver / corregir** y **No se
-entregó**. Y arriba, **"Marcar todo entregado"** para despachar la tanda
-completa de una.
-
-Al marcar entregado pasan tres cosas de golpe: se actualiza la última compra
-del cliente, el prospecto se convierte en Cliente Activo si hacía falta, y se
-carga a su cuenta lo que no se cobró.
-
-## La solapa RONDA
-
-Para que no se te pase preguntarle a nadie entre jueves y lunes.
-
-Lista **todos tus clientes activos** del ciclo, separados en tres grupos:
-**FALTA PREGUNTAR** (rojo), **NO PIDEN ESTA VEZ** (gris) y **YA PASARON
-PEDIDO** (verde). Arriba, los tres contadores.
-
-Desde cada uno tomás el pedido, le escribís por WhatsApp, o marcás **"esta vez
-no pide"**. Esa marca **se borra sola** cuando arranca el ciclo siguiente.
-
-> Con tus datos de hoy: **19 clientes activos, 18 sin preguntar**.
-
-El número también aparece en la propia solapa: *Ronda (18)*.
+La idea está bien planteada en lo grueso, con un detalle: ahí se habla de
+"agregar una colección `pedidos`" y esa colección ya existe hace rato en tu
+CRM, con el ciclo tomado → entregado que acabamos de hacer. Si retomás ese
+tema, avisame y lo empalmo con lo que ya está en vez de armar algo paralelo.
 
 ---
 
-# Lo que preguntaste
+## Lo que cambió de la lista
 
-**Las listas de 40:** la búsqueda filtra sobre los 232 completos y después
-corta los primeros 40 resultados. Lo que busques siempre aparece, y sí, es lo
-que acelera todo.
+**Los impulsivos no cambiaron.** Los 16 están idénticos a los de agosto.
+Verificado uno por uno.
 
-**Los contactos que faltaban:** debería estar resuelto, pero no te lo
-garantizo. Si vuelve a pasar, **anotame el nombre** y lo busco en la base.
+**El granel subió 3,57%** parejo: Común $40.699, Especial $46.303, Súper
+Especial $51.495, Licencias $54.071.
 
-**La cuota de Firestore:** en el plan Spark **no hay facturación**. Al llegar
-a 50.000 lecturas simplemente deja de responder hasta la medianoche del
-Pacífico (unas 4 de la mañana acá). Para pasar de ahí habría que activar
-Blaze: las primeras 50.000 diarias siguen gratis y después son **US$ 0,06 cada
-100.000 lecturas**. Si duplicaras tu consumo a 100.000 por día, pagarías
-**menos de US$ 1 por mes**. Hoy estás en 17.000.
+**Los postres subieron 7,69%** parejo. La única excepción es la **Mini Torta
+Cookies**, que subió 9,7% ($58.991 → $64.706, cuando por el porcentaje del
+resto habría dado $63.529). Lo cargué como dice la lista.
 
----
+**Seis presentaciones cambiaron**, tal cual me dijiste:
 
-# Las modificaciones
+| Producto | Antes | Ahora |
+|---|---|---|
+| Pack Tricolor Diet Fun | caja x8 | caja x6 |
+| Torta Isabella / Cookies | caja x6 | caja x8 |
+| Pack 0,750 Lts | caja x8 | caja x6 |
+| Pack Pote Dubai 360cc | caja x12 | caja x8 |
+| Pack 0,750 Lts Vegano | caja x6 | caja x12 |
+| Pack Pote Cormillot 360cc | caja x12 | caja x6 |
 
-**1 · Colores.** Volvió la gama de siempre y Negociación quedó en **amarillo
-oro**, como elegiste. Te repito el aviso: el oro y el ámbar de Contactado son
-vecinos. Le dejé a Negociación el punto más grande para que se distinga
-también por tamaño, pero si igual los confundís, avisame.
+**Los baldes van los tres por unidad**, como me aclaraste: 2 Lts $11.509,
+3 Lts $11.508, 5 Lts $16.180. El de 2 litros estaba como caja de 9 a $103.585
+— por eso en el historial vas a ver un "cambio de precio" enorme, pero es solo
+que pasó de precio por caja a precio por unidad.
 
-**2 · Gira por barrio.** Las paradas del día ahora se muestran **agrupadas por
-barrio**, con el nombre de la zona y cuántas paradas tiene. Cada barrio tiene
-**▲** para llevarlo al principio del recorrido y **▼** para mandarlo al final.
-Y hay un botón **📍 Por barrio** que reordena todo el día de una, poniendo
-primero la zona con más paradas. Como el orden es el mismo que usa la línea
-del mapa, el recorrido deja de cruzar la ciudad.
+**Alta:** Pote **Arándanos** Bañados x12 a $68.089, en Impulsivos.
 
-**3 · Los pagos.** Encontré por qué no los veías: cuando el cliente terminaba
-de pagar **desaparecía de Deudores** y ya no había forma de llegar a su
-cuenta. Ahora hay solapa **Pagos**, con todo lo cobrado por día, el total del
-período y si el cliente quedó al día o sigue debiendo. Tocás uno y entrás a su
-cuenta completa.
+**Baja:** Pote Tutto 3 Lts, ese que nunca llegamos a definir. Eliminado.
 
-**4 · CUIT y horarios obligatorios.** Cuando un prospecto pasa a Cliente
-Activo — por cambio de etapa, por entrega de pedido o por entrega de freezer —
-se abre una pantalla pidiendo **CUIT y horarios** (más condición impositiva y
-localidad, opcionales). Sin esos dos no deja continuar.
+**Discontinuado:** Pack Barrita Sin TACC x8. **No lo borré**, y te explico por
+qué: hay un pedido ya cargado que lo usa, y si desaparece del catálogo ese
+pedido no se puede volver a editar. Queda marcado como discontinuado: no
+aparece al tomar pedidos, pero el historial sigue entero. En el catálogo lo
+vas a ver con la etiqueta **DISCONTINUADO** y hay un interruptor para darlo de
+alta de nuevo si vuelve.
 
-**5 · Encabezado del pedido.** El nombre del negocio va entre asteriscos, que
-es como WhatsApp lo pone en **negrita**. Después la dirección, la **localidad**
-y los **horarios**. Si es el primer pedido sigue yendo la ficha completa, ahora
-también con el nombre en negrita.
-
-**6 · Carga inicial.** Tenías razón: el freezer se entrega el miércoles pero
-la carga inicial se toma el lunes. **Ya no se inventa una fecha de compra** al
-marcar el freezer entregado. En su lugar te ofrece tomarle el pedido ahí
-mismo, y ese pedido sigue el ciclo normal: queda tomado y se entrega el
-miércoles con todos los demás.
+**Lo que ignoré:** el renglón de "ALFAJOR SEICHOC $17.283" en impulsivos, como
+me dijiste que estaba mal la lista. El suelto se sigue calculando dividiendo
+la caja: $85.401 ÷ 6 = **$14.234** la cajita.
 
 ---
 
-# Las situaciones
+## ⚠ Algo que encontré revisando tu catálogo
 
-**1 · La deuda al entregar.** Resuelto con el estado del pedido. Verificado:
-un pedido de $100.000 cobrando $40.000 **no genera deuda al cargarlo**; al
-marcarlo entregado aparecen los $60.000.
+Vos **fusionaste los dos escoceses** en un solo producto: lo renombraste
+**"Bombón Escocés"** con tres sabores —Blanco, Negro y Pistacho— y borraste el
+"Pack Escocés Pistacho x8" por separado.
 
-**2 · No olvidarse de ningún cliente.** Es la solapa Ronda.
+Mi migración, tal como la había escrito, te lo **volvía a crear duplicado**
+porque figura en la lista nueva. Lo corregí: ahora solo da de alta lo que es
+realmente nuevo. **Borrar un producto es una decisión tuya y la migración no
+la deshace.**
 
-**3 · Deudores sin deuda.** Confirmado: venía del botón viejo de "deudor
-sí/no". **Tres contactos** lo tenían marcado sin ningún movimiento cargado —
-Despensa Hidalgo, Di Navarro y Minimarket Ohana. Saqué ese campo de toda la
-app y se limpia solo de la base la primera vez que entres como admin. De acá
-en más, el único dato de deuda es el saldo real de los movimientos.
+> Detalle menor: en ese producto el sabor Blanco quedó escrito **"Banlco"**. La
+> abreviación que va a fábrica ("Escoces Bla") está bien, así que no es urgente,
+> pero lo podés corregir cuando quieras desde el catálogo.
 
-**4 · Tu mensaje se cortó en "el día miércoles".** Contame qué seguía.
+---
+
+## Tus ediciones se respetan
+
+Esto era lo delicado, porque vos ya habías corregido sabores y abreviaciones a
+mano. La migración pisa **solo** precio, presentación, fracción y línea. El
+nombre y los sabores quedan como los dejaste.
+
+Verificado contra tu catálogo real: **los 40 productos conservan sus sabores
+intactos**, incluidos tus renombres.
 
 ---
 
 ## Probá esto apenas subas
 
-1. Entrá como admin: tiene que limpiarse sola la marca vieja de deudor. Fijate
-   que **Despensa Hidalgo, Di Navarro y Minimarket Ohana** ya no figuren como
-   deudores.
-2. **VENTAS → Ronda** → tiene que decir **18 sin preguntar**. Marcá a uno
-   "esta vez no pide" y fijate que baje a 17.
-3. Tomá un pedido de prueba con "Cobré una parte" → **no tiene que generar
-   deuda**. Andá a **Deudores** y confirmalo.
-4. **VENTAS → Entregas** → ese pedido tiene que estar ahí → **Entregado** →
-   ahora sí aparece la deuda.
-5. **VENTAS → Pagos** → cobrale algo y verificá que el pago quede listado.
-6. **Gira** → botón **📍 Por barrio** → las paradas se agrupan. Probá el ▲ de
-   un barrio.
-7. Pasá un prospecto a Cliente Activo → tiene que pedirte CUIT y horarios.
+1. Entrá como **admin**: tiene que salir el aviso *"Lista de precios
+   actualizada"*. Corre una sola vez.
+2. **Config → Catálogo** → revisá tres precios: Pack Almendrado $50.759, Lata
+   Común $40.699, Baldes x2 Lt $11.509 por unidad.
+3. Buscá **Pote Arándanos Bañados x12** — tiene que estar en Impulsivos. Los
+   sabores los inventé yo, corregilos si hace falta.
+4. Confirmá que **Bombón Escocés** sigue siendo uno solo con sus tres sabores,
+   sin duplicado.
+5. Tomá un pedido de prueba con un postre: fijate que el precio suelto sea el
+   de la caja dividido.
 
 ---
 
-## Tus pendientes
+## Sigue pendiente de lo anterior
 
-- Definir el **Pote Tutto 3 Lts** ($9.900 provisorio).
-- **94 contactos sin coordenadas**: no pueden salir en el mapa.
+La **hoja de ruta del miércoles** con las cuatro piezas que quedamos: orden de
+zonas configurable, indicaciones para el repartidor, el pedido agendándose
+solo en la gira del miércoles, y la hoja para copiar. Avisame cuando quieras
+que la encare.

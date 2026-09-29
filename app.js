@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.0 - 24/09/2026';
+var VERSION='9.1 - 29/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -42,32 +42,32 @@ var PRODUCTOS_DEF=[
   {id:'i14',n:'Sei Bom',u:'caja x16',p:27623,linea:'Impulsivos',sab:[{s:'Blanco',a:'pal seibom blanco'},{s:'Almendras',a:'pal seibom almendras'},{s:'Cookie',a:'pal seibom cookie'}]},
   {id:'i15',n:'Sei Bom Pistacho',u:'caja x14',p:42765,linea:'Impulsivos',sab:[{s:'',a:'pal seibom pistacho'}]},
   {id:'i16',n:'Frisky / Palito Extra Acido',u:'caja x24',p:19314,linea:'Impulsivos',sab:[{s:'',a:'pal acid'}]},
-  {id:'p01',n:'Pack Almendrado x8',u:'caja x6',p:47133,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'almendrado'}]},
-  {id:'p02',n:'Pack Tricolor x8',u:'caja x6',p:47133,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'tricolor'}]},
-  {id:'p03',n:'Pack Suizo x8',u:'caja x6',p:53049,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'suizo'}]},
-  {id:'p04',n:'Pack Escoces Cla y Nev x8',u:'caja x6',p:58991,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'escoces cla y nev'}]},
-  {id:'p05',n:'Pack Escoces Pistacho x8',u:'caja x6',p:58991,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'escoces pistacho'}]},
-  {id:'p06',n:'Mini Torta Cookies x8',u:'caja x6',p:58991,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'mini torta cookies'}]},
-  {id:'p07',n:'Pack Alfajor x8',u:'caja x6',p:58991,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'Clasico',a:'alfajor clasico'},{s:'Blanco',a:'alfajor blanco'}]},
-  {id:'p08',n:'Pack Alfajor Seichoc x8',u:'caja x6',p:79301,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'alfajor seichoc'}]},
-  {id:'p09',n:'Pack Barrita Sin TACC x8',u:'caja x6',p:53305,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'barrita sin tacc'}]},
-  {id:'p10',n:'Pack Tricolor Diet Fun',u:'caja x8',p:73398,fr:8,fu:'unidad',linea:'Postres',sab:[{s:'',a:'tricolor diet'}]},
-  {id:'p11',n:'Torta Isabella / Cookies',u:'caja x6',p:61777,fr:6,fu:'unidad',linea:'Postres',sab:[{s:'Frutilla y Vainilla',a:'torta isabella fru'},{s:'Chocolate y Vainilla',a:'torta isabella choco'},{s:'Cookies',a:'torta cookies'}]},
+  {id:'p01',n:'Pack Almendrado x8',u:'caja x6',p:50759,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'almendrado'}]},
+  {id:'p02',n:'Pack Tricolor x8',u:'caja x6',p:50759,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'tricolor'}]},
+  {id:'p03',n:'Pack Suizo x8',u:'caja x6',p:57130,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'suizo'}]},
+  {id:'p04',n:'Pack Escoces Cla y Nev x8',u:'caja x6',p:63529,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'escoces cla y nev'}]},
+  {id:'p05',n:'Pack Escoces Pistacho x8',u:'caja x6',p:63529,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'escoces pistacho'}]},
+  {id:'p06',n:'Mini Torta Cookies x8',u:'caja x6',p:64706,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'mini torta cookies'}]},
+  {id:'p07',n:'Pack Alfajor x8',u:'caja x6',p:63529,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'Clasico',a:'alfajor clasico'},{s:'Blanco',a:'alfajor blanco'}]},
+  {id:'p08',n:'Pack Alfajor Seichoc x8',u:'caja x6',p:85401,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'alfajor seichoc'}]},
+  {id:'p09',n:'Pack Barrita Sin TACC x8',u:'caja x6',p:53305,fr:6,fu:'caja x8',baja:true,linea:'Postres',sab:[{s:'',a:'barrita sin tacc'}]},
+  {id:'p10',n:'Pack Tricolor Diet Fun',u:'caja x6',p:79044,fr:6,fu:'unidad',linea:'Postres',sab:[{s:'',a:'tricolor diet'}]},
+  {id:'p11',n:'Torta Isabella / Cookies',u:'caja x8',p:61777,fr:8,fu:'unidad',linea:'Postres',sab:[{s:'Frutilla y Vainilla',a:'torta isabella fru'},{s:'Chocolate y Vainilla',a:'torta isabella choco'},{s:'Cookies',a:'torta cookies'}]},
   {id:'p12',n:'Torta Bombon / Lemon Pie',u:'caja x6',p:61777,fr:6,fu:'unidad',linea:'Postres',sab:[{s:'Bombon',a:'torta bombon'},{s:'Lemon Pie',a:'torta lemon pie'}]},
-  {id:'p13',n:'Pack 0,750 Lts',u:'caja x8',p:48324,fr:8,fu:'unidad',linea:'Postres',sab:[{s:'Choc y Vainilla',a:'pote choco vain'},{s:'Frutilla y Americana',a:'pote fru amer'},{s:'Choc y DDL',a:'pote choco ddl'},{s:'Limon',a:'pote limon'},{s:'Pistacho y Choc',a:'pote pist choco'}]},
-  {id:'p14',n:'Pack Cookies Premium 0,750 Lts',u:'caja x8',p:48435,fr:8,fu:'unidad',linea:'Postres',sab:[{s:'Frutilla a la Crema',a:'premium fru'},{s:'Super Chocolate',a:'premium choco'},{s:'DDL Granizado',a:'premium ddl'},{s:'Crema Cookies con DDL',a:'premium cookies'}]},
-  {id:'p15',n:'Pack Pote Dubai 360cc',u:'caja x12',p:54337,fr:12,fu:'unidad',linea:'Postres',sab:[{s:'Pistacho y Chocolate',a:'pote dubai'}]},
-  {id:'p16',n:'Pack 0,750 Lts Vegano',u:'caja x6',p:36256,fr:6,fu:'unidad',linea:'Postres',sab:[{s:'Choc con Almendras y Vainilla',a:'pote vegano'}]},
-  {id:'p17',n:'Pack Pote Cormillot 360cc',u:'caja x12',p:58684,fr:12,fu:'unidad',linea:'Postres',sab:[{s:'Frutilla y Vainilla',a:'cormillot fru'},{s:'Chocolate y Vainilla',a:'cormillot choco'}]},
+  {id:'p13',n:'Pack 0,750 Lts',u:'caja x6',p:48324,fr:6,fu:'unidad',linea:'Postres',sab:[{s:'Choc y Vainilla',a:'pote choco vain'},{s:'Frutilla y Americana',a:'pote fru amer'},{s:'Choc y DDL',a:'pote choco ddl'},{s:'Limon',a:'pote limon'},{s:'Pistacho y Choc',a:'pote pist choco'}]},
+  {id:'p14',n:'Pack Cookies Premium 0,750 Lts',u:'caja x8',p:48324,fr:8,fu:'unidad',linea:'Postres',sab:[{s:'Frutilla a la Crema',a:'premium fru'},{s:'Super Chocolate',a:'premium choco'},{s:'DDL Granizado',a:'premium ddl'},{s:'Crema Cookies con DDL',a:'premium cookies'}]},
+  {id:'p15',n:'Pack Pote Dubai 360cc',u:'caja x8',p:54337,fr:8,fu:'unidad',linea:'Postres',sab:[{s:'Pistacho y Chocolate',a:'pote dubai'}]},
+  {id:'p16',n:'Pack 0,750 Lts Vegano',u:'caja x12',p:36256,fr:12,fu:'unidad',linea:'Postres',sab:[{s:'Choc con Almendras y Vainilla',a:'pote vegano'}]},
+  {id:'p17',n:'Pack Pote Cormillot 360cc',u:'caja x6',p:58684,fr:6,fu:'unidad',linea:'Postres',sab:[{s:'Frutilla y Vainilla',a:'cormillot fru'},{s:'Chocolate y Vainilla',a:'cormillot choco'}]},
   {id:'p18',n:'Baldes x3 Lt',u:'unidad',p:11508,linea:'Postres',sab:[{s:'Americana',a:'balde3 amer'},{s:'DDL',a:'balde3 ddl'},{s:'Chocolate',a:'balde3 choco'},{s:'Frutilla',a:'balde3 fru'},{s:'Banana',a:'balde3 banana'},{s:'Flan',a:'balde3 flan'},{s:'Granizado',a:'balde3 granizado'},{s:'Tramontana',a:'balde3 tramontana'},{s:'Tiramisu',a:'balde3 tiramisu'}]},
   {id:'p19',n:'Baldes x5 Lt',u:'unidad',p:16180,linea:'Postres',sab:[{s:'Americana',a:'balde5 amer'},{s:'DDL',a:'balde5 ddl'},{s:'Chocolate',a:'balde5 choco'},{s:'Frutilla',a:'balde5 fru'},{s:'Banana',a:'balde5 banana'},{s:'Flan',a:'balde5 flan'},{s:'Granizado',a:'balde5 granizado'}]},
-  {id:'p20',n:'Pote Frambuesas x12',u:'caja x12',p:76429,fr:12,fu:'unidad',linea:'Postres',sab:[{s:'',a:'frambuesa'}]},
-  {id:'p21',n:'Baldes x2 Lt',u:'caja x9',p:103585,fr:9,fu:'unidad',linea:'Postres',sab:[{s:'Pistacho',a:'balde2 pistacho'},{s:'Flan',a:'balde2 flan'},{s:'Crema Cookies',a:'balde2 cookies'}]},
-  {id:'p22',n:'Pote Tutto 3 Lts',u:'unidad',p:9900,linea:'Postres',sab:[{s:'',a:'pote tutto'}]},
-  {id:'l01',n:'Lata Comun',u:'lata',p:39295,linea:'Granel',sab:[{s:'Chocolate',a:'lata comun choco'},{s:'Dulce de Leche',a:'lata comun ddl'},{s:'Frutilla',a:'lata comun fru'},{s:'Americana',a:'lata comun amer'},{s:'Vainilla',a:'lata comun vain'}]},
-  {id:'l02',n:'Lata Especial',u:'lata',p:44707,linea:'Granel',sab:[{s:'Granizado',a:'lata esp granizado'},{s:'Tramontana',a:'lata esp tramontana'},{s:'Flan',a:'lata esp flan'}]},
-  {id:'l03',n:'Lata Super Especial',u:'lata',p:49719,linea:'Granel',sab:[{s:'Pistacho',a:'lata super pistacho'},{s:'Crema Cookies',a:'lata super cookies'},{s:'Tiramisu',a:'lata super tiramisu'}]},
-  {id:'l04',n:'Lata Licencias',u:'lata',p:52207,linea:'Granel',sab:[{s:'Licencia 1',a:'lata lic 1'},{s:'Licencia 2',a:'lata lic 2'}]}
+  {id:'p23',n:'Pote Arandanos Banados x12',u:'caja x12',p:68089,fr:12,fu:'unidad',linea:'Impulsivos',sab:[{s:'',a:'arandano'}]},
+  {id:'p20',n:'Pote Frambuesas Banadas x12',u:'caja x12',p:76429,fr:12,fu:'unidad',linea:'Impulsivos',sab:[{s:'',a:'frambuesa'}]},
+  {id:'p21',n:'Baldes x2 Lt',u:'unidad',p:11509,linea:'Postres',sab:[{s:'Pistacho',a:'balde2 pistacho'},{s:'Flan',a:'balde2 flan'},{s:'Crema Cookies',a:'balde2 cookies'}]},
+  {id:'l01',n:'Lata Comun',u:'lata',p:40699,linea:'Granel',sab:[{s:'Chocolate',a:'lata comun choco'},{s:'Dulce de Leche',a:'lata comun ddl'},{s:'Frutilla',a:'lata comun fru'},{s:'Americana',a:'lata comun amer'},{s:'Vainilla',a:'lata comun vain'}]},
+  {id:'l02',n:'Lata Especial',u:'lata',p:46303,linea:'Granel',sab:[{s:'Granizado',a:'lata esp granizado'},{s:'Tramontana',a:'lata esp tramontana'},{s:'Flan',a:'lata esp flan'}]},
+  {id:'l03',n:'Lata Super Especial',u:'lata',p:51495,linea:'Granel',sab:[{s:'Pistacho',a:'lata super pistacho'},{s:'Crema Cookies',a:'lata super cookies'},{s:'Tiramisu',a:'lata super tiramisu'}]},
+  {id:'l04',n:'Lata Licencias',u:'lata',p:54071,linea:'Granel',sab:[{s:'Licencia 1',a:'lata lic 1'},{s:'Licencia 2',a:'lata lic 2'}]}
 ];
 // Materiales que se entregan en comodato: van en el pedido pero NO suman al total.
 var MATERIALES_DEF=['freezer + comodato','veleta','totem c/display','caja material pop','saltarines','cenefa','cartel impulsivos sei tu','display'];
@@ -960,6 +960,57 @@ function revisarClientesInactivos(){
 // Los productos que ya estaban guardados en la base no tienen los campos de
 // fraccion. Se los copiamos del catalogo por defecto, respetando lo que Jorge
 // haya editado (nombres, precios y sabores no se tocan).
+// Actualiza el catalogo GUARDADO en la base con la lista del 21/09/2026.
+// Clave: Jorge ya corrigio a mano sabores y abreviaciones, asi que de cada
+// producto se pisan solo precio, presentacion, fraccion y linea. El nombre y
+// los sabores quedan como el los dejo.
+function migrarPreciosSet26(){
+  if(!D.user||D.user.r!=='admin')return;
+  if(!CFG_CARGADA)return;
+  if(D.cfg&&D.cfg.preciosSet26>=1)return;
+  var ps=D.cfg.productos;
+  if(!ps||!ps.length){                       // nunca edito el catalogo: usa el nuevo por defecto
+    D.cfg.preciosSet26=1;fsSetConfig({preciosSet26:1});return;
+  }
+  var def={};PRODUCTOS_DEF.forEach(function(p){def[p.id]=p;});
+  var tocados=0,bajas=[],altas=[];
+  // 1. Actualizar los que siguen vigentes
+  ps.forEach(function(p){
+    var d=def[p.id];
+    if(!d)return;
+    var antes=Number(p.p||0);
+    p.p=d.p; p.u=d.u; p.linea=d.linea;
+    if(d.fr>1){p.fr=d.fr;p.fu=d.fu;}else{delete p.fr;delete p.fu;}
+    if(d.baja)p.baja=true;else delete p.baja;
+    if(antes!==d.p)tocados++;
+  });
+  // 2. Sacar los que ya no estan en la lista
+  var idsDef={};PRODUCTOS_DEF.forEach(function(p){idsDef[p.id]=true;});
+  var quedan=ps.filter(function(p){
+    if(idsDef[p.id])return true;
+    bajas.push(p.n);return false;
+  });
+  // 3. Sumar SOLO los que son nuevos en esta lista. Si un producto no esta en
+  // el catalogo es porque Jorge lo borro a proposito (por ejemplo fusiono los
+  // dos escoceses en uno): la migracion no le deshace esa decision.
+  var NUEVOS_SET26=['p23'];   // Pote Arandanos Banados x12
+  NUEVOS_SET26.forEach(function(id){
+    var d=def[id];
+    if(d&&!quedan.some(function(p){return p.id===id;})){
+      quedan.push(JSON.parse(JSON.stringify(d)));
+      altas.push(d.n);
+    }
+  });
+  D.cfg.productos=quedan;
+  D.cfg.preciosSet26=1;
+  fsSetConfig({productos:quedan,preciosSet26:1});
+  var det=[];
+  if(tocados)det.push(tocados+' precios');
+  if(altas.length)det.push(altas.length+' alta'+(altas.length!==1?'s':''));
+  if(bajas.length)det.push(bajas.length+' baja'+(bajas.length!==1?'s':''));
+  logEvento('edicion','','','Lista de precios 21/09/2026 aplicada: '+(det.join(' · ')||'sin cambios')+(altas.length?' · altas: '+altas.join(', '):'')+(bajas.length?' · bajas: '+bajas.join(', '):''),'','');
+  toast('Lista de precios actualizada: '+(det.join(' · ')||'sin cambios'),'ok');
+}
 function migrarFraccionProductos(){
   if(!D.user||D.user.r!=='admin')return;
   if(!CFG_CARGADA)return;
@@ -1167,7 +1218,8 @@ function startApp(){
   try{limpiarMarcaDeudorVieja();}catch(e){}   // saca el si/no viejo de deudor
   try{migrarCargaInicial();}catch(e){}         // la entrega del freezer cuenta como primer pedido
   try{repararEsP();}catch(e){}                // destraba los que quedaron como clientes por el bug viejo
-  try{migrarFraccionProductos();}catch(e){}   // suma la fraccion al catalogo ya guardado
+  try{migrarFraccionProductos();}catch(e){}
+  try{migrarPreciosSet26();}catch(e){}       // lista de precios del 21/09/2026   // suma la fraccion al catalogo ya guardado
   try{revisarClientesInactivos();}catch(e){}   // cliente sin pedido en X dias vuelve a prospecto (solo admin)
   // Aviso de backup: se espera unos segundos para que la config real ya haya
   // bajado (si no, parece que nunca se hizo un backup y avisaria de mas).
@@ -2110,7 +2162,7 @@ function pedidoEnVisitaProsHTML(){
     var h='<div class="card" style="border:1px solid var(--green)"><div class="ct" style="color:var(--green)">PEDIDO CARGADO</div>';
     h+='<div style="font-size:20px;font-weight:900;color:var(--green)">'+plata(p.total)+'</div>';
     h+='<div style="font-size:12px;color:var(--muted)">'+(p.items?p.items.length:0)+' renglones · pasa a Cliente Activo al guardar</div>';
-    if(debe>0)h+='<div style="font-size:12px;color:var(--red);font-weight:700;margin-top:4px">'+(estadoPedido(p)==='tomado'?'Al entregar queda debiendo ':'Quedo debiendo ')+plata(debe)+'</div>';
+    if(debe>0)h+='<div style="font-size:12px;color:var(--red);font-weight:700;margin-top:4px">Quedo debiendo '+plata(debe)+'</div>';
     h+='<button class="sm" onclick="tomarPedidoEnVisitaPros()" style="margin-top:8px">Corregir el pedido</button>';
     h+='</div>';
     return h;
@@ -2513,12 +2565,8 @@ function renderVV(){
 // ── Solapa Pedidos ───────────────────────────────────────────────────
 function htmlPedidosPanel(base){
   var ps=pedidosDelPeriodo(base,vVPer);
-  // Solo lo entregado es venta. Lo tomado todavia no bajo y lo anulado no cuenta.
-  var ents=ps.filter(pedidoEntregado);
-  var toms=ps.filter(function(p){return estadoPedido(p)==='tomado';});
-  var tot=ents.reduce(function(t,p){return t+Number(p.total||0);},0);
-  var totTom=toms.reduce(function(t,p){return t+Number(p.total||0);},0);
-  var cob=ents.reduce(function(t,p){return t+(p.cobrado!==undefined?Number(p.cobrado||0):Number(p.total||0));},0);
+  var tot=ps.reduce(function(t,p){return t+Number(p.total||0);},0);
+  var cob=ps.reduce(function(t,p){return t+(p.cobrado!==undefined?Number(p.cobrado||0):Number(p.total||0));},0);
   var h='<div style="padding:12px 14px;background:var(--s1);border-bottom:1px solid var(--border)">';
   h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">';
   [['hoy','Hoy'],['sem','Esta semana'],['mes','Este mes'],['todo','Todo']].forEach(function(o){
@@ -2527,9 +2575,8 @@ function htmlPedidosPanel(base){
   h+='</div>';
   h+='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">';
   h+='<div><div style="font-size:22px;font-weight:800">'+ps.length+'</div><div style="font-size:10px;color:var(--muted)">PEDIDOS</div></div>';
-  h+='<div><div style="font-size:22px;font-weight:800;color:var(--green)">'+plata(tot)+'</div><div style="font-size:10px;color:var(--muted)">ENTREGADO</div></div>';
-  if(toms.length)h+='<div><div style="font-size:22px;font-weight:800;color:#fbbf24">'+plata(totTom)+'</div><div style="font-size:10px;color:var(--muted)">TOMADO ('+toms.length+') SIN ENTREGAR</div></div>';
-  h+='<div><div style="font-size:22px;font-weight:800;color:'+(tot-cob>0?'var(--red)':'var(--muted)')+'">'+plata(tot-cob)+'</div><div style="font-size:10px;color:var(--muted)">NO COBRADO AL ENTREGAR</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:var(--green)">'+plata(tot)+'</div><div style="font-size:10px;color:var(--muted)">VENDIDO</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:'+(tot-cob>0?'var(--red)':'var(--muted)')+'">'+plata(tot-cob)+'</div><div style="font-size:10px;color:var(--muted)">SIN COBRAR</div></div>';
   h+='</div></div>';
   if(!ps.length){
     h+='<div class="empty">Sin pedidos en este periodo.<br><span style="font-size:11px">Los pedidos se cargan desde la ficha del cliente o desde la visita.</span></div>';
@@ -2544,10 +2591,9 @@ function htmlPedidosPanel(base){
       var tDia=delDia.reduce(function(t,x){return t+Number(x.total||0);},0);
       h+='<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px"><div style="font-size:12px;font-weight:800;color:var(--cyan)">'+fmt(p.fecha)+'</div><div style="font-size:11px;color:var(--green);font-weight:700">'+plata(tDia)+'</div><div style="flex:1;height:1px;background:var(--border)"></div></div>';
     }
-    var estP=estadoPedido(p);
-    var debe=(estP==='entregado'&&p.cobrado!==undefined)?(Number(p.total||0)-Number(p.cobrado||0)):0;
-    h+='<div onclick="verPedido(\''+p.id+'\')" style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer'+(estP==='anulado'?';opacity:.5':'')+'">';
-    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(p.cliente||'')+' <span style="font-size:9px;font-weight:800;padding:1px 6px;border-radius:8px;background:'+colorEstadoPed(estP)+';color:#111;vertical-align:middle">'+labelEstadoPed(estP)+'</span></div>';
+    var debe=p.cobrado!==undefined?(Number(p.total||0)-Number(p.cobrado||0)):0;
+    h+='<div onclick="verPedido(\''+p.id+'\')" style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer">';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(p.cliente||'')+'</div>';
     h+='<div style="font-size:11px;color:var(--muted)">'+(p.items?p.items.length:0)+' renglones'+(p.vend?' · '+es(p.vend):'')+'</div></div>';
     h+='<div style="text-align:right;flex-shrink:0"><div style="font-size:14px;font-weight:800;color:var(--green)">'+plata(p.total)+'</div>';
     if(debe>0)h+='<div style="font-size:10px;color:var(--red);font-weight:800">debe '+plata(debe)+'</div>';
@@ -3908,7 +3954,7 @@ function renderPedido(){
   // Productos de la linea, un renglon por sabor
   h+='<div style="max-height:44vh;overflow-y:auto;-webkit-overflow-scrolling:touch">';
   var hay=false;
-  productos().filter(function(p){return p.linea===pedActual.linea;}).forEach(function(p){
+  productos().filter(function(p){return p.linea===pedActual.linea&&!p.baja;}).forEach(function(p){
     hay=true;
     var fq=fracDe(p);
     h+='<div style="margin-bottom:8px"><div style="font-size:12px;font-weight:800">'+es(p.n)+' <span style="font-weight:400;color:var(--muted)">'+es(p.u)+' · '+plata(p.p)+'</span></div>';
@@ -4406,8 +4452,7 @@ function recalcularUltimaCompra(cid){
 function verPedido(pid){
   var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
   var h='<div style="font-size:15px;font-weight:800">'+es(p.cliente||'')+'</div>';
-  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">'+fmt(p.fecha)+(p.vend?' · '+es(p.vend):'')+'</div>';
-  h+=estadoPedidoHTML(p);
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:12px">'+fmt(p.fecha)+(p.vend?' · '+es(p.vend):'')+'</div>';
   h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Corregí las cantidades si algo no se entregó. Poné 0 en lo que no llegó.</div>';
   (p.items||[]).forEach(function(it,i){
     h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
@@ -4422,42 +4467,6 @@ function verPedido(pid){
   h+='<button class="btn sec" onclick="editarPedidoCompleto(\''+pid+'\')" style="margin:0 0 8px">Editar el pedido completo (agregar productos)</button>';
   h+='<button class="btn red" onclick="eliminarPedido(\''+pid+'\')" style="margin:0">Eliminar este pedido</button>';
   oMod('Pedido del '+fmt(p.fecha),h);
-}
-// Estado del pedido dentro del detalle, con los botones para corregirlo.
-// Sirve sobre todo para los pedidos cargados antes del control de entregas:
-// quedaron como ENTREGADOS aunque la mercaderia no haya bajado.
-function estadoPedidoHTML(p){
-  var est=estadoPedido(p);
-  var h='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">';
-  h+='<span style="font-size:10px;font-weight:800;padding:3px 9px;border-radius:10px;background:'+colorEstadoPed(est)+';color:#111">'+labelEstadoPed(est)+'</span>';
-  if(est==='entregado'&&p.fechaEntrega)h+='<span style="font-size:11px;color:var(--muted)">el '+fmt(p.fechaEntrega)+'</span>';
-  if(!p.estado)h+='<span style="font-size:10px;color:var(--muted)">cargado antes del control de entregas</span>';
-  h+='</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">';
-  if(est!=='entregado')h+='<button class="sm g" data-pid="'+p.id+'" data-est="entregado" onclick="cambiarEstadoPedido(this)">Entregado</button>';
-  if(est!=='tomado')h+='<button class="sm" data-pid="'+p.id+'" data-est="tomado" onclick="cambiarEstadoPedido(this)">Volver a TOMADO</button>';
-  if(est!=='anulado')h+='<button class="sm rd" data-pid="'+p.id+'" data-est="anulado" onclick="cambiarEstadoPedido(this)">No se entrego</button>';
-  h+='</div>';
-  return h;
-}
-function cambiarEstadoPedido(el){
-  if(soloLectura())return;
-  var pid=el.getAttribute('data-pid'),est=el.getAttribute('data-est');
-  var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
-  if(est==='entregado'||est==='anulado'){cMod();marcarEntrega(pid,est);return;}
-  // Volver a TOMADO: la mercaderia todavia no bajo, asi que no hay deuda
-  if(!confirm('Volver a TOMADO el pedido de "'+(p.cliente||'')+'" por '+plata(p.total)+'?\n\nSe borra la deuda que habia generado y vuelve a la lista de Entregas.'))return;
-  var antes=estadoPedido(p);
-  p.estado='tomado';
-  delete p.fechaEntrega;
-  if(!p.entrega||p.entrega<fechaLocal())p.entrega=proximaEntrega();
-  p._modBy=D.user?D.user.n:'?';p._modAt=new Date().toISOString();
-  fsSetPedido(p);
-  ajustarDeudaDePedido(p,0);
-  logEvento('venta',p.cid,p.cliente,'Pedido vuelto a TOMADO ('+plata(p.total)+')',antes,'tomado');
-  toast('Pedido pendiente de entrega','ok');
-  cMod();
-  if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGP();else renderVV();
-  refrescarVistaActual();
 }
 function guardarCambiosPedido(pid){
   var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
@@ -4536,7 +4545,7 @@ function abrirCatalogo(){
     dl.forEach(function(p){
       h+='<div onclick="editarProducto(\''+p.id+'\')" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer">';
       h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(p.n)+'</div>';
-      h+='<div style="font-size:11px;color:var(--muted)">'+es(p.u)+' · '+(p.sab||[]).length+' sabor'+((p.sab||[]).length!==1?'es':'')+(Number(p.fr)>1?' · suelto x '+es(p.fu||'unidad'):'')+'</div></div>';
+      h+='<div style="font-size:11px;color:var(--muted)">'+es(p.u)+' · '+(p.sab||[]).length+' sabor'+((p.sab||[]).length!==1?'es':'')+(Number(p.fr)>1?' · suelto x '+es(p.fu||'unidad'):'')+(p.baja?' · <span style="color:var(--orange)">DISCONTINUADO</span>':'')+'</div></div>';
       h+='<div style="font-size:13px;font-weight:700;color:var(--green)">'+plata(p.p)+'</div>';
       h+='<span style="color:var(--muted)">&rsaquo;</span></div>';
     });
@@ -4556,6 +4565,7 @@ function editarProducto(pid){
   h+='<div class="fg"><label class="fl">Unidad</label><input class="fi" id="cpU" value="'+es(p.u)+'" placeholder="caja x24"></div>';
   h+='<div class="fg"><label class="fl">Precio</label><input class="fi" id="cpP" type="number" min="0" value="'+Number(p.p||0)+'"></div>';
   h+='</div>';
+  h+='<div class="sr"><span style="font-weight:700;color:var(--orange)">Discontinuado <span style="font-size:11px;color:var(--muted);font-weight:400">(no aparece al tomar pedidos)</span></span><label class="sw"><input type="checkbox" id="cpBaja"'+(p.baja?' checked':'')+'><span class="sl3"></span></label></div>';
   h+='<div class="fg"><label class="fl">Se puede vender fraccionado <span style="font-size:10px;color:var(--muted)">(dejar en 0 si solo se vende la caja cerrada)</span></label></div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
   h+='<div class="fg"><label class="fl">Cuantos entran en la caja</label><input class="fi" id="cpFr" type="number" min="0" value="'+(Number(p.fr)||0)+'" placeholder="6"></div>';
@@ -4605,6 +4615,8 @@ function guardarProducto(pid){
   p.u=document.getElementById('cpU').value.trim();
   p.p=Number(document.getElementById('cpP').value)||0;
   p.linea=document.getElementById('cpL').value;
+  var _bj=document.getElementById('cpBaja');
+  if(_bj&&_bj.checked)p.baja=true;else delete p.baja;
   var fr=Number(document.getElementById('cpFr').value)||0;
   if(fr>1){p.fr=fr;p.fu=document.getElementById('cpFu').value.trim()||'unidad';}
   else{delete p.fr;delete p.fu;}
@@ -5878,8 +5890,6 @@ function renderGCfg(){
 
   h+=auditoriaHTML();
 
-  h+=rutaConfigHTML();
-
   // ── MENSAJES WHATSAPP POR ETAPA ───────────────────────────────────
   h+='<div class="card"><div class="ct">MENSAJES DE WHATSAPP POR ETAPA</div>';
   h+='<div style="background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);border-radius:var(--rsm);padding:10px 12px;margin-bottom:14px">';
@@ -6876,7 +6886,7 @@ function pedidoEnVisitaHTML(){
     var h='<div class="card" style="border:1px solid var(--green)"><div class="ct" style="color:var(--green)">PEDIDO CARGADO</div>';
     h+='<div style="font-size:20px;font-weight:900;color:var(--green)">'+plata(p.total)+'</div>';
     h+='<div style="font-size:12px;color:var(--muted)">'+(p.items?p.items.length:0)+' renglones</div>';
-    if(debe>0)h+='<div style="font-size:12px;color:var(--red);font-weight:700;margin-top:4px">'+(estadoPedido(p)==='tomado'?'Al entregar queda debiendo ':'Quedo debiendo ')+plata(debe)+'</div>';
+    if(debe>0)h+='<div style="font-size:12px;color:var(--red);font-weight:700;margin-top:4px">Quedo debiendo '+plata(debe)+'</div>';
     h+='<button class="sm" onclick="tomarPedidoEnVisita()" style="margin-top:8px">Corregir el pedido</button>';
     h+='</div>';
     return h;
@@ -7051,11 +7061,8 @@ function renderVG(){
   var dentroDeRango=gDiaActivo>=hoy&&gDiaActivo<=fechaLocal(limiteMapa);
   if(dentroDeRango&&planActivo.length)h+='<button class="sm" onclick="toggleGiraMapaVG()">'+(giraMapaOn?'&#9776; Lista':'&#128506; Mapa')+'</button>';
   if(planActivo.length>1)h+='<button class="sm" onclick="agruparGiraPorBarrio(\''+gDiaActivo+'\')" title="Ordenar las paradas por zona">&#128205; Por barrio</button>';
-  if(barriosDeRuta(diaDeSemana(gDiaActivo)).length)h+='<button class="sm" onclick="cargarRutaDia(\''+gDiaActivo+'\')" title="Sumar los clientes de los barrios de este dia">&#128467; Cargar ruta</button>';
   h+='<button class="sm g" onclick="abrirAgregarAGira(\''+gDiaActivo+'\')">+ Agregar</button>';
   h+='</div>';
-  h+=rutaDiaHTML(gDiaActivo,planActivo);
-  var HR=horasGira(planActivo);
   if(!planActivo.length){
     h+='<div style="text-align:center;padding:30px 14px;color:var(--muted)"><div style="font-size:28px;margin-bottom:8px">📅</div><div style="font-size:13px">Sin visitas para este día</div></div>';
   } else if(vistaModo==='lista'){
@@ -7070,7 +7077,7 @@ function renderVG(){
       h+='<div class="lrow" onclick="abrirVisita(\''+g.cid+'\')" style="border-left:4px solid '+etaCol+'">';
       h+='<div class="lnum" style="background:'+(yaVis?'var(--green)':'var(--s3)')+';color:'+(yaVis?'#000':'var(--text)')+'">'+(yaVis?'✓':idx+1)+'</div>';
       h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan?' <span class="lfan">· '+es(c.fan)+'</span>':'')+'</div>';
-      h+='<div class="lsub">'+(HR[g.cid]?'<b style="color:var(--cyan)">'+hhmm(HR[g.cid].ini)+'</b> · ':'')+(c.dir?'📍 '+es(c.dir):es(c.ciu||c.bar||''))+'</div></div>';
+      h+='<div class="lsub">'+(c.dir?'📍 '+es(c.dir):es(c.ciu||c.bar||''))+'</div></div>';
       h+='<span class="tg '+(c.esP?'o':'g')+' ltg">'+(c.esP?'PROS':'CLI')+'</span>';
       h+='<button class="lx" title="Pasar al dia siguiente" style="color:var(--cyan)" onclick="event.stopPropagation();pasarAlDiaSiguiente(\''+g.cid+'\',\''+gDiaActivo+'\')">▶</button>';
       h+='<button class="lx" onclick="event.stopPropagation();quitarDeGira(\''+g.cid+'\',\''+gDiaActivo+'\')">✕</button>';
@@ -7097,7 +7104,7 @@ function renderVG(){
       h+='<div style="font-size:15px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.nm)+'</div>';
       if(c.fan)h+='<div style="font-size:15px;font-weight:700;color:var(--cyan);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.fan)+'</div>';
       if(c.dir)h+='<div style="font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📍 '+es(c.dir)+'</div>';
-      h+='<div style="font-size:11px;color:var(--muted)">'+(HR[g.cid]?'<b style="color:var(--cyan)">🕘 '+hhmm(HR[g.cid].ini)+' a '+hhmm(HR[g.cid].fin)+'</b> · ':'')+es(c.tipo||'')+(c.ciu?' · '+es(c.ciu):c.bar?' · '+es(c.bar):'')+'</div>';
+      h+='<div style="font-size:11px;color:var(--muted)">'+es(c.tipo||'')+(c.ciu?' · '+es(c.ciu):c.bar?' · '+es(c.bar):'')+'</div>';
       h+='</div>';
       h+='<span class="tg '+(c.esP?'o':'g')+' ltg">'+(c.esP?'PROS':'CLI')+'</span>';
       h+='<button title="Pasar al dia siguiente" onclick="pasarAlDiaSiguiente(\''+g.cid+'\',\''+gDiaActivo+'\')" style="background:none;border:none;color:var(--cyan);font-size:15px;cursor:pointer;padding:4px;flex-shrink:0">▶</button>';
@@ -7123,149 +7130,6 @@ function renderVG(){
   h+='</div>';
   }
   var _vgb=document.getElementById(giraCont);if(_vgb)_vgb.innerHTML=h;
-}
-// ══════════════════════════════════════════════════════════════════════
-// RUTA SEMANAL
-// Cada barrio tiene un dia fijo de visita. "Cargar ruta" suma a la gira de ese
-// dia a todos los clientes activos de sus barrios, ordenados por cercania (GPS),
-// y la gira muestra el horario estimado de cada parada. Los horarios NO se
-// guardan: se recalculan del orden actual, asi siempre coinciden con la lista.
-// ══════════════════════════════════════════════════════════════════════
-var DIAS_RUTA=['','Lunes','Martes','Miercoles','Jueves','Viernes'];
-var RUTA_DEF={dias:{'Bo.Nueva Córdoba':1,'Bo.Centro':1,'Alberdi':1,'Alta Cordoba':4,'Bo.Cofico':4,'Bo.General Paz':5,'Pueyrredon':5,'Yofre norte':5,'Yofre Norte':5},inicio:'09:00',tarde:'16:00',min:20,finManana:'14:00'};
-function rutaCfg(){
-  var r=D.cfg.ruta||RUTA_DEF;
-  return {dias:r.dias||{},inicio:r.inicio||'09:00',tarde:r.tarde||'16:00',min:Number(r.min)||20,finManana:r.finManana||'14:00'};
-}
-function barriosDeRuta(dow){
-  var d=rutaCfg().dias;
-  return Object.keys(d).filter(function(b){return Number(d[b])===dow;});
-}
-function diaDeSemana(fecha){return new Date(fecha+'T12:00:00').getDay();}
-// Distancia "de cuadras" (sumando norte-sur y este-oeste), en km
-function kmEntre(a,b){
-  if(!a||!b||!a.lat||!a.lng||!b.lat||!b.lng)return null;
-  var dy=(Number(a.lat)-Number(b.lat))*111, dx=(Number(a.lng)-Number(b.lng))*111*0.853;
-  return Math.abs(dx)+Math.abs(dy);
-}
-// Minutos de traslado: 18 km/h en ciudad + 3 de estacionar. Sin GPS, 8 minutos.
-function minViaje(a,b){var k=kmEntre(a,b);return k===null?8:Math.round(k/18*60)+3;}
-function aMin(s){var p=String(s||'09:00').split(':');return Number(p[0])*60+Number(p[1]||0);}
-function hhmm(m){return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
-// Vecino mas cercano, probando cada punto como arranque y quedandose con el
-// recorrido mas corto. Los que no tienen GPS van al final.
-function ordenarPorCercania(cs){
-  var con=cs.filter(function(c){return c.lat&&c.lng;}),sin=cs.filter(function(c){return !(c.lat&&c.lng);});
-  if(con.length<3)return con.concat(sin);
-  var best=null;
-  for(var s=0;s<con.length;s++){
-    var rem=con.slice(),r=[rem.splice(s,1)[0]],d=0;
-    while(rem.length){
-      var bi=0,bd=Infinity;
-      for(var i=0;i<rem.length;i++){var k=kmEntre(r[r.length-1],rem[i]);if(k<bd){bd=k;bi=i;}}
-      d+=bd;r.push(rem.splice(bi,1)[0]);
-    }
-    if(!best||d<best.d)best={d:d,r:r};
-  }
-  return best.r.concat(sin);
-}
-// Deja los barrios en bloques seguidos (en el orden en que aparecen), para que
-// la lista agrupada por barrio y el orden de recorrido sean lo mismo.
-function barriosContiguos(cs){
-  var orden=[],mapa={};
-  cs.forEach(function(c){var b=(c.bar||'').trim()||'Sin barrio';if(!mapa[b]){mapa[b]=[];orden.push(b);}mapa[b].push(c);});
-  var out=[];orden.forEach(function(b){out=out.concat(mapa[b]);});
-  return out;
-}
-// Horario estimado de cada parada segun el orden del dia
-function horasGira(plan){
-  var r=rutaCfg(),out={},t=aMin(r.inicio),tt=aMin(r.tarde),prev=null,prevT=null;
-  plan.forEach(function(g){
-    var c=D.cli.find(function(x){return x.id===g.cid;});if(!c)return;
-    if(g.turno==='tarde'){
-      if(prevT)tt+=minViaje(prevT,c);
-      out[g.cid]={ini:tt,fin:tt+r.min};tt+=r.min;prevT=c;
-    } else {
-      if(prev)t+=minViaje(prev,c);
-      out[g.cid]={ini:t,fin:t+r.min};t+=r.min;prev=c;
-    }
-  });
-  out._finManana=prev?t:null;
-  return out;
-}
-function rutaDiaHTML(fecha,plan){
-  var dow=diaDeSemana(fecha),bs=barriosDeRuta(dow),r=rutaCfg();
-  if(!bs.length&&!plan.length)return '';
-  var h='<div style="margin:0 14px 8px;padding:9px 12px;background:rgba(34,211,238,.06);border:1px solid rgba(34,211,238,.2);border-radius:var(--rsm);font-size:12px">';
-  if(bs.length)h+='<div><b style="color:var(--cyan)">Ruta del '+DIAS_RUTA[dow]+':</b> '+es(bs.map(function(b){return b.replace(/^Bo\./,'');}).join(', '))+'</div>';
-  else h+='<div style="color:var(--muted)">Este dia no tiene barrios asignados (dia de prospeccion).</div>';
-  if(plan.length){
-    var hs=horasGira(plan);
-    if(hs._finManana!==null){
-      var libre=aMin(r.finManana)-hs._finManana;
-      h+='<div style="color:var(--muted);margin-top:3px">Mañana: '+r.inicio+' a '+hhmm(hs._finManana)+(libre>=30?' · <b style="color:var(--green)">'+hhmm(hs._finManana)+' a '+r.finManana+' prospeccion ('+libre+' min)</b>':libre<0?' · <b style="color:var(--red)">se pasa '+(-libre)+' min de las '+r.finManana+'</b>':'')+'</div>';
-    }
-  }
-  h+='</div>';
-  return h;
-}
-function cargarRutaDia(fecha){
-  if(soloLectura())return;
-  var dow=diaDeSemana(fecha),bs=barriosDeRuta(dow);
-  if(!bs.length){toast('Este dia no tiene barrios. Asignalos en Config > Ruta semanal','err');return;}
-  var enRuta={};bs.forEach(function(b){enRuta[b]=true;});
-  var cs=contactosParaGira().filter(function(c){return !c.eliminado&&c.etapaEmbudo==='Cliente Activo'&&enRuta[(c.bar||'').trim()];});
-  if(!cs.length){toast('No hay clientes activos en '+bs.join(', '),'err');return;}
-  var nuevos=0;
-  cs.forEach(function(c){
-    if(!D.gira.some(function(g){return g.cid===c.id&&g.fecha===fecha;})){
-      D.gira.push({cid:c.id,fecha:fecha,orden:999,turno:'manana'});nuevos++;
-    }
-  });
-  var ids={};cs.forEach(function(c){ids[c.id]=true;});
-  var resto=misGira().filter(function(g){return g.fecha===fecha&&!ids[g.cid];}).sort(function(a,b){return(a.orden||0)-(b.orden||0);});
-  var n=0;
-  barriosContiguos(ordenarPorCercania(cs)).forEach(function(c){
-    var g=D.gira.find(function(x){return x.cid===c.id&&x.fecha===fecha;});
-    g.orden=n++;if(!g.turno)g.turno='manana';fsSetGira(g);
-  });
-  resto.forEach(function(g){if(g.orden!==n){g.orden=n;fsSetGira(g);}n++;});
-  toast('Ruta cargada: '+cs.length+' clientes'+(nuevos?' ('+nuevos+' nuevos en la gira)':'')+', ordenados por cercania','ok');
-  if(giraCont==='gGB')renderGG();else renderVG();
-}
-// ── Config: que barrio se visita cada dia ────────────────────────────
-function rutaConfigHTML(){
-  var r=rutaCfg(),cnt={};
-  D.cli.filter(function(c){return !c.eliminado&&c.ciu==='Córdoba Capital'&&(c.bar||'').trim();}).forEach(function(c){var b=c.bar.trim();cnt[b]=(cnt[b]||0)+1;});
-  Object.keys(r.dias).forEach(function(b){if(!cnt[b])cnt[b]=0;});
-  var act={};D.cli.filter(function(c){return !c.eliminado&&c.etapaEmbudo==='Cliente Activo';}).forEach(function(c){var b=(c.bar||'').trim();act[b]=(act[b]||0)+1;});
-  var bs=Object.keys(cnt).sort(function(a,b){return (act[b]||0)-(act[a]||0)||cnt[b]-cnt[a]||a.localeCompare(b);});
-  var h='<div class="card"><div class="ct">RUTA SEMANAL</div>';
-  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Que dia se visita cada barrio. En la Gira, el boton <b>Cargar ruta</b> suma a los clientes activos de esos barrios ordenados por cercania, con el horario estimado de cada parada.</div>';
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
-  h+='<div><label class="fl">Arranque</label><input class="fi" type="time" id="rutaIni" value="'+es(r.inicio)+'" style="margin:0"></div>';
-  h+='<div><label class="fl">Fin mañana</label><input class="fi" type="time" id="rutaFinM" value="'+es(r.finManana)+'" style="margin:0"></div>';
-  h+='<div><label class="fl">Min. por visita</label><input class="fi" type="number" min="5" id="rutaMin" value="'+r.min+'" style="margin:0"></div>';
-  h+='</div>';
-  bs.forEach(function(b){
-    var v=Number(r.dias[b])||0;
-    h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
-    h+='<div style="flex:1;min-width:0;font-size:13px;font-weight:700">'+es(b)+'<span style="font-size:11px;color:var(--muted);font-weight:400"> · '+(act[b]||0)+' clientes · '+cnt[b]+' contactos</span></div>';
-    h+='<select class="fi rutaSel" data-b="'+es(b)+'" style="width:120px;margin:0;padding:6px">';
-    DIAS_RUTA.forEach(function(d,i){h+='<option value="'+i+'"'+(i===v?' selected':'')+'>'+(i?d:'— sin dia —')+'</option>';});
-    h+='</select></div>';
-  });
-  h+='<button class="btn sec" onclick="savRuta()" style="margin:12px 0 0">Guardar ruta</button></div>';
-  return h;
-}
-function savRuta(){
-  var dias={};
-  document.querySelectorAll('.rutaSel').forEach(function(el){var v=Number(el.value)||0;if(v)dias[el.getAttribute('data-b')]=v;});
-  var r={dias:dias,inicio:(document.getElementById('rutaIni')||{}).value||'09:00',tarde:rutaCfg().tarde,
-    min:Math.max(5,Number((document.getElementById('rutaMin')||{}).value)||20),finManana:(document.getElementById('rutaFinM')||{}).value||'14:00'};
-  D.cfg.ruta=r;
-  fsSetConfig({ruta:r});
-  toast('Ruta semanal guardada','ok');
 }
 // Alias para dias() con nombre diferente para usar dentro de renderVG sin conflicto de scope
 function dias_fn(f){return dias(f);}
