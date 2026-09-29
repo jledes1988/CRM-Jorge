@@ -4,11 +4,12 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.1 - 29/09/2026';
+var VERSION='9.3 - 29/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
 var EC={'Nuevo Prospecto':'#fb923c','Contactado':'#fbbf24','Propuesta Enviada':'#a78bfa','Negociacion':'#facc15','Cliente Activo':'#4ade80','No Le Interesa':'#f87171','Perdido':'#f87171'};
+var MSG_RONDA_DEF='Hola {nombre}! Soy {vendedor} de Sei Tu.\nEstamos armando el pedido de {negocio} para entregar el {entrega}.\n\nLa vez pasada te llevaste:\n{ultimo}\n\nQue necesitas esta semana?';
 var MD={'Nuevo Prospecto':'Hola! Soy de Sei Tu Helados, pase por tu local y me gustaria contarte nuestra propuesta. Tenes un minuto?','Contactado':'Hola! Te escribo para coordinar una visita y mostrarte la propuesta de Sei Tu. Que dia te viene bien?','Propuesta Enviada':'Hola! Pudiste ver la propuesta? Queda alguna duda que pueda responder?','Negociacion':'Hola! Como venimos con la propuesta? Si necesitas ajustar algo avisame.','Cliente Activo':'Hola! Como va la venta? Aviso si hay novedades o promos.','No Le Interesa':'Gracias por tu tiempo! Si cambia la situacion quedo disponible.','Perdido':'Hola! Hace tiempo no hablamos. Segui interesado en Sei Tu?'};
 // Provincias donde opera la empresa. Si se suma una nueva, agregarla aca y en ARG_CIU.
 var ARG_PROV=['Cordoba','Santa Fe','Catamarca','La Rioja','Santiago del Estero','Tucuman','Salta','Jujuy'];
@@ -50,7 +51,6 @@ var PRODUCTOS_DEF=[
   {id:'p06',n:'Mini Torta Cookies x8',u:'caja x6',p:64706,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'mini torta cookies'}]},
   {id:'p07',n:'Pack Alfajor x8',u:'caja x6',p:63529,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'Clasico',a:'alfajor clasico'},{s:'Blanco',a:'alfajor blanco'}]},
   {id:'p08',n:'Pack Alfajor Seichoc x8',u:'caja x6',p:85401,fr:6,fu:'caja x8',linea:'Postres',sab:[{s:'',a:'alfajor seichoc'}]},
-  {id:'p09',n:'Pack Barrita Sin TACC x8',u:'caja x6',p:53305,fr:6,fu:'caja x8',baja:true,linea:'Postres',sab:[{s:'',a:'barrita sin tacc'}]},
   {id:'p10',n:'Pack Tricolor Diet Fun',u:'caja x6',p:79044,fr:6,fu:'unidad',linea:'Postres',sab:[{s:'',a:'tricolor diet'}]},
   {id:'p11',n:'Torta Isabella / Cookies',u:'caja x8',p:61777,fr:8,fu:'unidad',linea:'Postres',sab:[{s:'Frutilla y Vainilla',a:'torta isabella fru'},{s:'Chocolate y Vainilla',a:'torta isabella choco'},{s:'Cookies',a:'torta cookies'}]},
   {id:'p12',n:'Torta Bombon / Lemon Pie',u:'caja x6',p:61777,fr:6,fu:'unidad',linea:'Postres',sab:[{s:'Bombon',a:'torta bombon'},{s:'Lemon Pie',a:'torta lemon pie'}]},
@@ -967,10 +967,10 @@ function revisarClientesInactivos(){
 function migrarPreciosSet26(){
   if(!D.user||D.user.r!=='admin')return;
   if(!CFG_CARGADA)return;
-  if(D.cfg&&D.cfg.preciosSet26>=1)return;
+  if(D.cfg&&D.cfg.preciosSet26>=2)return;
   var ps=D.cfg.productos;
   if(!ps||!ps.length){                       // nunca edito el catalogo: usa el nuevo por defecto
-    D.cfg.preciosSet26=1;fsSetConfig({preciosSet26:1});return;
+    D.cfg.preciosSet26=2;fsSetConfig({preciosSet26:2});return;
   }
   var def={};PRODUCTOS_DEF.forEach(function(p){def[p.id]=p;});
   var tocados=0,bajas=[],altas=[];
@@ -1002,8 +1002,8 @@ function migrarPreciosSet26(){
     }
   });
   D.cfg.productos=quedan;
-  D.cfg.preciosSet26=1;
-  fsSetConfig({productos:quedan,preciosSet26:1});
+  D.cfg.preciosSet26=2;
+  fsSetConfig({productos:quedan,preciosSet26:2});
   var det=[];
   if(tocados)det.push(tocados+' precios');
   if(altas.length)det.push(altas.length+' alta'+(altas.length!==1?'s':''));
@@ -2716,7 +2716,7 @@ function htmlRondaPanel(){
       h+='<button class="sm" onclick="verPedido(\''+it.ped.id+'\')">Ver el pedido</button>';
     } else {
       h+='<button class="sm g" onclick="abrirPedido(\''+c.id+'\')">Tomar pedido</button>';
-      if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')">WhatsApp</button>';
+      if(c.tel)h+='<button class="sm wa" onclick="verMensajeRonda(\''+c.id+'\')">Pedir por WhatsApp</button>';
       if(it.estado==='falta')h+='<button class="sm" onclick="marcarSinPedido(\''+c.id+'\')">Esta vez no pide</button>';
       else h+='<button class="sm" onclick="marcarSinPedido(\''+c.id+'\',1)">Deshacer</button>';
     }
@@ -2730,6 +2730,129 @@ function htmlRondaPanel(){
 // deuda. Marcar entregado hace tres cosas: actualiza la ultima compra del
 // cliente, lo convierte en Cliente Activo si era prospecto, y carga a su
 // cuenta lo que no se cobro.
+// Las paradas del reparto, ya ordenadas: primero por el orden de zonas que
+// definio Jorge, y adentro de cada zona por cercania.
+function rutaDelReparto(){
+  var ps=misPendientes();
+  var conCli=ps.map(function(p){
+    var c=D.cli.find(function(x){return x.id===p.cid;});
+    return {p:p,c:c,bar:((c&&c.bar)||'').trim()||'Sin barrio'};
+  });
+  var zonas={},orden=[];
+  conCli.forEach(function(it){
+    if(!zonas[it.bar]){zonas[it.bar]=[];orden.push(it.bar);}
+    zonas[it.bar].push(it);
+  });
+  orden.sort(function(a,b){
+    var pa=posicionZona(a), pb=posicionZona(b);
+    if(pa!==pb)return pa-pb;
+    if(a==='Sin barrio')return 1;
+    if(b==='Sin barrio')return -1;
+    return a.localeCompare(b);
+  });
+  return orden.map(function(b){
+    var its=zonas[b];
+    // Ordenar por cercania usando el contacto, y volver a atar cada pedido
+    var cs=ordenarPorCercania(its.map(function(x){return x.c;}).filter(Boolean));
+    var ord=[];
+    cs.forEach(function(c){
+      var it=its.find(function(x){return x.c&&x.c.id===c.id;});
+      if(it&&ord.indexOf(it)<0)ord.push(it);
+    });
+    its.forEach(function(it){if(ord.indexOf(it)<0)ord.push(it);});
+    return {barrio:b,items:ord};
+  });
+}
+// Cuanto hay que cobrar en una parada, en palabras del que reparte
+function cobroDeParada(p){
+  var debe=Number(p.total||0)-(p.cobrado!==undefined?Number(p.cobrado||0):Number(p.total||0));
+  var cobrar=Number(p.cobrado!==undefined?p.cobrado:p.total)||0;
+  if(cobrar<=0)return {txt:'NO COBRAR',monto:0,detalle:debe>0?'queda en cuenta corriente':''};
+  if(debe>0)return {txt:'COBRAR SOLO $'+plata(cobrar).slice(1),monto:cobrar,detalle:'el resto ('+plata(debe)+') queda en cuenta'};
+  return {txt:'COBRAR '+plata(cobrar),monto:cobrar,detalle:''};
+}
+// El texto que se manda por WhatsApp o se imprime
+function textoHojaDeRuta(){
+  var grupos=rutaDelReparto();
+  var total=0,aCobrar=0,n=0;
+  grupos.forEach(function(g){g.items.forEach(function(it){
+    total+=Number(it.p.total||0);
+    aCobrar+=cobroDeParada(it.p).monto;
+    n++;
+  });});
+  if(!n)return '';
+  var f=new Date(proximaEntrega()+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  var L=[];
+  L.push('*HOJA DE RUTA — '+f+'*');
+  L.push(n+' paradas · entregar '+plata(total)+' · cobrar '+plata(aCobrar));
+  L.push('Cargar al reves: la parada '+n+' al fondo, la 1 en la puerta.');
+  var i=0;
+  grupos.forEach(function(g){
+    L.push('');
+    L.push('── '+g.barrio.toUpperCase()+' ('+g.items.length+') ──');
+    g.items.forEach(function(it){
+      i++;
+      var c=it.c||{}, p=it.p, cob=cobroDeParada(p);
+      L.push('');
+      L.push('*'+i+') '+(p.cliente||'').toUpperCase()+'*');
+      if(c.dir)L.push(c.dir+(c.horarios?' · '+c.horarios+' hs':''));
+      if(c.tel)L.push('Tel '+c.tel);
+      L.push('Entregar: '+(p.items?p.items.length:0)+' renglones — '+plata(p.total));
+      L.push('*'+cob.txt+'*'+(cob.detalle?' — '+cob.detalle:''));
+      if(p.notaPago)L.push(p.notaPago);
+      if(p.notaConv)L.push(p.notaConv);
+      if(p.instr)L.push('⚠ '+p.instr);
+    });
+  });
+  L.push('');
+  L.push('Cualquier cambio, consultar antes.');
+  var u=D.usrs.find(function(x){return x.n===(D.user&&D.user.n);});
+  if(u&&u.tel)L.push(u.tel);
+  return L.join('\n');
+}
+function verHojaDeRuta(){
+  var t=textoHojaDeRuta();
+  if(!t){toast('No hay pedidos para repartir','err');return;}
+  var sinZona=rutaDelReparto().filter(function(g){return g.barrio==='Sin barrio';});
+  var h='';
+  if(sinZona.length)h+='<div style="background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.35);border-radius:var(--rsm);padding:9px 11px;margin-bottom:10px;font-size:12px;color:var(--yellow)">'+sinZona[0].items.length+' parada(s) sin barrio cargado: quedaron al final. Cargales el barrio para que entren en su zona.</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Mandasela al chofer o imprimila.</div>';
+  h+='<textarea class="fi fta" id="rutaTxt" rows="16" style="font-size:12px;font-family:monospace">'+es(t)+'</textarea>';
+  h+='<button class="btn" onclick="copiarTexto(\'rutaTxt\')" style="margin:10px 0 6px">Copiar la hoja de ruta</button>';
+  h+='<button class="btn sec" onclick="abrirOrdenZonas()" style="margin:0 0 6px">Cambiar el orden de las zonas</button>';
+  oMod('Hoja de ruta',h);
+}
+// ── Orden de las zonas: se define una vez ────────────────────────────
+function abrirOrdenZonas(){
+  // Barrios que existen entre los clientes, mas los ya ordenados
+  var set={};
+  D.cli.forEach(function(c){if(!c.esP&&!c.eliminado&&(c.bar||'').trim())set[c.bar.trim()]=true;});
+  var guardadas=ordenZonas().filter(function(b){return set[b];});
+  var resto=Object.keys(set).filter(function(b){return guardadas.indexOf(b)<0;}).sort();
+  var lista=guardadas.concat(resto);
+  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">El reparto recorre los barrios en este orden. Se define una vez y la hoja de ruta sale sola todas las semanas.</div>';
+  lista.forEach(function(b,i){
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+    h+='<span style="width:24px;height:24px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">'+(i+1)+'</span>';
+    h+='<span style="flex:1;font-size:13px;font-weight:700">'+es(b)+'</span>';
+    if(i>0)h+='<button class="lx" style="color:var(--cyan)" onclick="moverZona('+i+',-1)">&#9650;</button>';
+    if(i<lista.length-1)h+='<button class="lx" style="color:var(--cyan)" onclick="moverZona('+i+',1)">&#9660;</button>';
+    h+='</div>';
+  });
+  h+='<button class="btn sec" onclick="verHojaDeRuta()" style="margin:14px 0 0">Volver a la hoja</button>';
+  _zonasTmp=lista;
+  oMod('Orden del reparto',h);
+}
+var _zonasTmp=[];
+function moverZona(i,dir){
+  if(soloLectura())return;
+  var j=i+dir;
+  if(j<0||j>=_zonasTmp.length)return;
+  var t=_zonasTmp[i];_zonasTmp[i]=_zonasTmp[j];_zonasTmp[j]=t;
+  D.cfg.ordenZonas=_zonasTmp.slice();
+  fsSetConfig({ordenZonas:D.cfg.ordenZonas});
+  abrirOrdenZonas();
+}
 function htmlEntregasPanel(){
   var ps=misPendientes();
   var tot=ps.reduce(function(t,p){return t+Number(p.total||0);},0);
@@ -2740,7 +2863,10 @@ function htmlEntregasPanel(){
   h+='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">';
   h+='<div><div style="font-size:22px;font-weight:800">'+ps.length+'</div><div style="font-size:10px;color:var(--muted)">PEDIDOS TOMADOS</div></div>';
   h+='<div><div style="font-size:22px;font-weight:800;color:var(--green)">'+plata(tot)+'</div><div style="font-size:10px;color:var(--muted)">A ENTREGAR</div></div>';
-  if(ps.length)h+='<button class="sm g" onclick="entregarTodos()" style="margin-left:auto">Marcar todo entregado</button>';
+  if(ps.length){
+    h+='<button class="sm cy" onclick="verHojaDeRuta()" style="margin-left:auto">&#128220; Hoja de ruta</button>';
+    h+='<button class="sm g" onclick="entregarTodos()">Marcar todo entregado</button>';
+  }
   h+='</div></div><div style="padding:10px 14px">';
   if(!ps.length){
     h+='<div class="empty">No hay pedidos esperando entrega.<br><span style="font-size:11px">Los pedidos que tomes quedan aca hasta que los marques entregados.</span></div></div>';
@@ -3767,6 +3893,38 @@ function esPrimerPedido(cid){ return pedidosDe(cid).length===0; }
 // ── Calendario del negocio ───────────────────────────────────────────
 // Los pedidos se toman de jueves a lunes y se entregan el miercoles siguiente.
 // Los dias son editables desde Config por si el dia de entrega cambia.
+// Orden en que se recorren los barrios en el reparto. Se define una vez y de
+// ahi en mas la hoja de ruta sale sola. Los barrios que no esten en la lista
+// van al final, en orden alfabetico.
+function ordenZonas(){ return (D.cfg&&D.cfg.ordenZonas)||[]; }
+function posicionZona(b){
+  var i=ordenZonas().indexOf(b);
+  return i<0?9999:i;
+}
+// Distancia aproximada entre dos puntos, en metros. Alcanza y sobra para
+// ordenar paradas dentro de un barrio.
+function distancia(a,b){
+  if(!a||!b||!a.lat||!b.lat)return 0;
+  var R=6371000, t=Math.PI/180;
+  var dLat=(b.lat-a.lat)*t, dLng=(b.lng-a.lng)*t;
+  var la=a.lat*t, lb=b.lat*t;
+  var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.sin(dLng/2)*Math.sin(dLng/2)*Math.cos(la)*Math.cos(lb);
+  return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+// Ordena una lista de clientes por cercania, arrancando por el primero.
+// Es un "vecino mas cercano": no da la ruta perfecta, pero saca los zigzag.
+function ordenarPorCercania(cs){
+  var conGPS=cs.filter(function(c){return c.lat&&c.lng;});
+  var sinGPS=cs.filter(function(c){return !(c.lat&&c.lng);});
+  if(conGPS.length<3)return conGPS.concat(sinGPS);
+  var out=[conGPS.shift()];
+  while(conGPS.length){
+    var ult=out[out.length-1], mejor=0, dMin=Infinity;
+    conGPS.forEach(function(c,i){var d=distancia(ult,c);if(d<dMin){dMin=d;mejor=i;}});
+    out.push(conGPS.splice(mejor,1)[0]);
+  }
+  return out.concat(sinGPS);   // los que no tienen GPS van al final de su zona
+}
 function diaEntrega(){ var n=D.cfg&&D.cfg.diaEntrega; return (n>=0&&n<=6)?n:3; }   // 3 = miercoles
 // Proximo dia de entrega a partir de hoy (si hoy es el dia, es hoy)
 function proximaEntrega(desde){
@@ -3819,7 +3977,7 @@ function plu(u,n){
   ps[0]=/[aeiou]$/i.test(ps[0])?ps[0]+'s':ps[0]+'es';
   return ps.join(' ');
 }
-var pedActual={cid:null,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:'',cobro:'todo',cobrado:0,prom:''};
+var pedActual={cid:null,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:'',instr:'',cobro:'todo',cobrado:0,prom:''};
 
 // Regla de la casa: no se le baja mercaderia a quien debe. No se bloquea a
 // ciegas (a veces baja igual porque le paga la mitad en el momento), pero
@@ -3850,7 +4008,7 @@ function editarPedidoCompleto(pid){
   var debePrev=Number(p.total||0)-cobradoPrev;
   var cobro=debePrev<=0?'todo':(cobradoPrev>0?'parte':'nada');
   pedActual={cid:p.cid,editId:p.id,fechaOrig:p.fecha,items:items,frac:frac,mats:mats,
-    notaPago:p.notaPago||'',notaConv:p.notaConv||'',obs:p.obs||'',
+    notaPago:p.notaPago||'',notaConv:p.notaConv||'',obs:p.obs||'',instr:p.instr||'',
     cobro:cobro,cobrado:cobradoPrev,prom:compromisoDe(p.cid)||''};
   if(perdidos.length)toast('Ojo: '+perdidos.length+' renglon(es) ya no existen en el catalogo y no se pudieron recuperar: '+perdidos.join(', '),'err');
   renderPedido();
@@ -3865,7 +4023,7 @@ function abrirPedido(cid){
     msg+='\n\nLa regla es no bajar mercaderia con saldo pendiente.\n\n¿Cargas el pedido igual?';
     if(!confirm(msg)){verCuenta(cid);return;}
   }
-  pedActual={cid:cid,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:'',cobro:'todo',cobrado:0,prom:''};
+  pedActual={cid:cid,items:{},frac:{},mats:{},notaPago:'',notaConv:'',obs:'',instr:'',cobro:'todo',cobrado:0,prom:''};
   renderPedido();
 }
 function setPedLinea(l){pedActual.linea=l;renderPedido();}
@@ -3978,6 +4136,7 @@ function renderPedido(){
   h+='<div class="fg" style="margin-top:10px"><label class="fl">Forma de pago (va en negrita al pie)</label><input class="fi" id="pedPago" value="'+es(pedActual.notaPago)+'" placeholder="Ej: FIRMA, PAGA LOS LUNES"></div>';
   h+='<div class="fg"><label class="fl">Convenio particular con el cliente <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="pedConv" value="'+es(pedActual.notaConv)+'" placeholder="Ej: entrega en efectivo o transf la mitad"></div>';
   h+='<div class="fg"><label class="fl">Aclaraciones <span style="font-size:10px;color:var(--muted)">(ej: que productos acepta cambiar)</span></label><textarea class="fi fta" id="pedObs" rows="2" placeholder="Ej: carita cielo y seibom blanco los puede cambiar por otro">'+es(pedActual.obs)+'</textarea></div>';
+  h+='<div class="fg"><label class="fl">Indicaciones para el repartidor <span style="font-size:10px;color:var(--muted)">(sale en la hoja de ruta, no va a fabrica)</span></label><textarea class="fi fta" id="pedInstr" rows="2" placeholder="Ej: si no esta la duena no dejar la mercaderia. Entrar por la puerta de atras.">'+es(pedActual.instr||'')+'</textarea></div>';
   h+='<div id="pedTotal" style="text-align:right;margin:10px 0">'+totalPedidoHTML()+'</div>';
   // ── Cobro: lo que no se cobra queda como deuda del cliente ──
   var salPrev=saldoDe(c.id);
@@ -4010,6 +4169,7 @@ function leerNotas(){
   if(a)pedActual.notaPago=a.value;
   if(b)pedActual.notaConv=b.value;
   if(c)pedActual.obs=c.value;
+  var i2=document.getElementById('pedInstr');if(i2)pedActual.instr=i2.value;
 }
 // Arma las lineas del pedido con la abreviacion de cada producto+sabor
 function lineasPedido(){
@@ -4124,19 +4284,25 @@ function guardarPedido(){
     if(!ped){toast('No encuentro el pedido que estabas editando','err');return;}
     var totAnt=Number(ped.total||0);
     ped.items=items;ped.total=tot;ped.mats=Object.keys(pedActual.mats);
-    ped.notaPago=pedActual.notaPago;ped.notaConv=pedActual.notaConv;ped.obs=pedActual.obs;
+    ped.notaPago=pedActual.notaPago;ped.notaConv=pedActual.notaConv;ped.obs=pedActual.obs;ped.instr=pedActual.instr||'';
     ped.cobrado=tot-debe;
     ped._modBy=D.user?D.user.n:'?';ped._modAt=new Date().toISOString();
     logEvento('venta',c.id,c.nm,'Pedido del '+fmt(ped.fecha)+' editado: '+plata(totAnt)+' -> '+plata(tot),'','');
   } else {
     ped={id:uid(),cid:c.id,cliente:c.nm,fecha:today(),vend:D.user?D.user.n:'',
       items:items,total:tot,mats:Object.keys(pedActual.mats),
-      notaPago:pedActual.notaPago,notaConv:pedActual.notaConv,obs:pedActual.obs,
+      notaPago:pedActual.notaPago,notaConv:pedActual.notaConv,obs:pedActual.obs,instr:pedActual.instr||'',
       cobrado:tot-debe, estado:'tomado', entrega:proximaEntrega()};
     D.ped.push(ped);
     // OJO: aca ya NO se toca c.uv ni se convierte a cliente. El pedido todavia
     // no se entrego: eso pasa el miercoles, en marcarEntrega().
     logEvento('venta',c.id,c.nm,'Pedido TOMADO por '+plata(tot)+' · entrega '+fmt(ped.entrega),'','');
+    // Queda agendado solo en la gira del dia de entrega, para que aparezca
+    // en el recorrido del miercoles sin que haya que acordarse.
+    if(ped.entrega&&!D.gira.some(function(g){return g.cid===c.id&&g.fecha===ped.entrega;})){
+      var ng={cid:c.id,fecha:ped.entrega,orden:D.gira.filter(function(x){return x.fecha===ped.entrega;}).length,reparto:true};
+      D.gira.push(ng);fsSetGira(ng);
+    }
   }
   fsSetPedido(ped);
   // La deuda solo existe si la mercaderia ya bajo.
@@ -4574,6 +4740,7 @@ function editarProducto(pid){
   if(Number(p.fr)>1)h+='<div style="font-size:11px;color:var(--cyan);margin:-4px 0 10px">Suelto queda a '+plata(Math.round(Number(p.p||0)/Number(p.fr)))+' cada '+es(p.fu||'unidad')+'.</div>';
   h+='<div class="fg"><label class="fl">Linea</label><select class="fi" id="cpL">'+['Impulsivos','Postres','Granel'].map(function(l){return '<option'+(p.linea===l?' selected':'')+'>'+l+'</option>';}).join('')+'</select></div>';
   h+='<div class="div"></div><div class="fl">SABORES <span style="font-size:10px;color:var(--muted)">(cada uno con su abreviacion para el pedido)</span></div>';
+  h+='<div style="font-size:11px;color:var(--muted);background:var(--s2);border-radius:var(--rsm);padding:8px 10px;margin-bottom:10px;line-height:1.45">Regla: si dos variantes <b>valen lo mismo</b>, van como sabores de este producto. Si <b>valen distinto</b>, hay que hacer un producto aparte — cada producto tiene un solo precio.</div>';
   h+='<div id="cpSab">';
   (p.sab||[]).forEach(function(sb,i){
     h+='<div style="display:flex;gap:6px;margin-bottom:6px" data-i="'+i+'">';
@@ -5911,6 +6078,10 @@ function renderGCfg(){
   // Mensaje de pedido
   h+='<div class="card"><div class="ct">MENSAJE DE PEDIDO (boton en Gira)</div>';
   h+='<textarea class="fi fta" id="msgPedidoCfg" rows="3" style="font-size:13px">'+es(D.cfg.msgPedido||'')+'</textarea>';
+  h+='<div class="div"></div>';
+  h+='<div class="fl">MENSAJE DE LA RONDA DE PEDIDOS</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">El que sale desde VENTAS &rarr; Ronda. Ademas de las variables de siempre acepta <code style="color:var(--cyan)">{entrega}</code> (el dia de entrega) y <code style="color:var(--cyan)">{ultimo}</code> (lo que se llevo la ultima vez). Si el cliente nunca compro, ese renglon desaparece solo.</div>';
+  h+='<textarea class="fi fta" id="msgRondaCfg" rows="7" style="font-size:13px">'+es(D.cfg.msgRonda||MSG_RONDA_DEF)+'</textarea>';
   h+='<button class="btn sec" onclick="savMsgPedido()" style="margin-top:8px">Guardar mensaje de pedido</button></div>';
   h+='<div class="card"><div class="ct">MENSAJE PARA FRANQUICIADOS</div>';
   h+='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Se usa automaticamente al tocar "Enviar WhatsApp" en un contacto con fuente "Franquicia" que esta en la etapa Contactado (en vez del mensaje normal de esa etapa). Usa las mismas variables de arriba.</div>';
@@ -6122,7 +6293,9 @@ function savMsgs(){
 function savMsgPedido(){
   var el=document.getElementById('msgPedidoCfg');
   if(el)D.cfg.msgPedido=el.value;
-  fsSetConfig({msgPedido:D.cfg.msgPedido});toast('Mensaje de pedido guardado','ok');
+  var elR=document.getElementById('msgRondaCfg');
+  if(elR)D.cfg.msgRonda=elR.value;
+  fsSetConfig({msgPedido:D.cfg.msgPedido,msgRonda:D.cfg.msgRonda});toast('Mensajes guardados','ok');
 }
 function savMsgFranquicia(){
   var el=document.getElementById('msgFranquiciaCfg');
@@ -7134,6 +7307,64 @@ function renderVG(){
 // Alias para dias() con nombre diferente para usar dentro de renderVG sin conflicto de scope
 function dias_fn(f){return dias(f);}
 
+// Lo que se llevo la ultima vez, en palabras: sirve para que el cliente no
+// tenga que acordarse de nada. Solo cuenta lo que se entrego de verdad.
+function ultimoPedidoTexto(cid){
+  var ps=D.ped.filter(function(p){return p.cid===cid&&estadoPedido(p)==='entregado';})
+    .sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+  if(!ps.length)return '';
+  var it=(ps[0].items||[]).filter(function(x){return x.q>0;});
+  if(!it.length)return '';
+  // Un renglon por producto: en una sola linea se vuelve ilegible, sobre todo
+  // cuando un sabor ya trae comas adentro ("Frutilla, Anana, Naranja").
+  var L=it.slice(0,15).map(function(x){
+    return '• '+x.q+' '+(x.n||'')+(x.s?' '+x.s:'');
+  });
+  if(it.length>15)L.push('• y '+(it.length-15)+' productos mas');
+  return L.join('\n');
+}
+// Mensaje de la ronda: el de Config con las variables reemplazadas.
+function textoRonda(c){
+  var base=D.cfg.msgRonda||MSG_RONDA_DEF;
+  var ult=ultimoPedidoTexto(c.id);
+  var ps=D.ped.filter(function(p){return p.cid===c.id&&estadoPedido(p)==='entregado';})
+    .sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+  var f=new Date(proximaEntrega()+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  var texto=base
+    .replace(/\{nombre\}/gi, c.fan||c.nm||'')
+    .replace(/\{negocio\}/gi, c.nm||'')
+    .replace(/\{vendedor\}/gi, c.vend||(D.user&&D.user.n)||'')
+    .replace(/\{entrega\}/gi, f)
+    .replace(/\{fechaultimo\}/gi, ps.length?fmt(ps[0].fecha):'')
+    .replace(/\{ultimo\}/gi, ult||'\u0000');   // marca temporal si no hay historial
+  // Si el cliente nunca compro, se borra el renglon del {ultimo} y tambien el
+  // titulo que lo introduce (el de arriba, si termina en dos puntos).
+  var lineas=texto.split('\n');
+  if(!ult){
+    var i=lineas.findIndex(function(l){return l.indexOf('\u0000')>=0;});
+    if(i>=0){
+      lineas.splice(i,1);
+      if(i>0&&/:\s*$/.test(lineas[i-1]))lineas.splice(i-1,1);
+    }
+  }
+  return lineas.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+function enviarRondaWA(id){
+  var c=D.cli.find(function(x){return x.id===id;});
+  if(!c){toast('Contacto no encontrado','err');return;}
+  if(!c.tel){toast('Este contacto no tiene telefono','err');return;}
+  window.open('https://wa.me/54'+c.tel.replace(/\D/g,'')+'?text='+encodeURIComponent(textoRonda(c)),'_blank');
+}
+// Vista previa antes de mandar, para que se vea como le llega al cliente
+function verMensajeRonda(id){
+  var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  var h='<div style="font-size:15px;font-weight:800;margin-bottom:10px">'+es(c.nm)+'</div>';
+  h+='<div style="background:var(--s2);border-radius:var(--rsm);padding:12px;font-size:13px;line-height:1.5;white-space:pre-wrap;margin-bottom:12px">'+es(textoRonda(c))+'</div>';
+  if(c.tel)h+='<button class="btn wa" onclick="cMod();enviarRondaWA(\''+c.id+'\')" style="margin:0 0 8px;background:#25D366;color:#000">Mandar por WhatsApp</button>';
+  else h+='<div style="font-size:12px;color:var(--red);margin-bottom:8px">Este contacto no tiene telefono cargado.</div>';
+  h+='<button class="btn sec" onclick="abrirPedido(\''+c.id+'\')" style="margin:0">Cargar el pedido a mano</button>';
+  oMod('Mensaje de pedido',h);
+}
 function enviarPedidoWA(id){
   var c=D.cli.find(function(x){return x.id===id;});
   if(!c||!c.tel){toast('Sin telefono','err');return;}

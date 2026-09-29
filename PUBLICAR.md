@@ -1,113 +1,135 @@
-# CRM-Jorge — Versión 9.1 · Lista de precios 21/09/2026
+# CRM-Jorge — Versión 9.3
 
-**Solo cambió `app.js`.** `index.html` y `estilos.css` son los mismos de la
-9.0; los dejo en la carpeta para que subas los tres juntos.
+**Solo cambió `app.js`.** Los otros dos son los mismos; van los tres juntos.
 
----
-
-## Primero: la otra conversación
-
-Era sobre un **chatbot de WhatsApp para tomar pedidos**. Quedó en diseño, **no
-se tocó una línea de código**. La app estaba y sigue en 9.0 hasta esta entrega.
-
-La idea está bien planteada en lo grueso, con un detalle: ahí se habla de
-"agregar una colección `pedidos`" y esa colección ya existe hace rato en tu
-CRM, con el ciclo tomado → entregado que acabamos de hacer. Si retomás ese
-tema, avisame y lo empalmo con lo que ya está en vez de armar algo paralelo.
+Esta versión trae la **hoja de ruta**, la **ronda asistida por WhatsApp**, la
+**baja de la Barrita** y la **regla del catálogo**.
 
 ---
 
-## Lo que cambió de la lista
+# 1 · La hoja de ruta del miércoles
 
-**Los impulsivos no cambiaron.** Los 16 están idénticos a los de agosto.
-Verificado uno por uno.
+En **VENTAS → Entregas**, botón **📋 Hoja de ruta**. Genera el texto listo para
+mandarle al chofer o imprimir.
 
-**El granel subió 3,57%** parejo: Común $40.699, Especial $46.303, Súper
-Especial $51.495, Licencias $54.071.
+Cada parada lleva número, negocio, dirección, horario, teléfono, cuántos
+renglones, el monto, **qué cobrar** y las indicaciones especiales.
 
-**Los postres subieron 7,69%** parejo. La única excepción es la **Mini Torta
-Cookies**, que subió 9,7% ($58.991 → $64.706, cuando por el porcentaje del
-resto habría dado $63.529). Lo cargué como dice la lista.
+**El cobro va primero y en negrita**, en tres formas:
 
-**Seis presentaciones cambiaron**, tal cual me dijiste:
+- **COBRAR $145.000**
+- **COBRAR SOLO $50.000** — el resto ($80.000) queda en cuenta
+- **NO COBRAR** — queda en cuenta corriente
 
-| Producto | Antes | Ahora |
-|---|---|---|
-| Pack Tricolor Diet Fun | caja x8 | caja x6 |
-| Torta Isabella / Cookies | caja x6 | caja x8 |
-| Pack 0,750 Lts | caja x8 | caja x6 |
-| Pack Pote Dubai 360cc | caja x12 | caja x8 |
-| Pack 0,750 Lts Vegano | caja x6 | caja x12 |
-| Pack Pote Cormillot 360cc | caja x12 | caja x6 |
+Lo ordené así a propósito: si el chofer solo hace lo que está escrito, el
+riesgo no es que cobre de menos, es que cobre algo que no correspondía.
 
-**Los baldes van los tres por unidad**, como me aclaraste: 2 Lts $11.509,
-3 Lts $11.508, 5 Lts $16.180. El de 2 litros estaba como caja de 9 a $103.585
-— por eso en el historial vas a ver un "cambio de precio" enorme, pero es solo
-que pasó de precio por caja a precio por unidad.
+Arriba el resumen y el recordatorio de **cargar el camión al revés**. Abajo, tu
+teléfono, para que ante la duda te llamen en vez de improvisar.
 
-**Alta:** Pote **Arándanos** Bañados x12 a $68.089, en Impulsivos.
+## El orden de las zonas
 
-**Baja:** Pote Tutto 3 Lts, ese que nunca llegamos a definir. Eliminado.
+Desde la misma hoja: **"Cambiar el orden de las zonas"**. Ordenás los barrios
+una vez con las flechas y de ahí en más la hoja sale sola: primero por tu
+orden de zonas, y **adentro de cada zona por cercanía**.
 
-**Discontinuado:** Pack Barrita Sin TACC x8. **No lo borré**, y te explico por
-qué: hay un pedido ya cargado que lo usa, y si desaparece del catálogo ese
-pedido no se puede volver a editar. Queda marcado como discontinuado: no
-aparece al tomar pedidos, pero el historial sigue entero. En el catálogo lo
-vas a ver con la etiqueta **DISCONTINUADO** y hay un interruptor para darlo de
-alta de nuevo si vuelve.
+Probado con tus clientes reales: dentro de Nueva Córdoba el recorrido bajó de
+**2,82 km a 1,84 km**.
 
-**Lo que ignoré:** el renglón de "ALFAJOR SEICHOC $17.283" en impulsivos, como
-me dijiste que estaba mal la lista. El suelto se sigue calculando dividiendo
-la caja: $85.401 ÷ 6 = **$14.234** la cajita.
+Si a un cliente le falta el barrio, la hoja te avisa arriba en amarillo y lo
+manda al final.
 
----
+## Indicaciones para el repartidor
 
-## ⚠ Algo que encontré revisando tu catálogo
+Campo nuevo al tomar el pedido. Es lo que hoy tenés en la cabeza y el chofer
+no: *"si no está la dueña no dejar"*, *"entrar por atrás"*. Sale con ⚠ en la
+hoja y **no va al texto de fábrica**.
 
-Vos **fusionaste los dos escoceses** en un solo producto: lo renombraste
-**"Bombón Escocés"** con tres sabores —Blanco, Negro y Pistacho— y borraste el
-"Pack Escocés Pistacho x8" por separado.
+## El pedido se agenda solo
 
-Mi migración, tal como la había escrito, te lo **volvía a crear duplicado**
-porque figura en la lista nueva. Lo corregí: ahora solo da de alta lo que es
-realmente nuevo. **Borrar un producto es una decisión tuya y la migración no
-la deshace.**
-
-> Detalle menor: en ese producto el sabor Blanco quedó escrito **"Banlco"**. La
-> abreviación que va a fábrica ("Escoces Bla") está bien, así que no es urgente,
-> pero lo podés corregir cuando quieras desde el catálogo.
+Al tomarlo, el cliente queda agendado en la **gira del día de entrega**.
 
 ---
 
-## Tus ediciones se respetan
+# 2 · La ronda asistida por WhatsApp
 
-Esto era lo delicado, porque vos ya habías corregido sabores y abreviaciones a
-mano. La migración pisa **solo** precio, presentación, fracción y línea. El
-nombre y los sabores quedan como los dejaste.
+Esta es la primera etapa del chatbot, la que **no cuesta nada**.
 
-Verificado contra tu catálogo real: **los 40 productos conservan sus sabores
-intactos**, incluidos tus renombres.
+En **VENTAS → Ronda**, cada cliente tiene ahora **"Pedir por WhatsApp"**. Te
+muestra el mensaje como le va a llegar, y lo mandás desde tu WhatsApp de
+siempre. El cliente te responde ahí mismo.
+
+El mensaje sale armado y personalizado:
+
+```
+Hola Santiago! Soy Jorge de Sei Tu.
+Estamos armando el pedido de Pecorino para entregar
+el miércoles, 30 de septiembre.
+
+La vez pasada te llevaste:
+• 1 P Picolle / Seitufan Frutilla, Anana, Naranja
+• 2 P Granizado Americana
+• 2 Sei Bom Pistacho
+  ...
+
+Que necesitas esta semana?
+```
+
+**Lo del "la vez pasada te llevaste"** es lo que más te va a servir: el cliente
+no tiene que acordarse de nada, solo decir qué cambia. Solo cuenta lo que se
+**entregó** de verdad, no lo que quedó tomado.
+
+Si el cliente nunca compró, ese bloque **desaparece solo** y el mensaje queda
+limpio.
+
+El texto lo editás en **Config → Mensajes → Mensaje de la ronda de pedidos**.
+Además de las variables de siempre acepta `{entrega}` y `{ultimo}`.
+
+---
+
+# 3 · Barrita Sin TACC eliminada
+
+Borrada del catálogo. El pedido que la usaba —**Pecorino del 9/9, $592.060**,
+2 cajitas por $17.768 de 19 renglones— **no se toca**: guarda su propia copia
+del renglón, así que total e historial quedan iguales.
+
+# 4 · La regla del catálogo
+
+La dejé escrita en la pantalla donde se editan los productos:
+
+> Si dos variantes **valen lo mismo**, van como sabores del mismo producto. Si
+> **valen distinto**, hay que hacer un producto aparte.
 
 ---
 
 ## Probá esto apenas subas
 
-1. Entrá como **admin**: tiene que salir el aviso *"Lista de precios
-   actualizada"*. Corre una sola vez.
-2. **Config → Catálogo** → revisá tres precios: Pack Almendrado $50.759, Lata
-   Común $40.699, Baldes x2 Lt $11.509 por unidad.
-3. Buscá **Pote Arándanos Bañados x12** — tiene que estar en Impulsivos. Los
-   sabores los inventé yo, corregilos si hace falta.
-4. Confirmá que **Bombón Escocés** sigue siendo uno solo con sus tres sabores,
-   sin duplicado.
-5. Tomá un pedido de prueba con un postre: fijate que el precio suelto sea el
-   de la caja dividido.
+1. **VENTAS → Ronda** → **"Pedir por WhatsApp"** en un cliente que ya te haya
+   comprado → fijate que aparezca lo que se llevó la vez pasada.
+2. Probalo también con uno que nunca compró: ese bloque no tiene que aparecer.
+3. **Config → Mensajes** → abajo está el mensaje de la ronda para editar.
+4. **VENTAS → Entregas** → **📋 Hoja de ruta** → **"Cambiar el orden de las
+   zonas"** → acomodá tus barrios como los recorrés de verdad.
+5. Tomá un pedido con algo en **Indicaciones para el repartidor** → tiene que
+   salir con ⚠ en la hoja.
 
 ---
 
-## Sigue pendiente de lo anterior
+## Sobre el chatbot completo
 
-La **hoja de ruta del miércoles** con las cuatro piezas que quedamos: orden de
-zonas configurable, indicaciones para el repartidor, el pedido agendándose
-solo en la gira del miércoles, y la hoja para copiar. Avisame cuando quieras
-que la encare.
+Quedó definido que cuando lo hagamos, **el bot interpreta pero vos confirmás**:
+el pedido entra a la app marcado como "por confirmar" y no baja mercadería sin
+tu OK.
+
+Antes de escribir una línea hay que resolver cuatro cosas que no son código:
+un **número de WhatsApp dedicado** (la API se apodera del número y no lo podés
+seguir usando a mano), el **plan Blaze** en Firebase, la **verificación de Meta
+Business**, y la **aprobación de cada plantilla**, que tarda días.
+
+El costo estimado con tus 19 clientes activos es de **4 a 8 dólares por mes**;
+con 80 freezers, entre 16 y 30.
+
+Mi sugerencia sigue siendo: usá la ronda asistida unas semanas. Vas a ver
+cuántos te responden y qué te contestan, y eso es justo lo que hay que saber
+para que el bot entienda bien. Si igual querés arrancar con el bot, decime y
+armo el diseño técnico completo.
