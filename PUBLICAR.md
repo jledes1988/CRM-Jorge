@@ -1,135 +1,95 @@
-# CRM-Jorge — Versión 9.3
+# CRM-Jorge — Versión 9.4 · Pulido
 
 **Solo cambió `app.js`.** Los otros dos son los mismos; van los tres juntos.
 
-Esta versión trae la **hoja de ruta**, la **ronda asistida por WhatsApp**, la
-**baja de la Barrita** y la **regla del catálogo**.
-
 ---
 
-# 1 · La hoja de ruta del miércoles
+## 1 · Las sucursales ahora llevan la calle
 
-En **VENTAS → Entregas**, botón **📋 Hoja de ruta**. Genera el texto listo para
-mandarle al chofer o imprimir.
+Como pediste: **nombre del negocio + Sucursal + la calle**.
 
-Cada parada lleva número, negocio, dirección, horario, teléfono, cuántos
-renglones, el monto, **qué cobrar** y las indicaciones especiales.
+**Al cargar una nueva**, el campo de dirección va primero y el nombre **se
+arma solo** mientras escribís. Si lo editás a mano, deja de pisarse.
 
-**El cobro va primero y en negrita**, en tres formas:
-
-- **COBRAR $145.000**
-- **COBRAR SOLO $50.000** — el resto ($80.000) queda en cuenta
-- **NO COBRAR** — queda en cuenta corriente
-
-Lo ordené así a propósito: si el chofer solo hace lo que está escrito, el
-riesgo no es que cobre de menos, es que cobre algo que no correspondía.
-
-Arriba el resumen y el recordatorio de **cargar el camión al revés**. Abajo, tu
-teléfono, para que ante la duda te llamen en vez de improvisar.
-
-## El orden de las zonas
-
-Desde la misma hoja: **"Cambiar el orden de las zonas"**. Ordenás los barrios
-una vez con las flechas y de ahí en más la hoja sale sola: primero por tu
-orden de zonas, y **adentro de cada zona por cercanía**.
-
-Probado con tus clientes reales: dentro de Nueva Córdoba el recorrido bajó de
-**2,82 km a 1,84 km**.
-
-Si a un cliente le falta el barrio, la hoja te avisa arriba en amarillo y lo
-manda al final.
-
-## Indicaciones para el repartidor
-
-Campo nuevo al tomar el pedido. Es lo que hoy tenés en la cabeza y el chofer
-no: *"si no está la dueña no dejar"*, *"entrar por atrás"*. Sale con ⚠ en la
-hoja y **no va al texto de fábrica**.
-
-## El pedido se agenda solo
-
-Al tomarlo, el cliente queda agendado en la **gira del día de entrega**.
-
----
-
-# 2 · La ronda asistida por WhatsApp
-
-Esta es la primera etapa del chatbot, la que **no cuesta nada**.
-
-En **VENTAS → Ronda**, cada cliente tiene ahora **"Pedir por WhatsApp"**. Te
-muestra el mensaje como le va a llegar, y lo mandás desde tu WhatsApp de
-siempre. El cliente te responde ahí mismo.
-
-El mensaje sale armado y personalizado:
+**Las 14 que ya estaban se renombran solas** la primera vez que entres como
+admin. Tus nueve Drugstore quedan así:
 
 ```
-Hola Santiago! Soy Jorge de Sei Tu.
-Estamos armando el pedido de Pecorino para entregar
-el miércoles, 30 de septiembre.
-
-La vez pasada te llevaste:
-• 1 P Picolle / Seitufan Frutilla, Anana, Naranja
-• 2 P Granizado Americana
-• 2 Sei Bom Pistacho
-  ...
-
-Que necesitas esta semana?
+Drugstore Argentina - Sucursal General Paz 133
+Drugstore Argentina - Sucursal General paz 31
+Drugstore Argentina - Sucursal Velez Sarsfield 30
+Drugstore Argentina - Sucursal Velez Sarsfield 100
+Drugstore Argentina - Sucursal Velez Sarsfield 168
+Drugstore Argentina - Sucursal Velez Sarsfield 286
+Drugstore Argentina - Sucursal Velez Sarsfield 374
+Drugstore Argentina - Sucursal Bv. Illía 250
+Drugstore Argentina - Sucursal Corro 1
 ```
 
-**Lo del "la vez pasada te llevaste"** es lo que más te va a servir: el cliente
-no tiene que acordarse de nada, solo decir qué cambia. Solo cuenta lo que se
-**entregó** de verdad, no lo que quedó tomado.
+Verificado: **cero nombres repetidos**. Lo mismo con Entresano y Kiosc ON.
 
-Si el cliente nunca compró, ese bloque **desaparece solo** y el mensaje queda
-limpio.
-
-El texto lo editás en **Config → Mensajes → Mensaje de la ronda de pedidos**.
-Además de las variables de siempre acepta `{entrega}` y `{ultimo}`.
+> Solo toca las que hoy se llaman exactamente "X - Sucursal" y tienen
+> dirección. Si a alguna le pusiste nombre propio, no se la toca.
+>
+> Detalle que vas a ver: en una quedó *"General paz 31"* con minúscula, así
+> como está cargada la dirección. Se corrige desde la ficha.
 
 ---
 
-# 3 · Barrita Sin TACC eliminada
+## 2 · Las fallas dejaron de ser invisibles
 
-Borrada del catálogo. El pedido que la usaba —**Pecorino del 9/9, $592.060**,
-2 cajitas por $17.768 de 19 renglones— **no se toca**: guarda su propia copia
-del renglón, así que total e historial quedan iguales.
+Había **23 lugares donde un error se tragaba en silencio**. Arreglé 20 y dejé
+2 a propósito (quitar una capa del mapa que puede no existir), ahora con un
+comentario que explica por qué, para que nadie los tome después por un
+descuido.
 
-# 4 · La regla del catálogo
+Lo más grave estaba en el arranque: **las 16 migraciones y reparaciones que
+corren al entrar**. Si una fallaba, se salteaba sin dejar rastro — el dato
+quedaba a medias y no había forma de saberlo. Ahora cada una queda registrada
+en el historial técnico con el motivo.
 
-La dejé escrita en la pantalla donde se editan los productos:
+**Y encontré dos huecos peores que los catch vacíos**, que no estaban en mi
+lista:
 
-> Si dos variantes **valen lo mismo**, van como sabores del mismo producto. Si
-> **valen distinto**, hay que hacer un producto aparte.
+- **El admin no tenía red de contención.** Si un render fallaba, la excepción
+  subía y podía dejar la pantalla a medio dibujar sin ningún rastro. El
+  vendedor sí la tenía. Ahora los dos muestran el error en pantalla y lo
+  registran.
+- **El redibujado por cambios en la base tampoco.** Si reventaba ahí, se comía
+  el resto del refresco y la pantalla quedaba desactualizada en silencio.
+
+Probado a propósito: forcé una falla en el tablero del admin y la pantalla
+avisa, la app sigue andando, y queda el registro.
+
+Todo esto lo mirás en **Config → Modo Debug → Últimos eventos técnicos**.
+
+---
+
+## 3 · Datos que faltan
+
+Te dejé la lista en **`DATOS-A-COMPLETAR.md`**, sin botón ni pantalla nueva
+como pediste. Resumen: **12 de tus 23 clientes** tienen algo pendiente.
+
+Los dos más urgentes son **La campiña** y **M&M Sandwich**: no tienen GPS, así
+que no salen en el mapa ni entran en el orden por cercanía de la hoja de ruta.
+
+También ahí van los dos locales repetidos sin vincular — **Kiosc ON** y **Lo de
+Ema** — para que decidas vos.
 
 ---
 
 ## Probá esto apenas subas
 
-1. **VENTAS → Ronda** → **"Pedir por WhatsApp"** en un cliente que ya te haya
-   comprado → fijate que aparezca lo que se llevó la vez pasada.
-2. Probalo también con uno que nunca compró: ese bloque no tiene que aparecer.
-3. **Config → Mensajes** → abajo está el mensaje de la ronda para editar.
-4. **VENTAS → Entregas** → **📋 Hoja de ruta** → **"Cambiar el orden de las
-   zonas"** → acomodá tus barrios como los recorrés de verdad.
-5. Tomá un pedido con algo en **Indicaciones para el repartidor** → tiene que
-   salir con ⚠ en la hoja.
+1. Entrá como admin → tiene que salir *"14 sucursales ahora llevan su calle en
+   el nombre"*.
+2. Buscá "Drugstore Argentina" en Contactos → las nueve distinguibles.
+3. Cargá una sucursal nueva: escribí la dirección y mirá cómo se arma el
+   nombre solo.
+4. **Config → Modo Debug** → si algo falló al arrancar, ahora figura ahí.
 
 ---
 
-## Sobre el chatbot completo
+## Esta semana
 
-Quedó definido que cuando lo hagamos, **el bot interpreta pero vos confirmás**:
-el pedido entra a la app marcado como "por confirmar" y no baja mercadería sin
-tu OK.
-
-Antes de escribir una línea hay que resolver cuatro cosas que no son código:
-un **número de WhatsApp dedicado** (la API se apodera del número y no lo podés
-seguir usando a mano), el **plan Blaze** en Firebase, la **verificación de Meta
-Business**, y la **aprobación de cada plantilla**, que tarda días.
-
-El costo estimado con tus 19 clientes activos es de **4 a 8 dólares por mes**;
-con 80 freezers, entre 16 y 30.
-
-Mi sugerencia sigue siendo: usá la ronda asistida unas semanas. Vas a ver
-cuántos te responden y qué te contestan, y eso es justo lo que hay que saber
-para que el bot entienda bien. Si igual querés arrancar con el bot, decime y
-armo el diseño técnico completo.
+Usá la **Ronda** de jueves a lunes y la **hoja de ruta** el miércoles. Anotá
+qué te faltó y lo ajustamos con el uso real encima.

@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.3 - 29/09/2026';
+var VERSION='9.4 - 30/09/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -360,14 +360,14 @@ function refrescarVistaActual(){
       var el=document.getElementById(id);if(el&&el.classList.contains('on'))activeId=id;
     });
     var map={sGD:renderGD,sGC:renderGC,sGE:renderGE,sGV:renderGV,sGG:renderGG,sGCo:renderGCo,sGP:renderGP,sGI:renderGI,sGCfg:renderGCfg};
-    if(activeId&&map[activeId])map[activeId]();
+    if(activeId&&map[activeId]){try{map[activeId]();}catch(e){debugLog('error','refresco '+activeId+': '+e.message);}}
   } else {
     var activeIdV=null;
     ['sVH','sVC','sVE','sVG','sVV','sVCo'].forEach(function(id){
       var el=document.getElementById(id);if(el&&el.classList.contains('on'))activeIdV=id;
     });
     var mapV={sVH:renderVH,sVC:renderVC,sVE:renderVE,sVG:renderVG,sVV:renderVV,sVCo:renderVCo};
-    if(activeIdV&&mapV[activeIdV])mapV[activeIdV]();
+    if(activeIdV&&mapV[activeIdV]){try{mapV[activeIdV]();}catch(e){debugLog('error','refresco '+activeIdV+': '+e.message);}}
   }
 }
 
@@ -530,7 +530,9 @@ function fsSetConfig(cfg){
 
 // UTILS
 function uid(){return Date.now()+Math.random().toString(36).slice(2,5);}
-function ls(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+// Si falla localStorage (memoria llena o modo privado) la preferencia no se
+// guarda. Se anota en el historial tecnico, sin usar ls() para no hacer bucle.
+function ls(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){debugLog('warn','no se pudo guardar "'+k+'" en el dispositivo: '+e.message);}}
 function lg(k,d){try{var v=localStorage.getItem(k);return v!=null?JSON.parse(v):d;}catch(e){return d;}}
 // Preferencia de vista (lista o tarjetas), por dispositivo. Se cambia desde Contactos
 // y aplica a Contactos, Embudo y Gira. La elige cada persona en su celular.
@@ -828,6 +830,38 @@ function limpiarMarcaDeudorVieja(){
   D.cfg.deuLimpiadaV=1;
   fsSetConfig({deuLimpiadaV:1});
   if(conMarca.length)logEvento('edicion','','','Se limpio la marca vieja de deudor en '+conMarca.length+' contactos','','');
+}
+// Las sucursales cargadas antes de la 9.4 quedaron todas con el mismo nombre.
+// Se les suma la calle para poder distinguirlas. Solo toca las que hoy se
+// llaman exactamente "<padre> - Sucursal" y tienen direccion cargada: si Jorge
+// le puso un nombre propio a alguna, no se la pisa.
+function migrarNombresSucursal(){
+  if(!D.user||D.user.r!=='admin')return;
+  if(!CFG_CARGADA)return;
+  if(D.cfg&&D.cfg.nombresSucV>=1)return;
+  var cambiados=[];
+  D.cli.forEach(function(c){
+    if(!c.sucursalDe||c.eliminado)return;
+    var p=D.cli.find(function(x){return x.id===c.sucursalDe;});
+    if(!p)return;
+    var generico=(p.nm||'')+' - Sucursal';
+    if((c.nm||'').trim()!==generico)return;      // ya tiene nombre propio
+    if(!(c.dir||'').trim())return;               // sin calle no se puede distinguir
+    var nuevo=nombreSucursal(p.nm,c.dir);
+    if(nuevo===c.nm)return;
+    c.nm=nuevo;
+    c._modBy='Sistema';c._modAt=new Date().toISOString();
+    fsSetContacto(c);
+    // El comodato guarda una copia del nombre para mostrar: se pone al dia
+    (D.com||[]).forEach(function(co){if(co.cid===c.id&&co.cnm!==nuevo){co.cnm=nuevo;fsSetComodato(co);}});
+    cambiados.push(nuevo);
+  });
+  D.cfg.nombresSucV=1;
+  fsSetConfig({nombresSucV:1});
+  if(cambiados.length){
+    logEvento('edicion','','','Sucursales renombradas con su calle: '+cambiados.length,'','');
+    toast(cambiados.length+' sucursales ahora llevan su calle en el nombre','ok');
+  }
 }
 function repararEsP(){
   if(!D.user||D.user.r!=='admin')return;
@@ -1209,22 +1243,23 @@ function iniciarSesionApp(fbUser){
 }
 function startApp(){
   document.getElementById('sLogin').classList.remove('on');
-  try{purgarPapeleraVieja();}catch(e){} // limpia lo que lleva +30 dias en la papelera (solo admin)
-  try{migrarCategorias();}catch(e){}    // unifica categorias de negocio una sola vez (solo admin)
-  try{migrarFuente();}catch(e){}        // marca los contactos existentes como Prospeccion directa (solo admin)
-  try{migrarInstagramARedesSociales();}catch(e){} // renombra Instagram -> Redes Sociales (solo admin)
-  try{migrarClientesActivos();}catch(e){} // convierte los que tenian la etapa pero seguian como prospecto
-  try{migrarClientesPabloAProspecto();}catch(e){} // los contactos de Pablo vuelven a prospecto (decision comercial)
-  try{limpiarMarcaDeudorVieja();}catch(e){}   // saca el si/no viejo de deudor
-  try{migrarCargaInicial();}catch(e){}         // la entrega del freezer cuenta como primer pedido
-  try{repararEsP();}catch(e){}                // destraba los que quedaron como clientes por el bug viejo
-  try{migrarFraccionProductos();}catch(e){}
-  try{migrarPreciosSet26();}catch(e){}       // lista de precios del 21/09/2026   // suma la fraccion al catalogo ya guardado
-  try{revisarClientesInactivos();}catch(e){}   // cliente sin pedido en X dias vuelve a prospecto (solo admin)
+  try{purgarPapeleraVieja();}catch(e){debugLog('error','purgar papelera: '+e.message);} // limpia lo que lleva +30 dias en la papelera (solo admin)
+  try{migrarCategorias();}catch(e){debugLog('error','migrar categorias: '+e.message);}    // unifica categorias de negocio una sola vez (solo admin)
+  try{migrarFuente();}catch(e){debugLog('error','migrar fuente: '+e.message);}        // marca los contactos existentes como Prospeccion directa (solo admin)
+  try{migrarInstagramARedesSociales();}catch(e){debugLog('error','migrar Instagram: '+e.message);} // renombra Instagram -> Redes Sociales (solo admin)
+  try{migrarClientesActivos();}catch(e){debugLog('error','migrar clientes activos: '+e.message);} // convierte los que tenian la etapa pero seguian como prospecto
+  try{migrarClientesPabloAProspecto();}catch(e){debugLog('error','migrar contactos de Pablo: '+e.message);} // los contactos de Pablo vuelven a prospecto (decision comercial)
+  try{migrarNombresSucursal();}catch(e){debugLog('error','renombrar sucursales: '+e.message);}     // las sucursales pasan a llevar su calle
+  try{limpiarMarcaDeudorVieja();}catch(e){debugLog('error','limpiar marca de deudor: '+e.message);}   // saca el si/no viejo de deudor
+  try{migrarCargaInicial();}catch(e){debugLog('error','carga inicial: '+e.message);}         // la entrega del freezer cuenta como primer pedido
+  try{repararEsP();}catch(e){debugLog('error','reparar clientes trabados: '+e.message);}                // destraba los que quedaron como clientes por el bug viejo
+  try{migrarFraccionProductos();}catch(e){debugLog('error','fraccion de productos: '+e.message);}
+  try{migrarPreciosSet26();}catch(e){debugLog('error','lista de precios: '+e.message);}       // lista de precios del 21/09/2026   // suma la fraccion al catalogo ya guardado
+  try{revisarClientesInactivos();}catch(e){debugLog('error','regla de clientes inactivos: '+e.message);}   // cliente sin pedido en X dias vuelve a prospecto (solo admin)
   // Aviso de backup: se espera unos segundos para que la config real ya haya
   // bajado (si no, parece que nunca se hizo un backup y avisaria de mas).
-  setTimeout(function(){try{if(CFG_CARGADA)chequearAvisoBackup();}catch(e){}},4000);
-  try{limpiarPassViejas();}catch(e){}   // borra de la base las contrasenas en texto plano
+  setTimeout(function(){try{if(CFG_CARGADA)chequearAvisoBackup();}catch(e){debugLog('error','aviso de backup: '+e.message);}},4000);
+  try{limpiarPassViejas();}catch(e){debugLog('error','limpiar contrasenas viejas: '+e.message);}   // borra de la base las contrasenas en texto plano
   if(D.user.r==='gerente'||D.user.r==='admin'){
     document.getElementById('sGerente').classList.add('on');
     document.getElementById('vNav').style.display='none';
@@ -1242,11 +1277,11 @@ function startApp(){
     renderVH();
     // Iniciar en tab ejecutar
     renderVG();
-    try{iniciarRecorrido();}catch(e){} // rastro pasivo, solo con la app en uso
+    try{iniciarRecorrido();}catch(e){debugLog('error','iniciar recorrido GPS: '+e.message);} // rastro pasivo, solo con la app en uso
   }
 }
 function doLogout(){
-  try{detenerRecorrido();}catch(e){}
+  try{detenerRecorrido();}catch(e){debugLog('error','detener recorrido GPS: '+e.message);}
   D.user=null;ls('jses',null);
   document.querySelectorAll('.sc').forEach(function(s){s.classList.remove('on');});
   document.getElementById('sLogin').classList.add('on');
@@ -1609,6 +1644,7 @@ function abrirFiltros(){
 var miniMapaObj=null;
 function verEnMapaMini(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  // Silencio a proposito: si el mapa ya se habia destruido, remove() tira y no importa.
   if(miniMapaObj){try{miniMapaObj.remove();}catch(e){}miniMapaObj=null;}
   var h='<div style="font-size:19px;font-weight:900;line-height:1.25;margin-bottom:3px">'+es(c.dir||'Sin direccion cargada')+'</div>';
   var sub=[c.bar,c.ciu,c.prov].filter(Boolean).join(' · ');
@@ -2378,6 +2414,7 @@ function centrarMiUbicacion(mapa){
 }
 // P2A: dibuja/actualiza el punto "estas aca" (azul con halo, distinto de los clientes)
 function dibujarMiUbicacion(mapa,g){
+  // Silencio a proposito: la capa puede no estar puesta todavia.
   if(vMiUbicMarker){try{mapa.removeLayer(vMiUbicMarker);}catch(e){}}
   var grp=L.layerGroup();
   L.circleMarker([g.lat,g.lng],{radius:14,fillColor:'#3b82f6',color:'#3b82f6',weight:1,fillOpacity:.18}).addTo(grp);
@@ -3348,8 +3385,8 @@ function nuevaSucursalPaso2(padreId){
   sucNueva={padre:padreId,g:null};
   var h='<div style="font-size:12px;color:var(--muted)">Sucursal de</div>';
   h+='<div style="font-size:17px;font-weight:800;color:var(--cyan);margin-bottom:14px">'+es(p.nm)+'</div>';
-  h+='<div class="fg"><label class="fl">Nombre de la sucursal</label><input class="fi" id="sucNm" value="'+es(p.nm+' - Sucursal')+'"></div>';
-  h+='<div class="fg"><label class="fl">Direccion *</label><input class="fi" id="sucDir" placeholder="Calle y numero"></div>';
+  h+='<div class="fg"><label class="fl">Direccion *</label><input class="fi" id="sucDir" placeholder="Calle y numero" oninput="sucAutoNombre()"></div>';
+  h+='<div class="fg"><label class="fl">Nombre de la sucursal <span style="font-size:10px;color:var(--muted)">(se arma solo con la calle)</span></label><input class="fi" id="sucNm" value="'+es(p.nm+' - Sucursal')+'" oninput="sucNmTocado=true"></div>';
   h+='<div class="fg"><label class="fl">Telefono <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="sucTel" type="tel" inputmode="numeric" value="'+es(p.tel||'')+'"></div>';
   h+='<button class="btn sec" onclick="sucursalMarcarGPS()" style="margin:0 0 6px">&#128205; Estoy en el local (marcar GPS)</button>';
   h+='<div id="sucGpsEstado" style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px">Si no estas en el local, guardala igual y ubicala despues.</div>';
@@ -3365,14 +3402,29 @@ function sucursalMarcarGPS(){
     if(e2)e2.innerHTML='<span style="color:var(--green)">Ubicacion marcada'+(g.acc?' (precision '+g.acc+'m)':'')+'</span>';
   });
 }
+// El nombre se arma solo a partir de la direccion, salvo que se lo edite a mano.
+var sucNmTocado=false;
+function sucAutoNombre(){
+  if(sucNmTocado)return;
+  var p=D.cli.find(function(x){return x.id===sucNueva.padre;});if(!p)return;
+  var dir=(document.getElementById('sucDir')||{}).value||'';
+  var el=document.getElementById('sucNm');
+  if(el)el.value=nombreSucursal(p.nm,dir);
+}
+// "Drugstore Argentina - Sucursal Velez Sarsfield 168"
+function nombreSucursal(nmPadre,dir){
+  var calle=(dir||'').trim();
+  return (nmPadre||'')+' - Sucursal'+(calle?' '+calle:'');
+}
 function guardarNuevaSucursal(){
   var p=D.cli.find(function(x){return x.id===sucNueva.padre;});
   if(!p){toast('Elegi primero el negocio principal','err');return;}
   var nm=(document.getElementById('sucNm').value||'').trim();
   var dir=(document.getElementById('sucDir').value||'').trim();
   var tel=(document.getElementById('sucTel').value||'').trim();
-  if(!nm){toast('Poné un nombre para la sucursal','err');return;}
   if(!dir){toast('Poné la direccion de la sucursal','err');return;}
+  if(!nm)nm=nombreSucursal(p.nm,dir);
+  sucNmTocado=false;
   var tid=uid();
   // Hereda de la casa central lo que casi siempre se repite (rubro, productos,
   // zona, vendedor); lo propio de la sucursal es la direccion y su ubicacion.
@@ -4227,7 +4279,7 @@ function copiarTexto(id){
   var txt=el.value!==undefined?el.value:el.textContent;
   if(!txt||!txt.trim()){toast('No hay nada para copiar: carga el pedido primero','err');return;}
   function aMano(){
-    try{el.focus();el.setSelectionRange(0,txt.length);}catch(e){}
+    try{el.focus();el.setSelectionRange(0,txt.length);}catch(e){debugLog('warn','seleccion de texto: '+e.message);}
     toast('Tu telefono no dejo copiar solo: el texto quedo seleccionado, manten apretado y elegi Copiar','err');
   }
   if(navigator.clipboard&&navigator.clipboard.writeText&&window.isSecureContext){
@@ -6239,7 +6291,7 @@ function guardarRecaida(){
   fsSetConfig({diasRecaida:n});   // delta: nunca se pisa el resto de la config
   logEvento('edicion','','','Plazo sin pedido para volver a prospecto: '+n+' dias','','');
   toast('Guardado: '+n+' dias','ok');
-  try{revisarClientesInactivos();}catch(e){}   // se aplica en el momento
+  try{revisarClientesInactivos();}catch(e){debugLog('error','regla de clientes inactivos: '+e.message);}   // se aplica en el momento
   renderGCfg();
 }
 function guardarUmbrales(){
@@ -6680,7 +6732,15 @@ function gGo(sec){
   var rend={D:renderGD,C:renderGC,E:renderGE,V:renderGV,G:renderGG,Co:renderGCo,P:renderGP,M:renderGM,I:renderGI,Cfg:renderGCfg};
   if(ids[sec]){document.getElementById(ids[sec]).classList.add('on');}
   if(bids[sec]){document.getElementById(bids[sec]).classList.add('on');}
-  if(rend[sec])rend[sec]();
+  if(rend[sec]){
+    try{rend[sec]();}
+    catch(e){
+      debugLog('error','renderG'+sec+': '+e.message);
+      var cont=document.getElementById(ids[sec]);
+      var inner=cont&&cont.querySelector('.scr');
+      if(inner)inner.innerHTML='<div style="padding:20px;color:var(--red);font-size:13px">No se pudo cargar esta pantalla. Toca Sync para reintentar.<br><small>'+es(e.message)+'</small></div>';
+    }
+  }
   // Cerrar menu mobile
   var side=document.getElementById('gSide');var ov=document.getElementById('gOverlay');
   if(side&&side.classList.contains('open')){side.classList.remove('open');if(ov)ov.style.display='none';}
@@ -7684,7 +7744,7 @@ window.addEventListener('load',function(){
     if(typeof firebase==='undefined'){throw new Error('Firebase CDN no cargó');}
     firebase.initializeApp(firebaseConfig);
     fsDB=firebase.firestore();
-    try{fsDB.enablePersistence({synchronizeTabs:true});}catch(e){}
+    try{fsDB.enablePersistence({synchronizeTabs:true});}catch(e){debugLog('warn','cache offline no disponible: '+e.message);}
 
     // Autenticacion real: si ya hay sesion abierta en este dispositivo, entra solo.
     // Si no, se muestra el login. Se elimino el acceso anonimo (era el agujero principal).
