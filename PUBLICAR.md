@@ -1,95 +1,100 @@
-# CRM-Jorge — Versión 9.4 · Pulido
+# CRM-Jorge — Versión 9.5 · Zonas por día
 
 **Solo cambió `app.js`.** Los otros dos son los mismos; van los tres juntos.
 
 ---
 
-## 1 · Las sucursales ahora llevan la calle
+## Primero: no estaba en el sistema
 
-Como pediste: **nombre del negocio + Sucursal + la calle**.
+Revisé el código. Lo que existía era parecido pero hacía otra cosa:
 
-**Al cargar una nueva**, el campo de dirección va primero y el nombre **se
-arma solo** mientras escribís. Si lo editás a mano, deja de pisarse.
+- **Agrupar por barrio** reordena a los que **ya están** en la gira. No agrega
+  a nadie.
+- **Orden de zonas** es para el reparto del miércoles, no para la gira de
+  venta.
+- **Agregar a la gira** suma de a uno, buscando por nombre.
 
-**Las 14 que ya estaban se renombran solas** la primera vez que entres como
-admin. Tus nueve Drugstore quedan así:
-
-```
-Drugstore Argentina - Sucursal General Paz 133
-Drugstore Argentina - Sucursal General paz 31
-Drugstore Argentina - Sucursal Velez Sarsfield 30
-Drugstore Argentina - Sucursal Velez Sarsfield 100
-Drugstore Argentina - Sucursal Velez Sarsfield 168
-Drugstore Argentina - Sucursal Velez Sarsfield 286
-Drugstore Argentina - Sucursal Velez Sarsfield 374
-Drugstore Argentina - Sucursal Bv. Illía 250
-Drugstore Argentina - Sucursal Corro 1
-```
-
-Verificado: **cero nombres repetidos**. Lo mismo con Entresano y Kiosc ON.
-
-> Solo toca las que hoy se llaman exactamente "X - Sucursal" y tienen
-> dirección. Si a alguna le pusiste nombre propio, no se la toca.
->
-> Detalle que vas a ver: en una quedó *"General paz 31"* con minúscula, así
-> como está cargada la dirección. Se corrige desde la ficha.
+Lo que pedías —zonas asignadas a días y un botón que carga los contactos de la
+zona de hoy— no existía. Ahora sí.
 
 ---
 
-## 2 · Las fallas dejaron de ser invisibles
+## Cómo funciona
 
-Había **23 lugares donde un error se tragaba en silencio**. Arreglé 20 y dejé
-2 a propósito (quitar una capa del mapa que puede no existir), ahora con un
-comentario que explica por qué, para que nadie los tome después por un
-descuido.
+**Config:** en la Gira, botón **➕ Zona del día** → "Cambiar las zonas de este
+día". Ahí le asignás a cada día de la semana las zonas que recorrés, y definís
+cuántas paradas querés que te proponga (**15** por defecto, como pediste).
 
-Lo más grave estaba en el arranque: **las 16 migraciones y reparaciones que
-corren al entrar**. Si una fallaba, se salteaba sin dejar rastro — el dato
-quedaba a medias y no había forma de saberlo. Ahora cada una queda registrada
-en el historial técnico con el motivo.
+**En la calle:** tocás **➕ Zona del día** y te muestra los 15 más prioritarios
+de esa zona, agrupados y con el motivo de cada uno. Destildás los que no van y
+confirmás.
 
-**Y encontré dos huecos peores que los catch vacíos**, que no estaban en mi
-lista:
+**El orden de prioridad es el que definiste:**
 
-- **El admin no tenía red de contención.** Si un render fallaba, la excepción
-  subía y podía dejar la pantalla a medio dibujar sin ningún rastro. El
-  vendedor sí la tenía. Ahora los dos muestran el error en pantalla y lo
-  registran.
-- **El redibujado por cambios en la base tampoco.** Si reventaba ahí, se comía
-  el resto del refresco y la pantalla quedaba desactualizada en silencio.
+1. Cliente activo **con freezer** puesto
+2. Cliente activo **sin freezer**
+3. Prospecto **en Negociación**
+4. El resto
 
-Probado a propósito: forcé una falla en el tablero del admin y la pantalla
-avisa, la app sigue andando, y queda el registro.
+Dentro de cada nivel, primero el que hace más tiempo que no visitás. El que
+nunca visitaste va antes que todos.
 
-Todo esto lo mirás en **Config → Modo Debug → Últimos eventos técnicos**.
+**Y una vez elegidos, se ordenan por cercanía** para el recorrido. La prioridad
+decide *quién* entra; la cercanía decide *en qué orden* los hacés.
 
 ---
 
-## 3 · Datos que faltan
+## Probado con tus datos
 
-Te dejé la lista en **`DATOS-A-COMPLETAR.md`**, sin botón ni pantalla nueva
-como pediste. Resumen: **12 de tus 23 clientes** tienen algo pendiente.
+Simulando lunes = Nueva Córdoba y martes = Centro + Cofico:
 
-Los dos más urgentes son **La campiña** y **M&M Sandwich**: no tienen GPS, así
-que no salen en el mapa ni entran en el orden por cercanía de la hoja de ruta.
+| | Lunes | Martes |
+|---|---|---|
+| Contactos en la zona | 83 | 64 |
+| Propuestos | 15 | 15 |
+| Clientes con freezer | 3 | 2 |
+| Cliente sin freezer | — | 1 |
+| En negociación | 4 | 7 |
+| Resto | 8 | 5 |
 
-También ahí van los dos locales repetidos sin vincular — **Kiosc ON** y **Lo de
-Ema** — para que decidas vos.
+Y el recorrido de esos 15: **6,56 km por orden de prioridad → 4,13 km
+ordenados por cercanía**.
+
+> Dato que te va a servir: el más viejo que apareció es **Ypf Sabatini**, en
+> negociación, **hace 93 días** sin visita. Después Kiosco el Pequeño (66) y
+> Feta (62).
+
+---
+
+## ⚠ Dos cosas de tus datos que limitan esto
+
+**79 contactos no tienen barrio cargado** — el 24% de tu base. Esos **nunca
+van a entrar** por el botón de zona, porque no pertenecen a ninguna. Si querés
+te saco la lista para completarlos.
+
+**"Yofre norte" y "Yofre Norte"** figuran como dos zonas distintas por la
+mayúscula. Son 4 contactos que se te separan sin motivo: si asignás una al
+día, la otra queda afuera. Se arregla editando el barrio de esos 4.
+
+---
+
+## Otra cosa que conviene que sepas
+
+De tus 283 prospectos vivos, **208 están "vencidos"** según el umbral de su
+etapa. O sea que ese umbral ya no te filtra nada: todo está atrasado.
+
+Por eso el botón prioriza en vez de filtrar. Pero si en algún momento querés
+que el umbral vuelva a significar algo, hay que subirlo o aceptar que la base
+creció más rápido de lo que se puede recorrer.
 
 ---
 
 ## Probá esto apenas subas
 
-1. Entrá como admin → tiene que salir *"14 sucursales ahora llevan su calle en
-   el nombre"*.
-2. Buscá "Drugstore Argentina" en Contactos → las nueve distinguibles.
-3. Cargá una sucursal nueva: escribí la dirección y mirá cómo se arma el
-   nombre solo.
-4. **Config → Modo Debug** → si algo falló al arrancar, ahora figura ahí.
-
----
-
-## Esta semana
-
-Usá la **Ronda** de jueves a lunes y la **hoja de ruta** el miércoles. Anotá
-qué te faltó y lo ajustamos con el uso real encima.
+1. **Gira → ➕ Zona del día** → te va a decir que no hay zonas asignadas →
+   tocá "Asignar zonas a los días".
+2. Armá tu semana real y poné el tope de paradas.
+3. Volvé a la Gira y tocá **➕ Zona del día**: tienen que aparecer los 15 con
+   su motivo.
+4. Destildá un par y confirmá → fijate que entren a la gira ordenados por
+   cercanía, no por prioridad.

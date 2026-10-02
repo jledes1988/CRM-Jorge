@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.4 - 30/09/2026';
+var VERSION='9.5 - 02/10/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -2077,6 +2077,148 @@ function aplicarOrdenGira(fecha,grupos){
       n++;
     });
   });
+}
+var DIAS_NOM=['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+function zonasDelDia(dow){
+  var z=(D.cfg&&D.cfg.zonasPorDia)||{};
+  return z[String(dow)]||[];
+}
+function paradasPorDia(){
+  var n=D.cfg&&D.cfg.paradasPorDia;
+  return (n>0&&n<=100)?n:15;
+}
+// Nivel de prioridad: cuanto mas bajo, antes entra.
+function prioridadVisita(c){
+  if(!c.esP){
+    return tieneFreezerNuestro(c.id)?0:1;        // cliente con freezer / sin freezer
+  }
+  if((c.etapaEmbudo||'')==='Negociacion')return 2;
+  return 3;
+}
+// Los candidatos de las zonas de ese dia, ya ordenados por prioridad y por
+// antiguedad de la ultima visita. No incluye a los que ya estan en la gira.
+function candidatosZonaDia(fecha){
+  var dow=new Date(fecha+'T12:00:00').getDay();
+  var zonas=zonasDelDia(dow);
+  if(!zonas.length)return {zonas:[],lista:[]};
+  var yaEnDia={};
+  D.gira.filter(function(g){return g.fecha===fecha;}).forEach(function(g){yaEnDia[g.cid]=true;});
+  var lista=misContactos().filter(function(c){
+    if(yaEnDia[c.id])return false;
+    var b=(c.bar||'').trim();
+    return zonas.indexOf(b)>=0;
+  }).map(function(c){
+    return {c:c, pri:prioridadVisita(c), dias:diasSinGestion(c)};
+  });
+  lista.sort(function(a,b){
+    if(a.pri!==b.pri)return a.pri-b.pri;
+    // sin visitas nunca = lo mas viejo de todo
+    var da=a.dias===null?99999:a.dias, db=b.dias===null?99999:b.dias;
+    return db-da;
+  });
+  return {zonas:zonas,lista:lista};
+}
+function etiquetaPrioridad(p){
+  return ['Cliente con freezer','Cliente sin freezer','En negociacion','A visitar'][p]||'A visitar';
+}
+function colorPrioridad(p){
+  return ['#4ade80','#22d3ee','#facc15','#6b7280'][p]||'#6b7280';
+}
+// Pantalla de confirmacion: se ve quien entra y por que, y se puede destildar.
+function abrirCargarZona(fecha){
+  var r=candidatosZonaDia(fecha);
+  var dow=new Date(fecha+'T12:00:00').getDay();
+  var nomDia=DIAS_NOM[dow];
+  if(!r.zonas.length){
+    var h0='<div style="font-size:13px;margin-bottom:12px">No hay zonas asignadas al <b>'+nomDia.toLowerCase()+'</b>.</div>';
+    h0+='<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Asignale una o mas zonas a cada dia de la semana y despues este boton carga la gira solo.</div>';
+    h0+='<button class="btn" onclick="abrirZonasPorDia()" style="margin:0">Asignar zonas a los dias</button>';
+    oMod('Zona del dia',h0);
+    return;
+  }
+  var tope=paradasPorDia();
+  var elegidos=r.lista.slice(0,tope);
+  var h='<div style="font-size:12px;color:var(--muted)">'+nomDia+' · '+r.zonas.join(' + ')+'</div>';
+  h+='<div style="font-size:13px;margin:6px 0 12px">'+r.lista.length+' contactos en la zona. Te propongo los <b>'+elegidos.length+'</b> mas prioritarios.</div>';
+  if(!elegidos.length){
+    h+='<div class="empty">Ya estan todos en la gira de hoy.</div>';
+    oMod('Cargar zona del dia',h);return;
+  }
+  var priAnt=-1;
+  elegidos.forEach(function(it,i){
+    if(it.pri!==priAnt){
+      priAnt=it.pri;
+      h+='<div style="display:flex;align-items:center;gap:8px;margin:12px 0 6px"><div style="font-size:11px;font-weight:800;color:'+colorPrioridad(it.pri)+';text-transform:uppercase;letter-spacing:.4px">'+etiquetaPrioridad(it.pri)+'</div><div style="flex:1;height:1px;background:var(--border)"></div></div>';
+    }
+    var c=it.c;
+    h+='<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer">';
+    h+='<input type="checkbox" class="czChk" data-cid="'+es(c.id)+'" checked style="width:18px;height:18px;flex-shrink:0;accent-color:var(--cyan)">';
+    h+='<span style="flex:1;min-width:0"><span style="display:block;font-size:13px;font-weight:700">'+es(c.nm)+'</span>';
+    h+='<span style="display:block;font-size:11px;color:var(--muted)">'+es(c.dir||c.bar||'')+' · '+(it.dias===null?'nunca visitado':'hace '+it.dias+' dias')+'</span></span>';
+    h+='</label>';
+  });
+  h+='<button class="btn" onclick="confirmarCargarZona(\''+fecha+'\')" style="margin:14px 0 8px">Agregar a la gira</button>';
+  h+='<button class="btn sec" onclick="abrirZonasPorDia()" style="margin:0">Cambiar las zonas de este dia</button>';
+  oMod('Cargar zona del dia',h);
+}
+function confirmarCargarZona(fecha){
+  if(soloLectura())return;
+  var chks=document.querySelectorAll('.czChk');
+  var ids=[];
+  for(var i=0;i<chks.length;i++){ if(chks[i].checked)ids.push(chks[i].getAttribute('data-cid')); }
+  if(!ids.length){toast('No marcaste ninguno','err');return;}
+  // Elegidos por prioridad, pero recorridos por cercania
+  var cs=ids.map(function(id){return D.cli.find(function(x){return x.id===id;});}).filter(Boolean);
+  var orden=ordenarPorCercania(cs);
+  var base=D.gira.filter(function(g){return g.fecha===fecha;}).length;
+  orden.forEach(function(c,i){
+    if(D.gira.some(function(g){return g.cid===c.id&&g.fecha===fecha;}))return;
+    var ng={cid:c.id,fecha:fecha,orden:base+i};
+    D.gira.push(ng);fsSetGira(ng);
+  });
+  logEvento('visita','','','Gira cargada por zona: '+orden.length+' contactos el '+fmt(fecha),'','');
+  cMod();
+  toast(orden.length+' contactos agregados a la gira','ok');
+  if(giraCont==='gGB')renderGG();else renderVG();
+}
+// ── Asignar zonas a cada dia de la semana ───────────────────────────
+function abrirZonasPorDia(){
+  var set={};
+  D.cli.forEach(function(c){if(!c.eliminado&&(c.bar||'').trim())set[c.bar.trim()]=true;});
+  var barrios=Object.keys(set).sort();
+  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Que zonas recorres cada dia. Despues, desde la Gira, el boton <b>Cargar zona del dia</b> te propone a quien visitar.</div>';
+  h+='<div class="fg"><label class="fl">Cuantas paradas propone por dia</label><input class="fi" type="number" min="1" max="100" id="zpdTope" value="'+paradasPorDia()+'" style="width:100px"></div>';
+  [1,2,3,4,5,6].forEach(function(dw){
+    var asig=zonasDelDia(dw);
+    h+='<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:800;color:var(--cyan);margin-bottom:6px">'+DIAS_NOM[dw]+'</div><div class="chips">';
+    barrios.forEach(function(b){
+      var on=asig.indexOf(b)>=0;
+      h+='<span class="ch'+(on?' on':'')+'" onclick="togZonaDia('+dw+',this.getAttribute(\'data-b\'))" data-b="'+es(b)+'" style="font-size:11px;padding:5px 10px">'+es(b)+'</span>';
+    });
+    h+='</div></div>';
+  });
+  h+='<button class="btn" onclick="guardarZonasPorDia()" style="margin:8px 0 0">Guardar</button>';
+  oMod('Zonas por dia',h);
+}
+function togZonaDia(dw,b){
+  if(soloLectura())return;
+  if(!D.cfg.zonasPorDia)D.cfg.zonasPorDia={};
+  var k=String(dw);
+  var arr=D.cfg.zonasPorDia[k]||[];
+  var i=arr.indexOf(b);
+  if(i>=0)arr.splice(i,1);else arr.push(b);
+  D.cfg.zonasPorDia[k]=arr;
+  abrirZonasPorDia();
+}
+function guardarZonasPorDia(){
+  if(soloLectura())return;
+  var el=document.getElementById('zpdTope');
+  var n=parseInt(el&&el.value,10);
+  if(!isNaN(n)&&n>0&&n<=100)D.cfg.paradasPorDia=n;
+  fsSetConfig({zonasPorDia:D.cfg.zonasPorDia||{},paradasPorDia:paradasPorDia()});
+  logEvento('edicion','','','Zonas por dia actualizadas','','');
+  toast('Zonas guardadas','ok');
+  cMod();
 }
 function agruparGiraPorBarrio(fecha){
   if(soloLectura())return;
@@ -7294,6 +7436,7 @@ function renderVG(){
   var dentroDeRango=gDiaActivo>=hoy&&gDiaActivo<=fechaLocal(limiteMapa);
   if(dentroDeRango&&planActivo.length)h+='<button class="sm" onclick="toggleGiraMapaVG()">'+(giraMapaOn?'&#9776; Lista':'&#128506; Mapa')+'</button>';
   if(planActivo.length>1)h+='<button class="sm" onclick="agruparGiraPorBarrio(\''+gDiaActivo+'\')" title="Ordenar las paradas por zona">&#128205; Por barrio</button>';
+  if(dentroDeRango)h+='<button class="sm cy" onclick="abrirCargarZona(\''+gDiaActivo+'\')" title="Cargar los contactos de la zona de este dia">&#10133; Zona del dia</button>';
   h+='<button class="sm g" onclick="abrirAgregarAGira(\''+gDiaActivo+'\')">+ Agregar</button>';
   h+='</div>';
   if(!planActivo.length){
