@@ -1,100 +1,62 @@
-# CRM-Jorge — Versión 9.5 · Zonas por día
+# CRM-Jorge — Versión 9.7 · Semana tipo
 
 **Solo cambió `app.js`.** Los otros dos son los mismos; van los tres juntos.
+Para verificar: en el login y en Config > Debug tiene que decir **9.7 - 02/10/2026**.
+Incluye todo lo de la 9.6 (ruta semanal con horarios): si no subiste la 9.6, subí directamente esta.
 
 ---
 
-## Primero: no estaba en el sistema
+## Tu semana, cargada en el sistema
 
-Revisé el código. Lo que existía era parecido pero hacía otra cosa:
-
-- **Agrupar por barrio** reordena a los que **ya están** en la gira. No agrega
-  a nadie.
-- **Orden de zonas** es para el reparto del miércoles, no para la gira de
-  venta.
-- **Agregar a la gira** suma de a uno, buscando por nombre.
-
-Lo que pedías —zonas asignadas a días y un botón que carga los contactos de la
-zona de hoy— no existía. Ahora sí.
-
----
-
-## Cómo funciona
-
-**Config:** en la Gira, botón **➕ Zona del día** → "Cambiar las zonas de este
-día". Ahí le asignás a cada día de la semana las zonas que recorrés, y definís
-cuántas paradas querés que te proponga (**15** por defecto, como pediste).
-
-**En la calle:** tocás **➕ Zona del día** y te muestra los 15 más prioritarios
-de esa zona, agrupados y con el motivo de cada uno. Destildás los que no van y
-confirmás.
-
-**El orden de prioridad es el que definiste:**
-
-1. Cliente activo **con freezer** puesto
-2. Cliente activo **sin freezer**
-3. Prospecto **en Negociación**
-4. El resto
-
-Dentro de cada nivel, primero el que hace más tiempo que no visitás. El que
-nunca visitaste va antes que todos.
-
-**Y una vez elegidos, se ordenan por cercanía** para el recorrido. La prioridad
-decide *quién* entra; la cercanía decide *en qué orden* los hacés.
-
----
-
-## Probado con tus datos
-
-Simulando lunes = Nueva Córdoba y martes = Centro + Cofico:
-
-| | Lunes | Martes |
+| Día | Visitas fijas | Bloques |
 |---|---|---|
-| Contactos en la zona | 83 | 64 |
-| Propuestos | 15 | 15 |
-| Clientes con freezer | 3 | 2 |
-| Cliente sin freezer | — | 1 |
-| En negociación | 4 | 7 |
-| Resto | 8 | 5 |
+| Lunes | 9: Autoservicio NC 09:00 … Unagi 12:18 | 12:38–13:30 Revisitas a interesados de Nueva Córdoba · 14:00–15:30 Cerrar el pedido |
+| Martes | — | 09:00–14:00 Prospección · 16:00–18:00 Revisitas a los que dijeron "me interesa" |
+| Miércoles | — | 09:00–14:00 Entrega con el chofer · 16:00–18:00 Cobros pendientes y carga de datos en el CRM |
+| Jueves | 4: Club Municipal 09:00 … Minimarket Vale 10:17 | 10:40–14:00 Prospección en Alta Córdoba y Cofico |
+| Viernes | 8: La Esquina Market 09:00 … Colegio Garzón 11:53 | 12:15–14:00 Prospección en Pueyrredón y Yofre |
 
-Y el recorrido de esos 15: **6,56 km por orden de prioridad → 4,13 km
-ordenados por cercanía**.
-
-> Dato que te va a servir: el más viejo que apareció es **Ypf Sabatini**, en
-> negociación, **hace 93 días** sin visita. Después Kiosco el Pequeño (66) y
-> Feta (62).
+Martes y miércoles no tenían hora: les puse **09:00–14:00** y **16:00–18:00**.
+Se cambia en *Semana tipo*.
 
 ---
 
-## ⚠ Dos cosas de tus datos que limitan esto
+## Cómo se usa
 
-**79 contactos no tienen barrio cargado** — el 24% de tu base. Esos **nunca
-van a entrar** por el botón de zona, porque no pertenecen a ninguna. Si querés
-te saco la lista para completarlos.
+**1. La primera vez: revisá los vínculos.** Gira → **🗓 Cargar semana**. Cada
+visita está escrita con el nombre que me pasaste y el sistema la busca en tus
+contactos (sin importar acentos ni mayúsculas). Debajo de cada una ves con qué
+contacto la vinculó. Si alguna dice **"sin vincular"** (en rojo), no se carga:
+tocá *Vincular y editar la semana tipo* → **Elegir** → buscala.
+**Revisá también las que sí vinculó**: si encontró un único contacto que *contiene*
+el nombre (por ejemplo "Corner" → "Kiosco Corner"), lo vinculó solo.
 
-**"Yofre norte" y "Yofre Norte"** figuran como dos zonas distintas por la
-mayúscula. Son 4 contactos que se te separan sin motivo: si asignás una al
-día, la otra queda afuera. Se arregla editando el barrio de esos 4.
+**2. Cada semana:** parate en la semana que querés (flechas de arriba) y tocá
+**🗓 Cargar semana** → ves todo → **Cargar la semana**.
+- Carga las visitas con **tus horarios exactos**.
+- Los días que ya pasaron no se tocan.
+- Lo que ya tenías agendado ese día se queda, después de las visitas fijas.
+- Si lo tocás dos veces, no duplica.
+
+**3. Los bloques** se ven siempre en su día, como renglones punteados intercalados
+con las visitas según la hora. También en *Ver semana completa*.
+
+**4. Si cambiás algo en el día:**
+- **Subir o bajar** una visita: toma el horario del lugar al que va (los horarios
+  son los turnos del día).
+- **Sacar** una visita: las demás **conservan su hora**, no se corren.
+- **Agregar** algo extra: va con hora calculada después de la última.
+- **Cargar ruta** (lo de la 9.6) en ese día: reordena por GPS y las horas pasan
+  a calcularse. Usalo solo si querés salir de la semana tipo.
+
+**5. Editar la semana tipo:** Ruta semanal → *Semana tipo: visitas fijas y bloques*.
+Cambiás horas, agregás o sacás visitas y bloques. Nada cambia hasta **Guardar**.
 
 ---
 
-## Otra cosa que conviene que sepas
+## Probado
 
-De tus 283 prospectos vivos, **208 están "vencidos"** según el umbral de su
-etapa. O sea que ese umbral ya no te filtra nada: todo está atrasado.
-
-Por eso el botón prioriza en vez de filtrar. Pero si en algún momento querés
-que el umbral vuelva a significar algo, hay que subirlo o aceptar que la base
-creció más rápido de lo que se puede recorrer.
-
----
-
-## Probá esto apenas subas
-
-1. **Gira → ➕ Zona del día** → te va a decir que no hay zonas asignadas →
-   tocá "Asignar zonas a los días".
-2. Armá tu semana real y poné el tope de paradas.
-3. Volvé a la Gira y tocá **➕ Zona del día**: tienen que aparecer los 15 con
-   su motivo.
-4. Destildá un par y confirmá → fijate que entren a la gira ordenados por
-   cercanía, no por prioridad.
+74 pruebas en el navegador simulado, sin errores (30 nuevas y las 44 de la 9.6).
+Incluye los casos difíciles de tus nombres: "24/7 Sucursal" y "24/7" van a
+contactos distintos; "Alto Paz", "Alto Paz Patria" y "Alto Paz Roma" no se
+mezclan; un nombre que no existe queda sin vincular en vez de inventar.
