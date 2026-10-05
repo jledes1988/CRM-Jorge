@@ -1,62 +1,55 @@
-# CRM-Jorge — Versión 9.7 · Semana tipo
+# CRM-Jorge — Versión 9.8 · Volver donde estabas
 
 **Solo cambió `app.js`.** Los otros dos son los mismos; van los tres juntos.
-Para verificar: en el login y en Config > Debug tiene que decir **9.7 - 02/10/2026**.
-Incluye todo lo de la 9.6 (ruta semanal con horarios): si no subiste la 9.6, subí directamente esta.
+Para verificar: en el login y en Config > Debug tiene que decir **9.8 - 05/10/2026**.
 
 ---
 
-## Tu semana, cargada en el sistema
+## Qué pasaba
 
-| Día | Visitas fijas | Bloques |
-|---|---|---|
-| Lunes | 9: Autoservicio NC 09:00 … Unagi 12:18 | 12:38–13:30 Revisitas a interesados de Nueva Córdoba · 14:00–15:30 Cerrar el pedido |
-| Martes | — | 09:00–14:00 Prospección · 16:00–18:00 Revisitas a los que dijeron "me interesa" |
-| Miércoles | — | 09:00–14:00 Entrega con el chofer · 16:00–18:00 Cobros pendientes y carga de datos en el CRM |
-| Jueves | 4: Club Municipal 09:00 … Minimarket Vale 10:17 | 10:40–14:00 Prospección en Alta Córdoba y Cofico |
-| Viernes | 8: La Esquina Market 09:00 … Colegio Garzón 11:53 | 12:15–14:00 Prospección en Pueyrredón y Yofre |
+La app no se reinicia sola. Cuando pasás a WhatsApp, el **teléfono** la cierra
+en segundo plano para liberar memoria, y al volver arranca de cero. Eso no se
+puede impedir desde la app.
 
-Martes y miércoles no tenían hora: les puse **09:00–14:00** y **16:00–18:00**.
-Se cambia en *Semana tipo*.
+## Qué hace ahora
+
+Cada vez que salís de la app, anota en el teléfono dónde estabas. Si el teléfono
+la cerró, al volver arranca directo ahí y te avisa con un cartelito:
+**"Volviste donde estabas"**.
+
+| Lo que tenías abierto | Al volver |
+|---|---|
+| Una solapa o sección (Gira, Contactos, Embudo…) | La misma, con el mismo día y la misma semana de la Gira |
+| La ficha de un contacto | La ficha abierta |
+| Un **pedido a medio cargar** | El pedido con las cantidades y las notas que habías puesto. **No vuelve a preguntar** por la deuda. |
+| La visita a un **prospecto** a medio escribir | Las observaciones, la próxima visita, la etapa y el SI/NO |
+| La visita a un **cliente** (los pasos) | El mismo paso, con lo que habías marcado y escrito |
+| El mensaje de la ronda | Abierto |
+| La posición del scroll | Donde estabas |
+
+**Cuándo no lo hace (a propósito):**
+- Si pasó **más de una hora**: arranca normal, desde el Inicio.
+- Si entra **otro usuario** en el mismo teléfono.
+- Solo **una vez**: si cerrás y abrís de nuevo, arranca normal.
+- Las **fotos** de la visita a cliente no se guardan (pesan demasiado para el
+  teléfono). Si habías sacado una, hay que volver a sacarla.
+- Otras ventanitas que no están en la tabla: vuelve a la pantalla, pero no
+  reabre la ventanita.
+
+Todo esto queda solo en el teléfono: no se guarda en la base ni lo ve nadie más.
 
 ---
 
-## Cómo se usa
+## Para la espera del arranque
 
-**1. La primera vez: revisá los vínculos.** Gira → **🗓 Cargar semana**. Cada
-visita está escrita con el nombre que me pasaste y el sistema la busca en tus
-contactos (sin importar acentos ni mayúsculas). Debajo de cada una ves con qué
-contacto la vinculó. Si alguna dice **"sin vincular"** (en rojo), no se carga:
-tocá *Vincular y editar la semana tipo* → **Elegir** → buscala.
-**Revisá también las que sí vinculó**: si encontró un único contacto que *contiene*
-el nombre (por ejemplo "Corner" → "Kiosco Corner"), lo vinculó solo.
-
-**2. Cada semana:** parate en la semana que querés (flechas de arriba) y tocá
-**🗓 Cargar semana** → ves todo → **Cargar la semana**.
-- Carga las visitas con **tus horarios exactos**.
-- Los días que ya pasaron no se tocan.
-- Lo que ya tenías agendado ese día se queda, después de las visitas fijas.
-- Si lo tocás dos veces, no duplica.
-
-**3. Los bloques** se ven siempre en su día, como renglones punteados intercalados
-con las visitas según la hora. También en *Ver semana completa*.
-
-**4. Si cambiás algo en el día:**
-- **Subir o bajar** una visita: toma el horario del lugar al que va (los horarios
-  son los turnos del día).
-- **Sacar** una visita: las demás **conservan su hora**, no se corren.
-- **Agregar** algo extra: va con hora calculada después de la última.
-- **Cargar ruta** (lo de la 9.6) en ese día: reordena por GPS y las horas pasan
-  a calcularse. Usalo solo si querés salir de la semana tipo.
-
-**5. Editar la semana tipo:** Ruta semanal → *Semana tipo: visitas fijas y bloques*.
-Cambiás horas, agregás o sacás visitas y bloques. Nada cambia hasta **Guardar**.
+Config > Debug tiene ahora **"Últimos arranques"**: cuánto tardó cada uno de los
+últimos 5 y qué parte fue la más lenta. **Después de un par de días de uso,
+mandame una captura de esa parte.** Con eso vemos qué se puede acelerar, con
+datos reales de tu teléfono y no a ciegas.
 
 ---
 
 ## Probado
 
-74 pruebas en el navegador simulado, sin errores (30 nuevas y las 44 de la 9.6).
-Incluye los casos difíciles de tus nombres: "24/7 Sucursal" y "24/7" van a
-contactos distintos; "Alto Paz", "Alto Paz Patria" y "Alto Paz Roma" no se
-mezclan; un nombre que no existe queda sin vincular en vez de inventar.
+98 pruebas en el navegador simulado, sin errores: 24 nuevas (cerrar la app con
+cada cosa abierta y volver a abrirla) y las 74 de la 9.6 y la 9.7.

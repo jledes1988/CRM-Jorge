@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.7 - 02/10/2026';
+var VERSION='9.8 - 05/10/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -180,6 +180,7 @@ function fsSetupListeners(){
     ref.onSnapshot(
       function(snap){
         try{onSuccess(snap);}catch(e){debugLog('error',colName+' parse: '+e.message);}
+        try{bootMarca(colName);}catch(e){}
         DEBUG_LASTSYNC[colName]=new Date().toISOString();
         fsOnFirstLoad();
       },
@@ -262,6 +263,7 @@ function fsSetupListeners(){
       else{D.user=me;}
     }
     DEBUG_LASTSYNC.usuarios=new Date().toISOString();
+    try{bootMarca('usuarios');}catch(e){}
   },function(err){debugLog('error','usuarios: '+err.message);});
 
   fsDB.collection('config').doc('main').onSnapshot(function(doc){
@@ -274,6 +276,7 @@ function fsSetupListeners(){
       fsDB.collection('config').doc('main').set(CFG).then(function(){CFG_CARGADA=true;}).catch(function(e){console.error(e);});
     }
     DEBUG_LASTSYNC.config=new Date().toISOString();
+    try{bootMarca('config');}catch(e){}
     fsOnFirstLoad();
   },function(err){debugLog('error','config: '+err.message);});
 }
@@ -1279,6 +1282,8 @@ function startApp(){
     renderVG();
     try{iniciarRecorrido();}catch(e){debugLog('error','iniciar recorrido GPS: '+e.message);} // rastro pasivo, solo con la app en uso
   }
+  try{bootGuardar();}catch(e){}
+  try{if(restaurarVuelta())toast('Volviste donde estabas','ok');}catch(e){debugLog('error','volver donde estabas: '+e.message);}
 }
 function doLogout(){
   try{detenerRecorrido();}catch(e){debugLog('error','detener recorrido GPS: '+e.message);}
@@ -6975,6 +6980,7 @@ function abrirDebug(){
     var col=e.tipo==='error'?'var(--red)':'var(--muted)';
     h+='<div style="padding:7px 0;border-bottom:1px solid var(--border)"><div style="font-size:11px;color:var(--muted)">'+fmtTs(e.ts)+'</div><div style="font-size:12px;color:'+col+';font-family:monospace">'+es(e.msg)+'</div></div>';
   });
+  h+=arranquesHTML();
   h+='<button class="btn sec" onclick="DEBUG_LOG=[];abrirDebug()" style="margin-top:14px">Limpiar log</button>';
   oMod('Modo Debug',h);
 }
@@ -8599,3 +8605,192 @@ window.addEventListener('load',function(){
     },1000);
   }
 });
+
+// ── VOLVER DONDE ESTABAS (v9.8) ──────────────────────────────────────
+// Cuando el telefono cierra la app en segundo plano (pasa seguido al ir a
+// WhatsApp), al volver arranca de cero. No se puede evitar que el telefono la
+// cierre, pero si que al volver te deje donde estabas: cada vez que la app
+// queda en segundo plano se anota en el equipo la pantalla, el dia de la gira,
+// la ficha o formulario abierto, lo que se estaba escribiendo y el scroll.
+// Al arrancar (si pasaron menos de VUELTA_MIN minutos y es el mismo usuario)
+// se vuelve ahi. Es solo del equipo: no viaja a la base.
+var VUELTA_MIN=60;
+var vTabActual='H';        // solapa activa del vendedor
+var _modalActual=null;     // que hay abierto en el modal y como reabrirlo
+var _wizOrigen=null;       // que wizard esta abierto (solo se restaura la visita a cliente)
+var _vueltaTocado=false;   // si el usuario ya toco algo despues de volver, no se le mueve el scroll
+// Envuelve una funcion global para anotar que abrio (despues de que la abre).
+function _rastrearModal(nombre,tipo){
+  var f=window[nombre];if(typeof f!=='function')return;
+  window[nombre]=function(){
+    var r=f.apply(this,arguments);
+    var m=document.getElementById('modal');
+    if(m&&m.classList.contains('on'))_modalActual={tipo:tipo,args:Array.prototype.slice.call(arguments)};
+    return r;
+  };
+}
+(function(){
+  var _oMod=oMod;
+  window.oMod=function(t,h){_modalActual=null;return _oMod(t,h);};
+  var _vGo=vGo;
+  window.vGo=function(t){vTabActual=t;return _vGo(t);};
+  var _wInit=wInit;
+  window.wInit=function(){_wizOrigen=null;return _wInit.apply(this,arguments);};
+  var _aVisita=aVisita;
+  window.aVisita=function(id){var r=_aVisita(id);_wizOrigen={tipo:'visitaCliente',cid:id};return r;};
+  _rastrearModal('abrirFichaV','fichaV');
+  _rastrearModal('aFicha','fichaA');
+  _rastrearModal('abrirVisitaProspecto','visitaPros');
+  _rastrearModal('renderPedido','pedido');
+  _rastrearModal('verMensajeRonda','ronda');
+})();
+// Los valores escritos en el modal (por id): textos, selects, fechas, tildes
+function _valoresModal(){
+  var out={};
+  var mb=document.getElementById('mB');if(!mb)return out;
+  mb.querySelectorAll('input[id],textarea[id],select[id]').forEach(function(el){
+    if(el.type==='file')return;
+    out[el.id]=(el.type==='checkbox'||el.type==='radio')?{c:el.checked}:{v:el.value};
+  });
+  return out;
+}
+function _ponerValoresModal(vals){
+  if(!vals)return;
+  Object.keys(vals).forEach(function(id){
+    var el=document.getElementById(id);if(!el)return;
+    if(vals[id].c!==undefined)el.checked=vals[id].c;else if(vals[id].v!==undefined)el.value=vals[id].v;
+  });
+}
+function _scrolls(){
+  var out=[];
+  document.querySelectorAll('.sc.on, .sc.on .scr').forEach(function(el){out.push(el.scrollTop||0);});
+  var mb=document.getElementById('mB');
+  var box=mb&&mb.parentElement;
+  return {pant:out,modal:box?box.scrollTop:0,mb:mb?mb.scrollTop:0,win:window.scrollY||0};
+}
+function _ponerScrolls(s){
+  if(!s||_vueltaTocado)return;
+  var els=document.querySelectorAll('.sc.on, .sc.on .scr');
+  (s.pant||[]).forEach(function(y,i){if(els[i]&&y)els[i].scrollTop=y;});
+  var mb=document.getElementById('mB');
+  if(mb){if(s.mb)mb.scrollTop=s.mb;if(mb.parentElement&&s.modal)mb.parentElement.scrollTop=s.modal;}
+  if(s.win)window.scrollTo(0,s.win);
+}
+// Saca las fotos (texto base64 largo) para no llenar la memoria del equipo
+function _sinFotos(o){
+  var r={};
+  Object.keys(o||{}).forEach(function(k){
+    var v=o[k];
+    if(typeof v==='string'&&v.length>20000)return;
+    r[k]=v;
+  });
+  return r;
+}
+function guardarVuelta(){
+  try{
+    if(!D.user)return;
+    var esAdm=D.user.r==='admin'||D.user.r==='gerente';
+    var st={t:Date.now(),u:D.user.u,ver:VERSION,adm:esAdm,
+      sec:esAdm?gSecActual:vTabActual,
+      gira:{dia:gDiaActivo,off:gSemOffset,sem:giraVistaSemana,vend:gVendSel},
+      scroll:_scrolls()};
+    var modal=document.getElementById('modal');
+    if(modal&&modal.classList.contains('on')&&_modalActual){
+      st.modal={tipo:_modalActual.tipo,args:_modalActual.args,vals:_valoresModal()};
+      if(_modalActual.tipo==='pedido'){
+        try{leerNotas();}catch(e){}
+        st.modal.ped=JSON.parse(JSON.stringify(pedActual));
+      }
+      if(_modalActual.tipo==='visitaPros')st.modal.vpVendio=vpVendio;
+    }
+    var wiz=document.getElementById('sWiz');
+    if(wiz&&wiz.classList.contains('on')&&_wizOrigen&&_wizOrigen.tipo==='visitaCliente'&&W.cid===_wizOrigen.cid){
+      // Lo que esta escrito en el paso actual pasa a W.data antes de guardar
+      try{var s=W.steps[W.cur];if(s&&s.sv)s.sv(W.data);}catch(e){}
+      st.wiz={cid:W.cid,cur:W.cur,data:_sinFotos(W.data)};
+    }
+    ls('jvuelta',st);
+  }catch(e){debugLog('warn','no se pudo guardar donde estabas: '+e.message);}
+}
+document.addEventListener('visibilitychange',function(){if(document.hidden)guardarVuelta();});
+window.addEventListener('pagehide',guardarVuelta);
+['touchstart','wheel','keydown'].forEach(function(ev){
+  window.addEventListener(ev,function(){if(VUELTA_RESTAURANDO)_vueltaTocado=true;},{passive:true});
+});
+var VUELTA_RESTAURANDO=false;
+// Se llama al final del arranque (startApp). Devuelve true si restauro algo.
+function restaurarVuelta(){
+  var st=lg('jvuelta',null);
+  if(!st||!D.user||st.u!==D.user.u)return false;
+  if(!st.t||Date.now()-st.t>VUELTA_MIN*60000)return false;
+  ls('jvuelta',null);   // una sola vez: si falla algo, el proximo arranque es normal
+  VUELTA_RESTAURANDO=true;_vueltaTocado=false;
+  try{
+    if(st.gira){
+      if(st.gira.dia)gDiaActivo=st.gira.dia;
+      if(typeof st.gira.off==='number')gSemOffset=st.gira.off;
+      giraVistaSemana=!!st.gira.sem;
+      if(st.adm&&typeof st.gira.vend==='string')gVendSel=st.gira.vend;
+    }
+    if(st.adm){if(st.sec&&st.sec!=='D')gGo(st.sec);}
+    else if(st.sec&&st.sec!=='H')vGo(st.sec);
+    var m=st.modal;
+    if(m){
+      var cid=m.args&&m.args[0];
+      var existe=function(id){return D.cli.some(function(c){return c.id===id&&!c.eliminado;});};
+      if(m.tipo==='fichaV'&&existe(cid))abrirFichaV(cid);
+      else if(m.tipo==='fichaA'&&existe(cid))aFicha(cid);
+      else if(m.tipo==='ronda'&&existe(cid))verMensajeRonda(cid);
+      else if(m.tipo==='visitaPros'&&existe(cid)){
+        abrirVisitaProspecto(cid);
+        _ponerValoresModal(m.vals);
+        if(m.vpVendio===true||m.vpVendio===false){try{togVP(m.vpVendio);}catch(e){}}
+      }
+      else if(m.tipo==='pedido'&&m.ped&&existe(m.ped.cid)){
+        // Sin abrirPedido: no se vuelve a preguntar por la deuda ni se vacia lo cargado
+        pedActual=m.ped;
+        renderPedido();
+        _ponerValoresModal(m.vals);
+      }
+    }
+    if(st.wiz&&existe2(st.wiz.cid)){
+      aVisita(st.wiz.cid);
+      W.data=st.wiz.data||{};
+      W.cur=Math.min(Math.max(0,st.wiz.cur|0),W.steps.length-1);
+      wRender();
+    }
+    // El scroll se repone cuando la pantalla ya termino de dibujarse
+    [120,700,1600].forEach(function(ms){setTimeout(function(){_ponerScrolls(st.scroll);},ms);});
+    setTimeout(function(){VUELTA_RESTAURANDO=false;},1800);
+    debugLog('info','Volviste donde estabas ('+Math.round((Date.now()-st.t)/60000)+' min)');
+    return true;
+  }catch(e){
+    VUELTA_RESTAURANDO=false;
+    debugLog('error','volver donde estabas: '+e.message);
+    return false;
+  }
+}
+function existe2(id){return D.cli.some(function(c){return c.id===id&&!c.eliminado;});}
+// ── Tiempo de arranque (se ve en Config > Debug) ──
+var BOOT_T0=Date.now();
+var BOOT_TIEMPOS={};       // coleccion -> ms hasta su primera carga
+function bootMarca(k){if(BOOT_TIEMPOS[k]===undefined)BOOT_TIEMPOS[k]=Date.now()-BOOT_T0;}
+var _bootGuardado=false;
+function bootGuardar(){
+  if(_bootGuardado)return;_bootGuardado=true;
+  try{
+    var h=lg('jboot',[]);if(!Array.isArray(h))h=[];
+    h.unshift({f:new Date().toISOString(),ms:Date.now()-BOOT_T0,col:BOOT_TIEMPOS});
+    ls('jboot',h.slice(0,5));
+  }catch(e){}
+}
+function arranquesHTML(){
+  var h=lg('jboot',[]);if(!Array.isArray(h)||!h.length)return '';
+  var x='<div class="div"></div><div class="fl" style="margin-bottom:8px">ULTIMOS ARRANQUES (de abrir la app a verla)</div>';
+  h.forEach(function(b){
+    var cols=Object.keys(b.col||{}).sort(function(a,c){return b.col[c]-b.col[a];}).slice(0,3)
+      .map(function(k){return k+' '+(b.col[k]/1000).toFixed(1).replace('.',',')+'s';}).join(' · ');
+    x+='<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><b>'+(b.ms/1000).toFixed(1).replace('.',',')+' s</b> <span style="color:var(--muted)">'+fmtTs(b.f)+'</span><div style="font-size:11px;color:var(--muted)">Lo mas lento: '+es(cols||'-')+'</div></div>';
+  });
+  return x;
+}
