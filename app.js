@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.9 - 07/10/2026';
+var VERSION='9.10 - 08/10/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -3709,9 +3709,11 @@ function htmlEntregasPendientes(){
     h+='<div style="font-size:14px;font-weight:700">'+es(p.cliente||'')+'</div>';
     if(c&&c.dir)h+='<div style="font-size:11px;color:var(--muted)">&#128205; '+es(c.dir)+(c.bar?' · '+es(c.bar):'')+'</div>';
     h+='<div style="font-size:11px;color:var(--muted)">Tomado el '+fmt(p.fecha)+' · '+(p.items?p.items.length:0)+' renglones'+(p.vend?' · '+es(p.vend):'')+'</div>';
+    if(p.entrega){var _atr=p.entrega<today();h+='<div style="font-size:11px;font-weight:700;color:'+(_atr?'var(--red)':p.entrega===today()?'var(--green)':'var(--cyan)')+'">Entrega: '+es(fechaLarga(p.entrega))+(_atr?' · atrasado':p.entrega===today()?' · hoy':'')+'</div>';}
     h+='</div><div style="font-size:16px;font-weight:900;color:var(--green);flex-shrink:0">'+plata(p.total)+'</div></div>';
     h+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
     h+='<button class="sm g" onclick="marcarEntrega(\''+p.id+'\',\'entregado\')">Entregado</button>';
+    h+='<button class="sm cy" onclick="abrirCambiarDiaEntrega(\''+p.id+'\')">Cambiar día</button>';
     h+='<button class="sm" onclick="verPedido(\''+p.id+'\')">Ver / corregir</button>';
     h+='<button class="sm rd" onclick="marcarEntrega(\''+p.id+'\',\'anulado\')">No se entrego</button>';
     h+='</div></div>';
@@ -3724,20 +3726,10 @@ function marcarEntrega(pid,estado){
   if(soloLectura())return;
   var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
   var c=D.cli.find(function(x){return x.id===p.cid;});
-  if(estado==='anulado'){
-    if(!confirm('Marcar como NO ENTREGADO el pedido de "'+(p.cliente||'')+'" por '+plata(p.total)+'?\n\nNo va a generar deuda ni contar como venta.'))return;
-    p.estado='anulado';
-    p._modBy=D.user?D.user.n:'?';p._modAt=new Date().toISOString();
-    fsSetPedido(p);
-    ajustarDeudaDePedido(p,0);
-    logEvento('venta',p.cid,p.cliente,'Pedido NO entregado ('+plata(p.total)+')','tomado','anulado');
-    toast('Marcado como no entregado','ok');
-  } else {
-    // Al entregar se pregunta si pago (ver abrirEntrega)
-    abrirEntrega(pid);return;
-  }
-  if(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))renderGP();else renderVV();
-  refrescarVistaActual();
+  // "No se entrego": se elige si va otro dia o se cancela (abrirNoEntregado).
+  // "Entregado": se pregunta si pago (abrirEntrega).
+  if(estado==='anulado')abrirNoEntregado(pid);
+  else abrirEntrega(pid);
 }
 function entregarTodos(){
   abrirCierreEntrega();
@@ -5095,6 +5087,8 @@ function guardarPedido(){
     // La fecha del pedido NO cambia al corregir: queda anotado cuando se corrigio
     ped.corr=today();ped.corrPor=D.user?D.user.n:'?';
     ped._modBy=D.user?D.user.n:'?';ped._modAt=new Date().toISOString();
+    // Editar un pedido que no se entrego es volver a tomarlo: queda pendiente de entrega
+    if(estadoPedido(ped)==='anulado')reactivarPedido(ped,(ped.entrega&&ped.entrega>=today())?ped.entrega:proximaEntrega());
     logEvento('venta',c.id,c.nm,'Pedido del '+fmt(ped.fecha)+' editado: '+plata(totAnt)+' -> '+plata(tot),'','');
   } else {
     ped={id:uid(),cid:c.id,cliente:c.nm,fecha:today(),vend:D.user?D.user.n:'',
@@ -5445,7 +5439,11 @@ function verPedido(pid){
     h+='<div style="font-size:11px;color:var(--muted);margin-bottom:6px">Entregado el '+fmt(p.fechaEntrega||p.fecha)+'. Lo que de verdad te dio: si pagó solo lo que recibió, poné ese monto.</div>';
     h+='<input class="fi" type="number" min="0" id="pedEdCob" value="'+Math.round(_cob)+'" style="font-size:16px;font-weight:700;margin:0"></div>';
   } else if(estadoPedido(p)==='tomado'){
-    h+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Todavía no se entregó: no genera deuda.</div>';
+    h+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Todavía no se entregó: no genera deuda.'+(p.entrega?' Entrega: '+es(fechaLarga(p.entrega))+'.':'')+'</div>';
+  } else if(estadoPedido(p)==='anulado'){
+    h+='<div class="card" style="margin-bottom:10px;border:1px solid var(--red)"><div class="ct" style="color:var(--red)">NO SE ENTREGÓ</div>';
+    h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Si lo quiere igual, vuelve a quedar pendiente de entrega. Si cambia algo, editalo: al guardar también vuelve a quedar pendiente.</div>';
+    h+='<button class="btn" onclick="abrirCambiarDiaEntrega(\''+p.id+'\')" style="margin:0">Volver a entregar</button></div>';
   }
   h+='<button class="btn" onclick="guardarCambiosPedido(\''+pid+'\')" style="margin:0 0 8px">Guardar correcciones</button>';
   h+='<button class="btn sec" onclick="editarPedidoCompleto(\''+pid+'\')" style="margin:0 0 8px">Editar el pedido completo (agregar productos)</button>';
@@ -5468,6 +5466,8 @@ function guardarCambiosPedido(pid){
   // La fecha del pedido no cambia: queda anotado cuando se corrigio
   p.corr=today();p.corrPor=D.user?D.user.n:'?';
   p._modBy=D.user?D.user.n:'?';p._modAt=new Date().toISOString();
+  var _reactivado=false;
+  if(estadoPedido(p)==='anulado'){reactivarPedido(p,(p.entrega&&p.entrega>=today())?p.entrega:proximaEntrega());_reactivado=true;}
   var debe=0;
   if(pedidoEntregado(p)){
     // Entregado: la deuda es lo entregado menos lo que DE VERDAD se cobro
@@ -5479,7 +5479,7 @@ function guardarCambiosPedido(pid){
   // Un pedido que todavia no se entrego no genera deuda (antes si la generaba al corregirlo)
   if(pedidoEntregado(p))ajustarDeudaDePedido(p,debe);
   logEvento('venta',p.cid,p.cliente,'Pedido corregido: '+plata(totAnterior)+' -> '+plata(p.total)+(pedidoEntregado(p)?' · cobrado '+plata(p.cobrado):''),'','');
-  toast('Pedido actualizado: '+plata(p.total)+(debe>0?' · debe '+plata(debe):debe<0?' · a favor '+plata(-debe):''),'ok');
+  toast(_reactivado?'Pedido actualizado: vuelve a estar para entregar el '+fmt(p.entrega):'Pedido actualizado: '+plata(p.total)+(debe>0?' · debe '+plata(debe):debe<0?' · a favor '+plata(-debe):''),'ok');
   cMod();
   refrescarPedidosYDeudas();
 }
@@ -6594,6 +6594,7 @@ function renderGI(){
   }
 
   h+=ventasMesHTML();
+  h+=tomadosVsEntregadosHTML(per);
   // ── PROSPECTOS ──
   h+='<div class="card"><div class="ct">PROSPECTOS</div>';
   var prosNuevos=prospectos.filter(function(c){return c.ing>=per.desde&&c.ing<=per.hasta;});
@@ -8733,7 +8734,9 @@ function confirmarEntrega(){
 var cierreTmp=null;
 function abrirCierreEntrega(){
   if(soloLectura())return;
-  var ps=misPendientes();if(!ps.length)return;
+  // Solo lo que tocaba entregar hasta hoy: lo reprogramado para otro dia queda afuera
+  var ps=misPendientes().filter(function(p){return !p.entrega||p.entrega<=today();});
+  if(!ps.length){toast('No hay pedidos para entregar hoy. Los reprogramados se entregan de a uno en su día.','err');return;}
   cierreTmp={};
   ps.forEach(function(p){var ci=cobroInicial(p);cierreTmp[p.id]={modo:ci.modo,monto:ci.modo==='parte'?ci.monto:''};});
   pintarCierre();
@@ -9066,6 +9069,165 @@ function enPeriodo(f,per){
   f=f||'';
   if(per==='rango'){rangoDefault();return f>=rangoPedD&&f<=rangoPedH;}
   return f>=desdePeriodo(per);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// v9.10 — DIA DE ENTREGA, REPROGRAMAR Y VOLVER A ENTREGAR
+// Un pedido que no se pudo entregar puede pasar a otro dia (sigue tomado) o
+// cancelarse. Si un pedido cancelado se edita o se reactiva, vuelve a estar
+// pendiente de entrega.
+// ══════════════════════════════════════════════════════════════════════
+function diaHabilSiguiente(desde){
+  var d=new Date((desde||today())+'T12:00:00');d.setDate(d.getDate()+1);
+  return ajustarDiaHabil(fechaLocal(d));
+}
+function fechaLarga(f){
+  return new Date(f+'T12:00:00').toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'numeric'});
+}
+// Cambia el dia de entrega de un pedido y mueve su parada de reparto en la gira
+function moverEntregaPedido(p,nueva){
+  var vieja=p.entrega||'';
+  if(vieja&&vieja!==nueva){
+    var g=D.gira.find(function(x){return x.cid===p.cid&&x.fecha===vieja&&x.reparto;});
+    var visitado=g&&D.vis.some(function(v){return v.cid===p.cid&&v.fecha===vieja;});
+    if(g&&!visitado){D.gira=D.gira.filter(function(x){return x!==g;});fsDelGira(p.cid,vieja);}
+  }
+  p.entrega=nueva;
+  if(!D.gira.some(function(x){return x.cid===p.cid&&x.fecha===nueva;})){
+    var ng={cid:p.cid,fecha:nueva,orden:D.gira.filter(function(x){return x.fecha===nueva;}).length,reparto:true};
+    D.gira.push(ng);fsSetGira(ng);
+  }
+}
+// Vuelve a dejar un pedido cancelado como pendiente de entrega (sin pantallas)
+function reactivarPedido(p,fecha){
+  var antes=estadoPedido(p);
+  p.estado='tomado';
+  delete p.cobrado;delete p.fechaEntrega;
+  moverEntregaPedido(p,fecha||proximaEntrega());
+  p._modBy=D.user?D.user.n:'?';p._modAt=new Date().toISOString();
+  ajustarDeudaDePedido(p,0);
+  logEvento('venta',p.cid,p.cliente,'Pedido vuelve a estar para entregar el '+fmt(p.entrega)+' ('+plata(p.total)+')',antes,'tomado');
+}
+// ── "No se entrego": otro dia o se cancela ──
+var noEntTmp=null;
+function abrirNoEntregado(pid){
+  if(soloLectura())return;
+  var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
+  noEntTmp={pid:pid,fecha:diaHabilSiguiente()};
+  var h='<div style="font-size:15px;font-weight:800">'+es(p.cliente||'')+'</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Pedido del '+fmt(p.fecha)+' · '+plata(p.total)+'</div>';
+  h+='<div class="card" style="margin-bottom:10px"><div class="ct">SE ENTREGA OTRO DÍA</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Sigue pendiente, con el mismo pedido. No genera deuda hasta que se entregue.</div>';
+  h+='<input class="fi" type="date" id="noEntF" min="'+today()+'" value="'+noEntTmp.fecha+'" style="margin:0 0 8px">';
+  h+='<button class="btn" onclick="confirmarReprogramar()" style="margin:0">Pasar a ese día</button></div>';
+  h+='<div class="card" style="margin-bottom:0"><div class="ct">NO SE ENTREGA</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Se cancela: no cuenta como venta ni genera deuda. Si después lo quiere igual, lo editás o tocás "Volver a entregar" y vuelve a quedar pendiente.</div>';
+  h+='<button class="btn red" onclick="confirmarCancelarPedido()" style="margin:0">Cancelar el pedido</button></div>';
+  oMod('No se entregó',h);
+}
+function confirmarReprogramar(){
+  if(soloLectura())return;
+  var p=noEntTmp&&D.ped.find(function(x){return x.id===noEntTmp.pid;});if(!p)return;
+  var f=(document.getElementById('noEntF')||{}).value;
+  if(!f){toast('Elegí el día','err');return;}
+  if(f<today()){toast('Tiene que ser hoy o más adelante','err');return;}
+  var ant=p.entrega;
+  if(estadoPedido(p)!=='tomado'){reactivarPedido(p,f);}
+  else{
+    moverEntregaPedido(p,f);
+    p._modBy=D.user?D.user.n:'?';p._modAt=new Date().toISOString();
+    logEvento('venta',p.cid,p.cliente,'Entrega reprogramada: '+(ant?fmt(ant):'-')+' -> '+fmt(f),'','');
+  }
+  fsSetPedido(p);
+  noEntTmp=null;cMod();
+  toast('Se entrega el '+fechaLarga(f),'ok');
+  refrescarPedidosYDeudas();
+}
+function confirmarCancelarPedido(){
+  if(soloLectura())return;
+  var p=noEntTmp&&D.ped.find(function(x){return x.id===noEntTmp.pid;});if(!p)return;
+  anularPedidoSinPreguntar(p);
+  noEntTmp=null;cMod();
+  toast('Pedido cancelado','ok');
+  refrescarPedidosYDeudas();
+}
+// ── Cambiar el dia de entrega de un pedido pendiente / volver a entregar un cancelado ──
+function abrirCambiarDiaEntrega(pid){
+  if(soloLectura())return;
+  var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
+  noEntTmp={pid:pid};
+  var cancelado=estadoPedido(p)==='anulado';
+  var def=(!cancelado&&p.entrega&&p.entrega>=today())?p.entrega:(cancelado?proximaEntrega():diaHabilSiguiente());
+  var h='<div style="font-size:15px;font-weight:800">'+es(p.cliente||'')+'</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Pedido del '+fmt(p.fecha)+' · '+plata(p.total)+(p.entrega&&!cancelado?' · hoy figura para el '+fechaLarga(p.entrega):'')+'</div>';
+  if(cancelado)h+='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Estaba como <b>no entregado</b>. Vuelve a quedar pendiente con estos productos (si querés cambiarlos, usá "Editar el pedido completo").</div>';
+  h+='<label class="fl">Día de entrega</label><input class="fi" type="date" id="noEntF" min="'+today()+'" value="'+def+'" style="margin:0 0 12px">';
+  h+='<button class="btn" onclick="confirmarReprogramar()" style="margin:0">'+(cancelado?'Volver a entregar ese día':'Cambiar el día')+'</button>';
+  oMod(cancelado?'Volver a entregar':'Día de entrega',h);
+}
+// ══════════════════════════════════════════════════════════════════════
+// v9.10 — TOMADOS VS ENTREGADOS (administrador y gerente)
+// De lo que se tomo, cuanto se entrego, cuanto esta pendiente y cuanto se
+// cancelo. Por fecha de toma: asi se ve que paso con lo que se vendio.
+// ══════════════════════════════════════════════════════════════════════
+function resumenTomados(ps){
+  var r={n:0,tot:0,ent:0,entN:0,pen:0,penN:0,can:0,canN:0,atr:0,atrN:0};
+  var hoy=today();
+  ps.forEach(function(p){
+    var t=Number(p.total||0),e=estadoPedido(p);
+    r.n++;r.tot+=t;
+    if(e==='entregado'){r.ent+=t;r.entN++;}
+    else if(e==='anulado'){r.can+=t;r.canN++;}
+    else{r.pen+=t;r.penN++;if(p.entrega&&p.entrega<hoy){r.atr+=t;r.atrN++;}}
+  });
+  r.pct=r.tot>0?Math.round(r.ent/r.tot*100):0;
+  return r;
+}
+function lunesDe(f){var d=new Date(f+'T12:00:00');d.setDate(d.getDate()-(d.getDay()===0?6:d.getDay()-1));return fechaLocal(d);}
+function tomadosVsEntregadosHTML(per){
+  var todos=pedidosVisiblesUsuario();
+  var ps=todos.filter(function(p){return (p.fecha||'')>=per.desde&&(p.fecha||'')<=per.hasta;});
+  var r=resumenTomados(ps);
+  var h='';
+  if(!r.n)h+='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">No se tomaron pedidos en este período.</div>';
+  else{
+    h+='<div class="sg" style="margin-bottom:10px">';
+    h+='<div class="sb"><div class="sn">'+plata(r.tot)+'</div><div class="sl2">Tomado · '+r.n+'</div></div>';
+    h+='<div class="sb"><div class="sn" style="color:var(--green)">'+plata(r.ent)+'</div><div class="sl2">Entregado · '+r.entN+'</div></div>';
+    h+='<div class="sb"><div class="sn" style="color:#fbbf24">'+plata(r.pen)+'</div><div class="sl2">Por entregar · '+r.penN+'</div></div>';
+    h+='<div class="sb"><div class="sn" style="color:var(--red)">'+plata(r.can)+'</div><div class="sl2">Cancelado · '+r.canN+'</div></div>';
+    h+='</div>';
+    // Barra de proporcion: de lo tomado, que parte se entrego / esta pendiente / se cancelo
+    var w=function(x){return r.tot>0?(x/r.tot*100).toFixed(1):0;};
+    h+='<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px;margin-bottom:6px;background:var(--s2)">';
+    if(r.ent)h+='<div title="Entregado" style="width:'+w(r.ent)+'%;background:var(--green)"></div>';
+    if(r.pen)h+='<div title="Por entregar" style="width:'+w(r.pen)+'%;background:#fbbf24"></div>';
+    if(r.can)h+='<div title="Cancelado" style="width:'+w(r.can)+'%;background:var(--red)"></div>';
+    h+='</div>';
+    h+='<div style="font-size:12px;margin-bottom:12px"><b>'+r.pct+'%</b> de lo tomado ya se entregó'+(r.atrN?' · <span style="color:var(--red);font-weight:700">'+r.atrN+' atrasado'+(r.atrN>1?'s':'')+' ('+plata(r.atr)+')</span>':'')+'</div>';
+  }
+  // Ultimas 8 semanas, por semana en que se tomo
+  var semanas=[],d=new Date(lunesDe(today())+'T12:00:00');
+  for(var i=7;i>=0;i--){var x=new Date(d);x.setDate(d.getDate()-7*i);semanas.push(fechaLocal(x));}
+  var cols='1.1fr 1.2fr 1.2fr 1fr .9fr .7fr';
+  h+='<div class="fl" style="margin-bottom:4px">POR SEMANA EN QUE SE TOMÓ</div>';
+  h+='<div style="font-size:12px"><div style="display:grid;grid-template-columns:'+cols+';gap:4px;padding:5px 0;border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.3px"><span>Semana</span><span style="text-align:right">Tomado</span><span style="text-align:right">Entregado</span><span style="text-align:right">Pend.</span><span style="text-align:right">Canc.</span><span style="text-align:right">%</span></div>';
+  semanas.slice().reverse().forEach(function(l){
+    var fin=new Date(l+'T12:00:00');fin.setDate(fin.getDate()+6);var hasta=fechaLocal(fin);
+    var s=resumenTomados(todos.filter(function(p){return (p.fecha||'')>=l&&(p.fecha||'')<=hasta;}));
+    var dd=l.split('-');
+    h+='<div style="display:grid;grid-template-columns:'+cols+';gap:4px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);font-variant-numeric:tabular-nums"><span>'+Number(dd[2])+'/'+Number(dd[1])+(l===semanas[semanas.length-1]?' <span style="font-size:9px;color:var(--muted)">esta</span>':'')+'</span><span style="text-align:right">'+(s.n?plataCorta(s.tot):'—')+'</span><span style="text-align:right;color:var(--green)">'+(s.entN?plataCorta(s.ent):'—')+'</span><span style="text-align:right;color:#fbbf24">'+(s.penN?plataCorta(s.pen):'—')+'</span><span style="text-align:right;color:var(--red)">'+(s.canN?plataCorta(s.can):'—')+'</span><span style="text-align:right;color:var(--muted)">'+(s.n?s.pct+'%':'—')+'</span></div>';
+  });
+  h+='</div>';
+  // Atrasados: tomados cuya fecha de entrega ya paso
+  var atr=todos.filter(function(p){return estadoPedido(p)==='tomado'&&p.entrega&&p.entrega<today();}).sort(function(a,b){return (a.entrega||'').localeCompare(b.entrega||'');});
+  if(atr.length){
+    h+='<div class="fl" style="margin:14px 0 4px;color:var(--red)">ATRASADOS (la fecha de entrega ya pasó)</div>';
+    atr.forEach(function(p){
+      h+='<div onclick="abrirCambiarDiaEntrega(\''+p.id+'\')" style="display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer"><div style="flex:1;min-width:0;font-size:13px;font-weight:700">'+es(p.cliente||'')+'</div><div style="font-size:11px;color:var(--red)">era el '+fechaLarga(p.entrega)+'</div><div style="font-size:13px;font-weight:800">'+plata(p.total)+'</div><span style="color:var(--muted)">&rsaquo;</span></div>';
+    });
+  }
+  return sG('Pedidos tomados vs entregados',h);
 }
 
 // ── VOLVER DONDE ESTABAS (v9.8) ──────────────────────────────────────
