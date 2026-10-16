@@ -4,11 +4,11 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.11 - 13/10/2026';
+var VERSION='9.12 - 15/10/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
-var EC={'Nuevo Prospecto':'#fb923c','Contactado':'#fbbf24','Propuesta Enviada':'#a78bfa','Negociacion':'#facc15','Cliente Activo':'#4ade80','No Le Interesa':'#f87171','Perdido':'#f87171'};
+var EC={'Nuevo Prospecto':'#fb923c','Contactado':'#2563eb','Propuesta Enviada':'#a78bfa','Negociacion':'#facc15','Cliente Activo':'#4ade80','No Le Interesa':'#f87171','Perdido':'#f87171'};
 var MSG_RONDA_DEF='Hola {nombre}! Soy {vendedor} de Sei Tu.\nEstamos armando el pedido de {negocio} para entregar el {entrega}.\n\nLa vez pasada te llevaste:\n{ultimo}\n\nQue necesitas esta semana?';
 var MD={'Nuevo Prospecto':'Hola! Soy de Sei Tu Helados, pase por tu local y me gustaria contarte nuestra propuesta. Tenes un minuto?','Contactado':'Hola! Te escribo para coordinar una visita y mostrarte la propuesta de Sei Tu. Que dia te viene bien?','Propuesta Enviada':'Hola! Pudiste ver la propuesta? Queda alguna duda que pueda responder?','Negociacion':'Hola! Como venimos con la propuesta? Si necesitas ajustar algo avisame.','Cliente Activo':'Hola! Como va la venta? Aviso si hay novedades o promos.','No Le Interesa':'Gracias por tu tiempo! Si cambia la situacion quedo disponible.','Perdido':'Hola! Hace tiempo no hablamos. Segui interesado en Sei Tu?'};
 // Provincias donde opera la empresa. Si se suma una nueva, agregarla aca y en ARG_CIU.
@@ -392,11 +392,22 @@ function fsGuardaLocal(){
   toast('Sin conexion a la base: guardado solo en este dispositivo','err');
   return Promise.resolve();
 }
+// Ubicacion confirmada de verdad: la marca Y las coordenadas. Antes alcanzaba con la
+// marca, y un contacto que la tenia sin coordenadas quedaba trabado: no aparecia en
+// el mapa y la ficha escondia el boton de GPS.
+function tieneUbicacion(c){return !!(c&&c.gpsOk&&isFinite(c.lat)&&isFinite(c.lng)&&c.lat!==null&&c.lng!==null&&(c.lat||c.lng));}
 function fsSetContacto(c){
   if(soloLectura())return Promise.resolve();
   if(!fsDB)return fsGuardaLocal();
   setSyncDot('pending');
   // _tipoViejo es una marca temporal de la migracion de categorias: no se guarda
+  // Nunca se guarda "ubicacion confirmada" sin coordenadas. Si esta copia no las
+  // tiene pero la version mas nueva en memoria si, se conservan (no se pisan).
+  if(c.gpsOk&&!tieneUbicacion(c)){
+    var fresco=D.cli.find(function(x){return x.id===c.id;});
+    if(fresco&&fresco!==c&&tieneUbicacion(fresco)){c.lat=fresco.lat;c.lng=fresco.lng;if(fresco.gpsAcc)c.gpsAcc=fresco.gpsAcc;if(fresco.gpsF)c.gpsF=fresco.gpsF;}
+    else c.gpsOk=false;
+  }
   var doc={};for(var k in c){if(k!=='_tipoViejo')doc[k]=c[k];}
   return fsDB.collection('contactos').doc(c.id).set(doc)
     .then(function(){setSyncDot('ok');})
@@ -1745,7 +1756,7 @@ function abrirFichaV(id){
   }
   // Ubicacion: una vez confirmada solo queda un boton chico para quitarla del mapa.
   // Si todavia no esta confirmada, se ofrecen las dos formas de ubicarla.
-  if(c.gpsOk){
+  if(tieneUbicacion(c)){
     h+='<div style="text-align:center;margin-bottom:8px"><button class="sm" onclick="borrarUbicacion(\''+id+'\')" style="font-size:10px;color:var(--muted);padding:3px 8px">&#9851; Quitar del mapa</button></div>';
   } else {
     h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px">';
@@ -3065,7 +3076,7 @@ function guardarVisitaProspecto(id){
   refrescarVistaActual();
   if(gTab==='ejec')renderVG();
   // Confirmar ubicacion la primera vez, si el vendedor esta en el local
-  if(!c.gpsOk&&(!D.user||D.user.r==='vendedor')){setTimeout(function(){confirmarUbicacion(c.id);},400);}
+  if(!tieneUbicacion(c)&&(!D.user||D.user.r==='vendedor')){setTimeout(function(){confirmarUbicacion(c.id);},400);}
 }
 // ── MAPA DE CONTACTOS (Leaflet + OpenStreetMap, sin API key) ──────────
 // Objetivo: ver donde estan los clientes y donde falta entrar (desarrollo de zona).
@@ -3908,6 +3919,8 @@ function marcarUbicacion(id){
   toast('Obteniendo ubicacion...','ok');
   capturarGPS(function(g){
     if(!g){toast('No se pudo obtener la ubicacion. Verifica el GPS del celular','err');return;}
+    if(!isFinite(g.lat)||!isFinite(g.lng)){toast('El GPS no devolvio una posicion valida. Proba de nuevo','err');return;}
+    c=D.cli.find(function(x){return x.id===id;})||c;
     c.lat=g.lat;c.lng=g.lng;c.gpsAcc=g.acc;c.gpsF=g.f;c.gpsOk=true;delete c.gpsAprox;
     fsSetContacto(c);
     logEvento('edicion',c.id,c.nm,'Ubicacion GPS confirmada','','');
@@ -5787,7 +5800,7 @@ function aFicha(id){
     h+='<button class="btn" onclick="acordoFreezer(\''+id+'\')" style="margin:0 0 8px;background:linear-gradient(90deg,#fbbf24,#22d3ee);color:#0b1220;font-weight:800">❄ Acordó freezer</button>';
   }
   // Ubicacion: confirmada = solo un boton chico. Sin confirmar = las dos formas de ubicarla.
-  if(c.gpsOk){
+  if(tieneUbicacion(c)){
     h+='<div style="text-align:center;margin-bottom:14px"><button class="sm" onclick="borrarUbicacion(\''+id+'\')" style="font-size:10px;color:var(--muted);padding:3px 8px">&#9851; Quitar del mapa</button></div>';
   } else {
     h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px">';
@@ -6793,7 +6806,7 @@ function renderGCfg(){
   h+='</div>';
   h+='<div class="card"><div class="ct">MAPA Y UBICACIONES</div>';
   var _vivos=D.cli.filter(function(c){return !c.eliminado;});
-  var _conf=_vivos.filter(function(c){return c.gpsOk;}).length;
+  var _conf=_vivos.filter(function(c){return tieneUbicacion(c);}).length;
   var _sinConf=_vivos.length-_conf;
   h+='<div style="font-size:13px;color:var(--muted);margin-bottom:6px">En el mapa solo aparecen los contactos con ubicacion <b style="color:var(--green)">confirmada por GPS</b>, para que sea 100% confiable.</div>';
   h+='<div style="display:flex;gap:16px;margin-bottom:4px"><div><div style="font-size:22px;font-weight:800;color:var(--green)">'+_conf+'</div><div style="font-size:11px;color:var(--muted)">confirmados</div></div>';
@@ -6806,7 +6819,7 @@ function renderGCfg(){
     h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Si alguna quedo mal marcada (por ej. cargada desde tu casa), podes quitarla del mapa aca.</div>';
     var vSelMapa='<option value="">Ver confirmados de...</option><option value="__todos">Todos</option>';
     D.usrs.filter(function(u){return u.r==='vendedor'&&u.activo!==false;}).forEach(function(u){
-      var nU=_vivos.filter(function(c){return c.gpsOk&&c.vend===u.n;}).length;
+      var nU=_vivos.filter(function(c){return tieneUbicacion(c)&&c.vend===u.n;}).length;
       if(nU)vSelMapa+='<option value="'+es(u.n)+'">'+es(u.n)+' ('+nU+')</option>';
     });
     h+='<select class="fi" id="mapaRevVend" onchange="renderRevisarUbic()" style="margin:0">'+vSelMapa+'</select>';
@@ -7645,7 +7658,7 @@ function wFin(){
   // Si el contacto viene de Redes Sociales o WhatsApp, quien carga el prospecto esta
   // en la computadora, no en el local: no tiene sentido pedir "Estoy en el local".
   var saltarGps=c&&(c.fuente==='Redes Sociales'||c.fuente==='WhatsApp');
-  if(c&&!c.gpsOk&&!W.origenAdmin&&!saltarGps){
+  if(c&&!tieneUbicacion(c)&&!W.origenAdmin&&!saltarGps){
     setTimeout(function(){confirmarUbicacion(c.id);},400);
     return;
   }
@@ -7688,7 +7701,8 @@ function confMarcarGPS(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
   var est=document.getElementById('confEstado');if(est)est.textContent='Obteniendo ubicacion...';
   capturarGPS(function(g){
-    if(!g){if(est)est.innerHTML='<span style="color:var(--red)">No se pudo obtener el GPS. Verifica que este activado.</span>';return;}
+    if(!g||!isFinite(g.lat)||!isFinite(g.lng)){if(est)est.innerHTML='<span style="color:var(--red)">No se pudo obtener el GPS. Verifica que este activado.</span>';return;}
+    c=D.cli.find(function(x){return x.id===id;})||c;
     c.lat=g.lat;c.lng=g.lng;c.gpsAcc=g.acc;c.gpsF=g.f;c.gpsOk=true;delete c.gpsAprox;
     fsSetContacto(c);
     logEvento('edicion',c.id,c.nm,'Ubicacion GPS confirmada en visita','','');
