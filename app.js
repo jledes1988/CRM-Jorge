@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.13 - 19/10/2026';
+var VERSION='9.14 - 22/10/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -9771,7 +9771,7 @@ var CSS_INFORME='#infOv{position:fixed;inset:0;z-index:9999;background:#e2e8f0;o
 '.ibox{border:1px solid #cbd5e1;border-radius:6px;min-height:48px;padding:8px 10px}.ijunta{break-before:auto}.ilin{margin:12px 0}.ilin div{border-bottom:1px solid #94a3b8;height:22px}'+
 '.ifirmas{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:40px;text-align:center;font-size:11px;color:#475569}.ifirmas div{border-top:1px solid #334155;padding-top:4px}'+
 '@media (max-width:640px){#infDoc{padding:16px;margin:0}.igrid{grid-template-columns:1fr 1fr}.icols{grid-template-columns:1fr}}'+
-'@media print{@page{size:A4;margin:12mm}body>*:not(#infOv){display:none!important}#infOv{position:static;background:#fff;overflow:visible}#infBar{display:none}#infDoc{box-shadow:none;margin:0;max-width:none;padding:0}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.it,.itab tr,.ifun,.ilin,.icols>div,.ibox{break-inside:avoid}}';
+'@media print{@page{size:A4;margin:12mm}html,body{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}body>*:not(#infOv){display:none!important}#infOv{position:static!important;inset:auto!important;height:auto!important;background:#fff;overflow:visible!important}#infBar{display:none}#infDoc{box-shadow:none;margin:0;max-width:none;padding:0}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.it,.itab tr,.ifun,.ilin,.icols>div,.ibox{break-inside:avoid}}';
 function mostrarInforme(d){
   var ov=document.getElementById('infOv');if(ov)ov.remove();
   var st=document.getElementById('infCss');
