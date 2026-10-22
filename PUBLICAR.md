@@ -1,26 +1,49 @@
-# CRM-Jorge — Versión 9.14 · El informe en PDF sale completo
+# CRM-Jorge — Versión 9.15 · Marcadores en la Gira
 
 **Solo cambió `app.js`.** Los otros dos son los mismos; van los tres juntos.
-Para verificar: en el login y en Config > Debug tiene que decir **9.14 - 22/10/2026**.
+Para verificar: en el login y en Config > Debug tiene que decir **9.15 - 22/10/2026**.
 
 ---
 
-## Qué pasaba
+## 1. Informe para la junta
 
-Al guardar el informe del vendedor como PDF salía **solo la primera hoja**. La app
-tiene la página fija al alto de la pantalla (para que no se mueva al usar el
-celular), y al imprimir eso cortaba todo lo que no entraba en la primera hoja.
+En "Prospección y embudo" ya **no salen** la lista de "Nuevos" ni los
+"Movimientos del embudo". Quedan los números (nuevos, avanzaron, pasaron a
+cliente, descartados) y el embudo actual.
 
-## Qué cambia
+## 2. "Acordó freezer" cuenta como gestión del día
 
-Al imprimir, el informe deja de tener el alto fijo y salen **todas las hojas**.
-Lo probé reproduciendo exactamente el problema con el estilo de la app: antes salía
-1 hoja, ahora salen las 3.
+Al marcar que un contacto acordó el freezer, queda registrada una **gestión de ese
+día** (con la nota "Acordó freezer"), aunque no se haya cargado la visita aparte:
+- Cuenta en visitas, en el informe y en "días sin gestión".
+- En la Gira aparece con el ✓ de visitado.
+- Si ese día ya tenía una visita cargada, no se duplica: se le suma el acuerdo.
 
-Nada más cambia. El informe y todo lo demás siguen igual.
+## 3. Marcadores de gestión en la Gira
+
+Cada parada de la Gira tiene un botón **🏷** para marcar qué gestión hay que hacer
+ese día. Los marcadores se ven como etiquetas de color en la lista y en las
+tarjetas, y como puntitos en "Ver semana completa". Arriba del día aparece el
+resumen (ej: "2 · Cobrar deuda", "1 · Cerrar acuerdo de freezer").
+
+**Vienen cargados:**
+
+| Color | Marcador | |
+|---|---|---|
+| Azul | Cerrar acuerdo de freezer | a mano |
+| Rojo | Cobrar deuda | **automático** cuando el cliente debe (muestra cuánto) |
+| Amarillo | Firmar comodato | **automático** cuando tiene un comodato por firmar |
+| Verde | Tomar pedido | a mano |
+| Violeta | Llevar material / POP | a mano |
+| Naranja | Reclamo o problema | a mano |
+
+**Agregar los que vayan surgiendo:** en la ventana del 🏷 → **Editar la lista de
+marcadores**. Escribís el nombre, tocás el círculo para cambiar el color y guardás.
+
+Si pasás una parada al día siguiente, se lleva sus marcadores.
 
 ---
 
 ## Probado
 
-250 pruebas en el navegador simulado, sin errores.
+275 pruebas en el navegador simulado, sin errores (25 nuevas).

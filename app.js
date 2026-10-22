@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.14 - 22/10/2026';
+var VERSION='9.15 - 22/10/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -6524,6 +6524,8 @@ function confirmarAcordoFreezer(id){
   D.com.push(nCom);
   fsSetComodato(nCom);
   logEvento('comodato',id,c.nm,'Acordo freezer · '+(estado==='por_entregar'?'firmado, por entregar':'por firmar'),'',estado);
+  // Cuenta como gestion realizada hoy (visita), aunque no se haya cargado la visita aparte
+  try{registrarGestionAcuerdo(c,estado);}catch(e){debugLog('error','gestion acuerdo: '+e.message);}
   cMod();
   toast('Agregado a pendientes de freezer','ok');
   // Llevar al vendedor a la pestaña Freezers para que vea el resultado sin buscarlo.
@@ -8038,7 +8040,7 @@ function renderGiraSemanaHTML(lunes,hoy){
           var c=D.cli.find(function(x){return x.id===g.cid;});if(!c)return;
           var etaCol=EC[c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo')]||'#94a3b8';
           h+='<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-left:3px solid '+etaCol+';margin:2px 6px;background:var(--s2);border-radius:6px;cursor:pointer" onclick="abrirVisita(\''+g.cid+'\')">';
-          h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(g.hora?'<span style="color:'+(g.fuera?'var(--red)':'var(--muted)')+';font-variant-numeric:tabular-nums">'+g.hora+'</span> ':'')+es(c.nm)+'</div>';
+          h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(g.hora?'<span style="color:'+(g.fuera?'var(--red)':'var(--muted)')+';font-variant-numeric:tabular-nums">'+g.hora+'</span> ':'')+es(c.nm)+chipsMarcasHTML(g,true)+'</div>';
           if(c.fan)h+='<div style="font-size:11px;color:var(--cyan);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.fan)+'</div>';
           h+='</div>';
           h+='<button onclick="event.stopPropagation();cicloTurno(\''+g.cid+'\',\''+diaS+'\')" title="Tocar para cambiar el horario" style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:8px;font-weight:700;padding:3px 5px;cursor:pointer;flex-shrink:0">'+(g.turno==='manana'?'AM':g.turno==='tarde'?'PM':'—')+'</button>';
@@ -8145,6 +8147,7 @@ function renderVG(){
   h+='<button class="sm g" onclick="abrirAgregarAGira(\''+gDiaActivo+'\')">+ Agregar</button>';
   h+='</div>';
   h+=resumenHorarioHTML(planActivo,gDiaActivo);
+  h+=resumenMarcasHTML(planActivo);
   var _cola=bloquesDelDia(gDiaActivo);
   if(!planActivo.length){
     if(!_cola.length)h+='<div style="text-align:center;padding:30px 14px;color:var(--muted)"><div style="font-size:28px;margin-bottom:8px">📅</div><div style="font-size:13px">Sin visitas para este día</div></div>';
@@ -8165,8 +8168,9 @@ function renderVG(){
       h+='<div class="lnum" style="background:'+(yaVis?'var(--green)':'var(--s3)')+';color:'+(yaVis?'#000':'var(--text)')+'">'+(yaVis?'✓':idx+1)+'</div>';
       h+=chipHora(g);
       h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan?' <span class="lfan">· '+es(c.fan)+'</span>':'')+'</div>';
-      h+='<div class="lsub">'+(c.dir?'📍 '+es(c.dir):es(c.ciu||c.bar||''))+'</div></div>';
+      h+='<div class="lsub">'+(c.dir?'📍 '+es(c.dir):es(c.ciu||c.bar||''))+'</div>'+chipsMarcasHTML(g)+'</div>';
       h+='<span class="tg '+(c.esP?'o':'g')+' ltg">'+(c.esP?'PROS':'CLI')+'</span>';
+      h+=botonMarcasHTML(g,gDiaActivo);
       if(_conH){
         h+='<button class="lx" title="Subir" style="color:var(--muted)" onclick="event.stopPropagation();moverEnGira(\''+g.cid+'\',\''+gDiaActivo+'\',-1)">&#9650;</button>';
         h+='<button class="lx" title="Bajar" style="color:var(--muted)" onclick="event.stopPropagation();moverEnGira(\''+g.cid+'\',\''+gDiaActivo+'\',1)">&#9660;</button>';
@@ -8200,8 +8204,10 @@ function renderVG(){
       if(c.fan)h+='<div style="font-size:15px;font-weight:700;color:var(--cyan);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+es(c.fan)+'</div>';
       if(c.dir)h+='<div style="font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📍 '+es(c.dir)+'</div>';
       h+='<div style="font-size:11px;color:var(--muted)">'+es(c.tipo||'')+(c.ciu?' · '+es(c.ciu):c.bar?' · '+es(c.bar):'')+'</div>';
+      h+=chipsMarcasHTML(g);
       h+='</div>';
       h+='<span class="tg '+(c.esP?'o':'g')+' ltg">'+(c.esP?'PROS':'CLI')+'</span>';
+      h+=botonMarcasHTML(g,gDiaActivo);
       h+='<button title="Pasar al dia siguiente" onclick="pasarAlDiaSiguiente(\''+g.cid+'\',\''+gDiaActivo+'\')" style="background:none;border:none;color:var(--cyan);font-size:15px;cursor:pointer;padding:4px;flex-shrink:0">▶</button>';
       h+='<button onclick="quitarDeGira(\''+g.cid+'\',\''+gDiaActivo+'\')" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0">✕</button>';
       h+='</div>';
@@ -8338,9 +8344,11 @@ function pasarAlDiaSiguiente(cid,fecha){
     toast('Ya estaba agendado para el '+fmt(sig),'err');
     return;
   }
+  var _vieja=D.gira.find(function(g){return g.cid===cid&&g.fecha===fecha;});
   D.gira=D.gira.filter(function(g){return !(g.cid===cid&&g.fecha===fecha);});
   fsDelGira(cid,fecha);
   var ng={cid:cid,fecha:sig,orden:D.gira.filter(function(x){return x.fecha===sig;}).length};
+  if(_vieja&&_vieja.marcas&&_vieja.marcas.length)ng.marcas=_vieja.marcas.slice();
   D.gira.push(ng);
   fsSetGira(ng);
   recalcSiHorario(fecha);
@@ -9717,12 +9725,10 @@ function htmlInforme(d){
   h+='<tr><td>Avanzaron de etapa</td><td class="r">'+d.avances.length+'</td></tr>';
   h+='<tr><td>Pasaron a cliente</td><td class="r">'+A.conv.length+'</td></tr>';
   h+='<tr><td>Descartados (no le interesa / perdido)</td><td class="r">'+d.perdidos.length+'</td></tr></table>';
-  if(A.nuevos.length)h+='<div class="isub2">Nuevos</div><div class="ichips">'+A.nuevos.map(function(c){return '<span>'+es(c.nm)+(c.bar?' · '+es(c.bar):'')+'</span>';}).join('')+'</div>';
   h+='</div><div><div class="isub2">Embudo actual de su cartera</div>';
   var maxE=Math.max.apply(null,d.embudo.map(function(x){return x.n;}))||1;
   d.embudo.forEach(function(x){if(!x.n&&SA.indexOf(x.e)>=0)return;h+='<div class="ifun"><span class="ifl">'+es(x.e)+'</span><span class="ifb"><i style="width:'+Math.max(x.n?2:0,Math.round(x.n/maxE*100))+'%;background:'+(EC[x.e]||'#94a3b8')+'"></i></span><b>'+x.n+'</b></div>';});
   h+='</div></div>';
-  if(d.avances.length)h+='<div class="isub2">Movimientos del embudo</div><table class="itab">'+d.avances.slice(0,15).map(function(l){return '<tr><td>'+es(l.nm||'')+'</td><td>'+es(l.ant)+' → <b>'+es(l.nue)+'</b></td><td class="r">'+fCorta((l.ts||'').slice(0,10))+'</td></tr>';}).join('')+'</table>';
   // Freezers
   h+='<h2>Freezers</h2><div class="icols"><div><table class="itab">';
   h+='<tr><td>Colocados en el período</td><td class="r"><b>'+A.colocados.length+'</b></td></tr>';
@@ -9800,6 +9806,144 @@ function selectorEtapaHTML(c,estilo){
   h+='<option value="">Mover etapa</option>';
   ET.concat(SA).forEach(function(et){if(et!==c.etapaEmbudo)h+='<option value="'+es(et)+'">'+es(et)+'</option>';});
   return h+'</select>';
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// v9.15 — MARCADORES DE GESTION EN LA GIRA
+// Cada parada del dia puede llevar marcadores de color con la gestion a hacer
+// (cerrar acuerdo de freezer, cobrar, tomar pedido...). La lista se edita.
+// Algunos se ponen solos: "Cobrar deuda" si el cliente debe, "Firmar comodato"
+// si tiene uno por firmar.
+// ══════════════════════════════════════════════════════════════════════
+var MARCADORES_DEF=[
+  {id:'acuerdo',t:'Cerrar acuerdo de freezer',c:'#2563eb'},
+  {id:'deuda',t:'Cobrar deuda',c:'#dc2626',auto:'deuda'},
+  {id:'firma',t:'Firmar comodato',c:'#eab308',auto:'firma'},
+  {id:'pedido',t:'Tomar pedido',c:'#16a34a'},
+  {id:'pop',t:'Llevar material / POP',c:'#9333ea'},
+  {id:'reclamo',t:'Reclamo o problema',c:'#ea580c'}
+];
+var COLORES_MARCADOR=['#2563eb','#dc2626','#eab308','#16a34a','#9333ea','#ea580c','#0891b2','#db2777','#64748b','#78350f'];
+// Letra oscura sobre colores claros (amarillo), blanca sobre el resto
+function textoSobre(hex){var h=String(hex||'').replace('#','');if(h.length!==6)return '#fff';var r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16);return (0.299*r+0.587*g+0.114*b)>150?'#0b1220':'#fff';}
+function marcadores(){return (D.cfg&&D.cfg.marcadores&&D.cfg.marcadores.length)?D.cfg.marcadores:MARCADORES_DEF;}
+function marcadorPorId(id){return marcadores().find(function(m){return m.id===id;});}
+// Los que aplican hoy a una parada: los puestos a mano + los automaticos que se cumplen
+function marcasDeParada(g){
+  var out=[],vistos={};
+  (g.marcas||[]).forEach(function(id){var m=marcadorPorId(id);if(m&&!vistos[id]){vistos[id]=1;out.push({m:m,auto:false});}});
+  marcadores().forEach(function(m){
+    if(!m.auto||vistos[m.id])return;
+    if(m.auto==='deuda'&&saldoDe(g.cid)>0){vistos[m.id]=1;out.push({m:m,auto:true,det:'debe '+plata(saldoDe(g.cid))});}
+    if(m.auto==='firma'&&(D.com||[]).some(function(co){return co.cid===g.cid&&estadoComodato(co)==='por_firmar';})){vistos[m.id]=1;out.push({m:m,auto:true});}
+  });
+  return out;
+}
+function chipsMarcasHTML(g,chico){
+  var ms=marcasDeParada(g);if(!ms.length)return '';
+  if(chico)return '<span style="display:inline-flex;gap:3px;vertical-align:middle;margin-left:4px">'+ms.map(function(x){return '<span title="'+es(x.m.t)+'" style="width:8px;height:8px;border-radius:50%;background:'+x.m.c+';display:inline-block"></span>';}).join('')+'</span>';
+  return '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">'+ms.map(function(x){
+    return '<span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;background:'+x.m.c+';color:'+textoSobre(x.m.c)+';white-space:nowrap">'+es(x.m.t)+(x.det?' · '+es(x.det):'')+'</span>';
+  }).join('')+'</div>';
+}
+function botonMarcasHTML(g,fecha){
+  return '<button class="lx" title="Marcar la gestión del día" style="color:var(--cyan)" onclick="event.stopPropagation();abrirMarcas(\''+g.cid+'\',\''+fecha+'\')">&#127991;</button>';
+}
+// Resumen del dia: cuantas paradas tiene cada gestion
+function resumenMarcasHTML(plan){
+  var cnt={},orden=[];
+  plan.forEach(function(g){marcasDeParada(g).forEach(function(x){if(!cnt[x.m.id]){cnt[x.m.id]={m:x.m,n:0};orden.push(x.m.id);}cnt[x.m.id].n++;});});
+  if(!orden.length)return '';
+  return '<div style="margin:0 14px 8px;display:flex;flex-wrap:wrap;gap:6px">'+orden.map(function(id){var x=cnt[id];return '<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;border:1px solid '+x.m.c+';color:'+x.m.c+'">'+x.n+' · '+es(x.m.t)+'</span>';}).join('')+'</div>';
+}
+function abrirMarcas(cid,fecha){
+  var g=D.gira.find(function(x){return x.cid===cid&&x.fecha===fecha;});if(!g)return;
+  var c=D.cli.find(function(x){return x.id===cid;});
+  var auto={};marcasDeParada(g).forEach(function(x){if(x.auto)auto[x.m.id]=x;});
+  var puestos={};(g.marcas||[]).forEach(function(id){puestos[id]=1;});
+  var h='<div style="font-size:14px;font-weight:800;margin-bottom:4px">'+es(c?c.nm:'')+'</div><div style="font-size:12px;color:var(--muted);margin-bottom:12px">Qué gestión hay que hacer el '+es(fechaLarga(fecha))+'.</div>';
+  marcadores().forEach(function(m){
+    var a=auto[m.id];
+    h+='<label style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer">';
+    h+='<input type="checkbox" class="mkChk" data-id="'+es(m.id)+'"'+(puestos[m.id]||a?' checked':'')+(a?' disabled':'')+' style="width:18px;height:18px;accent-color:'+m.c+'">';
+    h+='<span style="width:12px;height:12px;border-radius:50%;background:'+m.c+';flex-shrink:0"></span>';
+    h+='<span style="flex:1;font-size:13px;font-weight:700">'+es(m.t)+(a?'<span style="display:block;font-size:11px;font-weight:600;color:var(--muted)">automático'+(a.det?': '+es(a.det):'')+'</span>':'')+'</span></label>';
+  });
+  h+='<button class="btn" onclick="guardarMarcas(\''+cid+'\',\''+fecha+'\')" style="margin:14px 0 8px">Guardar</button>';
+  h+='<button class="btn sec" onclick="abrirEditarMarcadores(\''+cid+'\',\''+fecha+'\')" style="margin:0">Editar la lista de marcadores</button>';
+  oMod('Gestión del día',h);
+}
+function guardarMarcas(cid,fecha){
+  if(soloLectura())return;
+  var g=D.gira.find(function(x){return x.cid===cid&&x.fecha===fecha;});if(!g)return;
+  var ids=[];document.querySelectorAll('.mkChk').forEach(function(el){
+    var m=marcadorPorId(el.getAttribute('data-id'));
+    if(el.checked&&!el.disabled&&m)ids.push(m.id);
+  });
+  if(ids.length)g.marcas=ids;else delete g.marcas;
+  fsSetGira(g);
+  cMod();
+  if(giraCont==='gGB')renderGG();else renderVG();
+}
+// ── Editar la lista de marcadores ──
+var _mkEdit=null,_mkVolver=null;
+function abrirEditarMarcadores(cid,fecha){
+  _mkEdit=JSON.parse(JSON.stringify(marcadores()));
+  _mkVolver=cid?{cid:cid,fecha:fecha}:null;
+  pintarEditarMarcadores();
+}
+function pintarEditarMarcadores(){
+  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Agregá los que vayan surgiendo. Tocá el color para cambiarlo. "Cobrar deuda" y "Firmar comodato" se ponen solos cuando corresponde.</div>';
+  _mkEdit.forEach(function(m,i){
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+    h+='<button onclick="ciclarColorMarcador('+i+')" title="Cambiar color" style="width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:'+m.c+';flex-shrink:0;cursor:pointer"></button>';
+    h+='<input class="fi" value="'+es(m.t)+'" data-i="'+i+'" oninput="_mkEdit[+this.getAttribute(\'data-i\')].t=this.value" style="margin:0;flex:1;padding:7px">';
+    if(m.auto)h+='<span style="font-size:10px;color:var(--muted)">auto</span>';
+    else h+='<button class="lx" onclick="_mkEdit.splice('+i+',1);pintarEditarMarcadores()">✕</button>';
+    h+='</div>';
+  });
+  h+='<button class="sm g" onclick="agregarMarcador()" style="margin-top:10px">+ Agregar marcador</button>';
+  h+='<button class="btn" onclick="guardarListaMarcadores()" style="margin:14px 0 8px">Guardar la lista</button>';
+  h+='<button class="btn sec" onclick="volverDeMarcadores()" style="margin:0">Volver</button>';
+  oMod('Marcadores',h);
+}
+function ciclarColorMarcador(i){var m=_mkEdit[i];var k=COLORES_MARCADOR.indexOf(m.c);m.c=COLORES_MARCADOR[(k+1)%COLORES_MARCADOR.length];pintarEditarMarcadores();}
+function agregarMarcador(){
+  var usados={};_mkEdit.forEach(function(m){usados[m.c]=1;});
+  var col=COLORES_MARCADOR.find(function(c){return !usados[c];})||COLORES_MARCADOR[0];
+  _mkEdit.push({id:'m'+Date.now().toString(36),t:'',c:col});pintarEditarMarcadores();
+  setTimeout(function(){var ins=document.querySelectorAll('#mB input.fi');if(ins.length)ins[ins.length-1].focus();},50);
+}
+function guardarListaMarcadores(){
+  if(soloLectura())return;
+  var lista=_mkEdit.map(function(m){return {id:m.id,t:(m.t||'').trim(),c:m.c,auto:m.auto||undefined};}).filter(function(m){return m.t;});
+  lista.forEach(function(m){if(!m.auto)delete m.auto;});
+  if(!lista.length){toast('Dejá al menos un marcador','err');return;}
+  D.cfg.marcadores=lista;
+  fsSetConfig({marcadores:lista});
+  toast('Marcadores guardados','ok');
+  volverDeMarcadores();
+}
+function volverDeMarcadores(){
+  if(_mkVolver)abrirMarcas(_mkVolver.cid,_mkVolver.fecha);else cMod();
+}
+// ══════════════════════════════════════════════════════════════════════
+// v9.15 — "Acordo freezer" cuenta como gestion del dia
+// ══════════════════════════════════════════════════════════════════════
+function registrarGestionAcuerdo(c,estado){
+  var hoy=today(),vend=D.user?D.user.n:'';
+  var nota='Acordó freezer'+(estado==='por_entregar'?' (firmado, por entregar)':' (por firmar)');
+  var v=D.vis.find(function(x){return x.cid===c.id&&x.fecha===hoy&&x.vend===vend;});
+  if(v){
+    v.acuerdoFreezer=true;
+    if((v.obs||'').indexOf('Acordó freezer')<0)v.obs=(v.obs?v.obs+' · ':'')+nota;
+  } else {
+    v={id:uid(),cid:c.id,fecha:hoy,vend:vend,tipo:c.esP?'prospecto':'cliente',obs:nota,acuerdoFreezer:true,gestion:'acuerdo_freezer'};
+    D.vis.push(v);
+  }
+  fsSetVisita(v);
+  c.ul=hoy;c._modBy=vend||'?';c._modAt=new Date().toISOString();
+  fsSetContacto(c);
 }
 
 // ── VOLVER DONDE ESTABAS (v9.8) ──────────────────────────────────────
