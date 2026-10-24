@@ -33,6 +33,16 @@ dice la administración y el motivo (obligatorio), y el sistema arma la diferenc
   historial quién lo hizo, el saldo de antes y el de después.
 - Las ventas no se tocan nunca.
 
+### Control de saldos (✓ Saldo OK)
+
+Cuando el gerente (o el admin) corrobora con la administración que un saldo está bien,
+toca **✓ Saldo OK** en la tarjeta del deudor o en su cuenta. Queda asentado:
+**"Controlado OK el 24/10/26 por Gerente"**, con el saldo de ese momento.
+- Arriba de Deudores se ve el resumen: "8 de 12 saldos controlados · 4 sin controlar".
+- Si después el saldo cambia (nuevo pago, nueva deuda), avisa en naranja:
+  "Cambió desde el control del ... (era $...)", y se puede volver a controlar.
+- Queda en el historial. El vendedor no ve el control.
+
 ## 3. Deudas a mano viejas
 
 En **Revisar deudas** (admin), las deudas cargadas a mano antes de esta versión tienen un
@@ -43,4 +53,4 @@ Es opcional, una por una. Si alguna era un saldo de antes del sistema, dejala co
 
 ## Probado
 
-310 pruebas en el navegador simulado, sin errores (35 nuevas).
+319 pruebas en el navegador simulado, sin errores (44 nuevas).

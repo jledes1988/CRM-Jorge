@@ -3770,6 +3770,7 @@ function htmlDeudoresPanel(lista,tot){
     var _an=anomaliasDeudas().length;
     if(_an)h+='<div onclick="abrirRevisarDeudas()" style="margin:0 0 10px;padding:9px 12px;border-radius:8px;border:1px solid var(--orange);color:var(--orange);font-size:12px;font-weight:700;cursor:pointer">&#9888; Hay '+_an+' deuda'+(_an>1?'s':'')+' que no coincide'+(_an>1?'n':'')+' con los pedidos. Tocá para revisar.</div>';
   }
+  if(puedeCorregirSaldo()&&lista.length)h+=resumenCtrlHTML(lista);
   if(!lista.length){
     h+='<div class="empty">Nadie debe nada.<br><span style="font-size:11px">La deuda se genera sola cuando guardas un pedido y elegis que no lo cobraste entero.</span></div></div>';
     return h;
@@ -5330,6 +5331,11 @@ function verCuenta(cid){
   h+='<button class="btn sec" onclick="cargarDeudaManual(\''+cid+'\',\'cuenta\')" style="margin:0">Cargar deuda</button>';
   h+='</div>';
   if(puedeCorregirSaldo())h+='<button class="btn sec" onclick="abrirCorregirSaldo(\''+cid+'\')" style="margin:-4px 0 12px;border-color:var(--cyan);color:var(--cyan)">&#9878; Corregir saldo con la administración</button>';
+  if(puedeCorregirSaldo()){
+    h+='<div style="display:flex;align-items:center;gap:8px;margin:-4px 0 12px;font-size:12px"><div style="flex:1">'+ctrlSaldoHTML(c)+'</div>';
+    if(estadoCtrlSaldo(c).e!=='ok')h+='<button class="sm g" onclick="marcarSaldoOK(\''+cid+'\',\'cuenta\')">&#10003; Saldo OK</button>';
+    h+='</div>';
+  }
   if(sal!==0)h+='<button class="btn sec" onclick="abrirAjusteSaldo(\''+cid+'\')" style="margin:-4px 0 12px">Ajuste / nota de crédito (diferencias que no se cobran)</button>';
   if(!movs.length)h+='<div class="empty">Sin movimientos</div>';
   else{
@@ -5378,7 +5384,10 @@ function tarjetaDeudor(it,ctx){
   h+='<button class="sm" onclick="verCuenta(\''+c.id+'\')">Cuenta</button>';
   if(c.tel)h+='<button class="sm wa" onclick="envWA(\''+c.id+'\')">WhatsApp</button>';
   h+='<button class="sm" onclick="agregarAGiraRapido(\''+c.id+'\',\'deu\')">+ Gira</button>';
-  h+='</div></div>';
+  if(puedeCorregirSaldo()&&estadoCtrlSaldo(c).e!=='ok')h+='<button class="sm g" onclick="marcarSaldoOK(\''+c.id+'\',\''+vuelta+'\')">&#10003; Saldo OK</button>';
+  h+='</div>';
+  if(puedeCorregirSaldo())h+='<div style="font-size:11px;margin-top:6px">'+ctrlSaldoHTML(c)+'</div>';
+  h+='</div>';
   return h;
 }
 // ── Panel de deudores, agrupado por barrio para salir a cobrar ───────
@@ -9440,6 +9449,40 @@ function guardarCorreccionSaldo(cid){
   toast('Saldo corregido: '+plata(saldoDe(cid)),'ok');
   verCuenta(cid);
   refrescarVistaActual();
+}
+// ── Control de saldos: el gerente/admin confirma que el saldo coincide con
+// la administracion y queda la fecha. Si despues el saldo cambia, se avisa.
+function estadoCtrlSaldo(c){
+  var k=c&&c.saldoCtrl;
+  if(!k||!k.fecha)return {e:'no'};
+  return {e:Number(k.saldo)===saldoDe(c.id)?'ok':'cambio',k:k};
+}
+function ctrlSaldoHTML(c){
+  var s=estadoCtrlSaldo(c);
+  if(s.e==='no')return '<span style="color:var(--muted)">Saldo sin controlar</span>';
+  if(s.e==='ok')return '<span style="color:var(--green);font-weight:700">&#10003; Controlado OK el '+fmt(s.k.fecha)+(s.k.por?' por '+es(s.k.por):'')+'</span>';
+  return '<span style="color:var(--orange);font-weight:700">&#9888; Cambió desde el control del '+fmt(s.k.fecha)+' (era '+plata(s.k.saldo)+')</span>';
+}
+function resumenCtrlHTML(lista){
+  var ok=lista.filter(function(d){return estadoCtrlSaldo(d.c).e==='ok';}).length;
+  var cam=lista.filter(function(d){return estadoCtrlSaldo(d.c).e==='cambio';}).length;
+  return '<div style="margin:0 0 10px;padding:9px 12px;border-radius:8px;background:var(--s1);font-size:12px"><b style="color:var(--green)">'+ok+'</b> de '+lista.length+' saldos controlados'+(cam?' · <b style="color:var(--orange)">'+cam+'</b> cambiaron desde el control':'')+(lista.length-ok-cam?' · <b>'+(lista.length-ok-cam)+'</b> sin controlar':'')+'</div>';
+}
+function marcarSaldoOK(cid,volverA){
+  if(!puedeCorregirSaldo()){toast('Solo administrador o gerente','err');return;}
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  var sal=saldoDe(cid);
+  c.saldoCtrl={fecha:today(),saldo:sal,por:D.user.n};
+  c._modBy=D.user.n;c._modAt=new Date().toISOString();
+  _permitirSaldoGerente=true;
+  try{
+    fsSetContacto(c);
+    logEvento('venta',cid,c.nm,'Saldo controlado OK con administración: '+plata(sal),'','');
+  }finally{_permitirSaldoGerente=false;}
+  toast('Saldo OK al '+fmt(today())+': '+plata(sal),'ok');
+  if(volverA==='cuenta')verCuenta(cid);
+  else if(volverA==='panel')verDeudores();
+  else if(D.user.r==='vendedor')renderVV();else renderGP();
 }
 // Elegir cliente para corregir (admin/gerente, todos los clientes)
 function elegirClienteCorreccion(){
