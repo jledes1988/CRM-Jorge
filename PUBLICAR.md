@@ -1,49 +1,46 @@
-# CRM-Jorge — Versión 9.15 · Marcadores en la Gira
+# CRM-Jorge — Versión 9.16 · Deudas sin tocar las ventas
 
 **Solo cambió `app.js`.** Los otros dos son los mismos; van los tres juntos.
-Para verificar: en el login y en Config > Debug tiene que decir **9.15 - 22/10/2026**.
+Para verificar: en el login y en Config > Debug tiene que decir **9.16 - 24/10/2026**.
 
 ---
 
-## 1. Informe para la junta
+## 1. "+ Cargar deuda" = no pagó el último pedido
 
-En "Prospección y embudo" ya **no salen** la lista de "Nuevos" ni los
-"Movimientos del embudo". Quedan los números (nuevos, avanzaron, pasaron a
-cliente, descartados) y el embudo actual.
+Cargar una deuda a mano ya no es un cargo suelto: el sistema lo toma como que el
+cliente **no pagó (todo) el último pedido entregado**.
+- El pedido queda con el mismo total (las ventas no cambian) y baja lo cobrado.
+  En Pedidos aparece con "debe $...".
+- La deuda queda atada a ese pedido, con la fecha de la entrega.
+- Antes de guardar se ve de qué pedido sale ("No pagó $30.000 del pedido del 16/10").
+- Si el monto es más que lo cobrado del último pedido, sigue con el anterior.
+- Si el cliente no tiene pedidos entregados en el sistema, queda como **saldo anterior**
+  (avisa antes).
 
-## 2. "Acordó freezer" cuenta como gestión del día
+## 2. Corregir saldo con la administración (admin y gerente)
 
-Al marcar que un contacto acordó el freezer, queda registrada una **gestión de ese
-día** (con la nota "Acordó freezer"), aunque no se haya cargado la visita aparte:
-- Cuenta en visitas, en el informe y en "días sin gestión".
-- En la Gira aparece con el ✓ de visitado.
-- Si ese día ya tenía una visita cargada, no se duplica: se le suma el acuerdo.
+Botón **⚖ Corregir saldo** en Deudores y en la cuenta de cada cliente. Ponés el saldo que
+dice la administración y el motivo (obligatorio), y el sistema arma la diferencia:
 
-## 3. Marcadores de gestión en la Gira
-
-Cada parada de la Gira tiene un botón **🏷** para marcar qué gestión hay que hacer
-ese día. Los marcadores se ven como etiquetas de color en la lista y en las
-tarjetas, y como puntitos en "Ver semana completa". Arriba del día aparece el
-resumen (ej: "2 · Cobrar deuda", "1 · Cerrar acuerdo de freezer").
-
-**Vienen cargados:**
-
-| Color | Marcador | |
+| Diferencia | Qué hace | ¿Cuenta como cobro? |
 |---|---|---|
-| Azul | Cerrar acuerdo de freezer | a mano |
-| Rojo | Cobrar deuda | **automático** cuando el cliente debe (muestra cuánto) |
-| Amarillo | Firmar comodato | **automático** cuando tiene un comodato por firmar |
-| Verde | Tomar pedido | a mano |
-| Violeta | Llevar material / POP | a mano |
-| Naranja | Reclamo o problema | a mano |
+| **Suma** | No pagó (todo) el último pedido, igual que "Cargar deuda" | No |
+| **Resta, entró un pago** | Pago con la fecha que elijas | **Sí** (Pagos e informe) |
+| **Resta, no entró plata** | Ajuste (nota de crédito, redondeo, descuento) | No |
 
-**Agregar los que vayan surgiendo:** en la ventana del 🏷 → **Editar la lista de
-marcadores**. Escribís el nombre, tocás el círculo para cambiar el color y guardás.
+- El gerente puede corregir saldos; para todo lo demás sigue siendo solo lectura.
+- En la cuenta, los movimientos corregidos llevan la etiqueta **"corrección"**, y queda en el
+  historial quién lo hizo, el saldo de antes y el de después.
+- Las ventas no se tocan nunca.
 
-Si pasás una parada al día siguiente, se lleva sus marcadores.
+## 3. Deudas a mano viejas
+
+En **Revisar deudas** (admin), las deudas cargadas a mano antes de esta versión tienen un
+botón **Atar al pedido**: las pasa al último pedido entregado. El saldo no cambia.
+Es opcional, una por una. Si alguna era un saldo de antes del sistema, dejala como está.
 
 ---
 
 ## Probado
 
-275 pruebas en el navegador simulado, sin errores (25 nuevas).
+310 pruebas en el navegador simulado, sin errores (35 nuevas).

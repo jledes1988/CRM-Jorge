@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.15 - 22/10/2026';
+var VERSION='9.16 - 24/10/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -377,6 +377,7 @@ function refrescarVistaActual(){
 // central de escritura: aunque algun boton quede visible, el dato nunca se guarda.
 function soloLectura(){
   if(_permitirEtapaGerente)return false;   // el gerente puede mover etapas del embudo
+  if(_permitirSaldoGerente)return false;   // y corregir saldos con la administracion
   if(D.user&&D.user.r==='gerente'){
     toast('Perfil Gerente: solo lectura, no se guardan cambios','err');
     return true;
@@ -3762,7 +3763,8 @@ function htmlDeudoresPanel(lista,tot){
   h+='<div><div style="font-size:22px;font-weight:800;color:'+(tot>0?'var(--red)':'var(--green)')+'">'+plata(tot)+'</div><div style="font-size:10px;color:var(--muted)">EN LA CALLE</div></div>';
   h+='<div><div style="font-size:22px;font-weight:800">'+lista.length+'</div><div style="font-size:10px;color:var(--muted)">DEUDORES</div></div>';
   if(D.user&&D.user.r==='admin')h+='<button class="sm" onclick="abrirRevisarDeudas()" style="margin-left:auto">&#128269; Revisar deudas</button>';
-  h+='<button class="sm g" onclick="elegirClienteDeuda()"'+(D.user&&D.user.r==='admin'?'':' style="margin-left:auto"')+'>+ Cargar deuda</button>';
+  if(puedeCorregirSaldo())h+='<button class="sm" onclick="elegirClienteCorreccion()"'+(D.user.r==='admin'?'':' style="margin-left:auto"')+'>&#9878; Corregir saldo</button>';
+  if(!D.user||D.user.r!=='gerente')h+='<button class="sm g" onclick="elegirClienteDeuda()"'+(D.user&&D.user.r==='admin'?'':' style="margin-left:auto"')+'>+ Cargar deuda</button>';
   h+='</div><div style="padding:10px 14px">';
   if(D.user&&D.user.r==='admin'){
     var _an=anomaliasDeudas().length;
@@ -3781,18 +3783,19 @@ function htmlDeudoresPanel(lista,tot){
   return h;
 }
 // Elegir a quien cargarle una deuda vieja, sin tener que entrar a su ficha
-function elegirClienteDeuda(){
+function elegirClienteDeuda(mantenerModo){
+  if(!mantenerModo)_dqModo='deuda';
   var lista=misContactos(true).filter(function(c){return !c.esP;}).sort(function(a,b){return(a.nm||'').localeCompare(b.nm||'');});
   var h='<div class="srch" style="margin:0 0 10px"><input type="text" id="dqBusq" placeholder="Buscar cliente..." oninput="filtrarClienteDeuda()" style="background:none;border:none;outline:none;color:var(--text);font-size:14px;width:100%;font-family:inherit"></div>';
   h+='<div id="dqLista" style="max-height:52vh;overflow-y:auto">'+listaClienteDeudaHTML(lista)+'</div>';
-  oMod('Cargar deuda - elegir cliente',h);
+  oMod(_dqModo==='corr'?'Corregir saldo - elegir cliente':'Cargar deuda - elegir cliente',h);
 }
 function listaClienteDeudaHTML(lista){
   if(!lista.length)return '<div style="color:var(--muted);font-size:13px;padding:10px 0">Sin resultados.</div>';
   var h='';
   lista.slice(0,40).forEach(function(c){
     var sal=saldoDe(c.id);
-    h+='<div onclick="cMod();cargarDeudaManual(\''+c.id+'\')" style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer">';
+    h+='<div onclick="cMod();'+(_dqModo==='corr'?'abrirCorregirSaldo':'cargarDeudaManual')+'(\''+c.id+'\')" style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer">';
     h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div>';
     h+='<div style="font-size:11px;color:var(--muted)">'+es(c.bar||c.ciu||'')+'</div></div>';
     if(sal>0)h+='<span style="font-size:12px;font-weight:800;color:var(--red)">'+plata(sal)+'</span>';
@@ -5258,6 +5261,7 @@ function nuevoMovimiento(cid,tipo,monto,concepto,pid,extra){
   if(extra&&extra.fecha)m.fecha=extra.fecha;
   if(extra&&extra.aFavor)m.aFavor=true;
   if(extra&&extra.ajuste)m.ajuste=true;
+  if(extra&&extra.corr)m.corr=true;
   if(m.monto<=0)return null;
   D.deudas.push(m);
   fsSetDeuda(m);
@@ -5308,27 +5312,7 @@ function guardarPago(cid,volverA){
   else{cMod();if(volverA==='tab')renderVV();if(volverA==='vwiz')refrescarDeudaEnVisita();}
   refrescarVistaActual();
 }
-// ── Cargar una deuda a mano (fuera de un pedido) ─────────────────────
-function cargarDeudaManual(cid,volverA){
-  if(soloLectura())return;
-  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
-  var h='<div style="font-size:15px;font-weight:800;margin-bottom:10px">'+es(c.nm)+'</div>';
-  h+='<div class="fg"><label class="fl">Cuanto debe</label><input class="fi" type="number" min="1" id="dmMonto" style="font-size:18px;font-weight:700"></div>';
-  h+='<div class="fg"><label class="fl">Por que <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="dmNota" placeholder="Ej: entrega del 12/8 sin cobrar"></div>';
-  h+='<button class="btn" onclick="guardarDeudaManual(\''+cid+'\',\''+(volverA||'')+'\')" style="margin:0">Cargar la deuda</button>';
-  oMod('Cargar deuda',h);
-}
-function guardarDeudaManual(cid,volverA){
-  if(soloLectura())return;
-  var el=document.getElementById('dmMonto');
-  var monto=Math.round(Number(el&&el.value)||0);
-  if(monto<=0){toast('Poné el monto','err');return;}
-  var nota=document.getElementById('dmNota');
-  nuevoMovimiento(cid,'cargo',monto,nota?nota.value.trim():'','');
-  toast('Deuda cargada: '+plata(monto),'ok');
-  if(volverA==='panel')verDeudores();else if(volverA==='cuenta')verCuenta(cid);else{cMod();if(volverA==='tab')renderVV();}
-  refrescarVistaActual();
-}
+// Cargar deuda a mano: ver v9.16 (cargarDeudaManual) — se toma como pedido impago
 // ── Cuenta corriente de un cliente ───────────────────────────────────
 function verCuenta(cid){
   var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
@@ -5345,6 +5329,7 @@ function verCuenta(cid){
   h+='<button class="btn'+(sal>0?'':' sec')+'" onclick="registrarPago(\''+cid+'\',\'cuenta\')" style="margin:0">Registrar pago</button>';
   h+='<button class="btn sec" onclick="cargarDeudaManual(\''+cid+'\',\'cuenta\')" style="margin:0">Cargar deuda</button>';
   h+='</div>';
+  if(puedeCorregirSaldo())h+='<button class="btn sec" onclick="abrirCorregirSaldo(\''+cid+'\')" style="margin:-4px 0 12px;border-color:var(--cyan);color:var(--cyan)">&#9878; Corregir saldo con la administración</button>';
   if(sal!==0)h+='<button class="btn sec" onclick="abrirAjusteSaldo(\''+cid+'\')" style="margin:-4px 0 12px">Ajuste / nota de crédito (diferencias que no se cobran)</button>';
   if(!movs.length)h+='<div class="empty">Sin movimientos</div>';
   else{
@@ -5352,7 +5337,7 @@ function verCuenta(cid){
     movs.forEach(function(m){
       var pago=m.tipo==='pago';
       h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
-      h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:'+(m.ajuste?'var(--purple, #a78bfa)':m.aFavor?'var(--cyan)':pago?'var(--green)':'var(--red)')+'">'+(m.ajuste?'Ajuste':m.aFavor?'A favor':pago?'Pago':'Deuda')+' · '+plata(m.monto)+'</div>';
+      h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:'+(m.ajuste?'var(--purple, #a78bfa)':m.aFavor?'var(--cyan)':pago?'var(--green)':'var(--red)')+'">'+(m.ajuste?'Ajuste':m.aFavor?'A favor':pago?'Pago':'Deuda')+' · '+plata(m.monto)+(m.corr?' <span style="font-size:10px;font-weight:700;color:var(--cyan)">· corrección</span>':'')+'</div>';
       h+='<div style="font-size:11px;color:var(--muted)">'+fmt(m.fecha)+(m.vend?' · '+es(m.vend):'')+(m.concepto?' · '+es(m.concepto):'')+'</div></div>';
       h+='<button class="sm rd" onclick="borrarMovimiento(\''+m.id+'\')" style="font-size:11px;padding:3px 8px">&#215;</button>';
       h+='</div>';
@@ -8939,9 +8924,9 @@ function abrirRevisarDeudas(){
   }
   if(man.length){
     h+='<div class="fl" style="margin:16px 0 6px">DEUDAS CARGADAS A MANO (sin pedido)</div>';
-    h+='<div style="font-size:11px;color:var(--muted);margin-bottom:6px">No se pueden comparar con nada. Si alguna no corresponde, entrá a la cuenta y borrala.</div>';
+    h+='<div style="font-size:11px;color:var(--muted);margin-bottom:6px">Desde la 9.16 la deuda a mano se toma como pedido impago. Estas son anteriores: <b>Atar al pedido</b> las pasa al último pedido entregado (el saldo no cambia). Si alguna no corresponde, entrá a la cuenta y borrala.</div>';
     man.forEach(function(x){
-      h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(x.c.nm)+'</div><div style="font-size:11px;color:var(--muted)">'+fmt(x.m.fecha)+' · '+plata(x.m.monto)+(x.m.concepto?' · '+es(x.m.concepto):'')+'</div></div><button class="sm" onclick="verCuenta(\''+x.c.id+'\')" style="font-size:11px;padding:3px 8px">Cuenta</button></div>';
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(x.c.nm)+'</div><div style="font-size:11px;color:var(--muted)">'+fmt(x.m.fecha)+' · '+plata(x.m.monto)+(x.m.concepto?' · '+es(x.m.concepto):'')+'</div></div>'+(pedidosParaImpago(x.c.id).length?'<button class="sm g" onclick="vincularDeudaManual(\''+x.m.id+'\')" style="font-size:11px;padding:3px 8px">Atar al pedido</button>':'')+'<button class="sm" onclick="verCuenta(\''+x.c.id+'\')" style="font-size:11px;padding:3px 8px">Cuenta</button></div>';
     });
   }
   oMod('Revisar deudas',h);
@@ -9306,6 +9291,175 @@ function migrarBajaVendedores(){
   D.cfg.bajaVendedoresV=1;
   fsSetConfig({bajaVendedoresV:1});
   if(borrar.length)logEvento('edicion','','','Usuarios borrados (ya no son vendedores): '+borrar.map(function(u){return u.n;}).join(', '),'','');
+}
+// ══════════════════════════════════════════════════════════════════════
+// v9.16 — LA DEUDA CARGADA A MANO ES UN PEDIDO IMPAGO
+// Cargar deuda = "no pagó (todo) el último pedido entregado". No es una venta
+// nueva: el total del pedido no cambia, baja lo cobrado y la deuda queda
+// atada a ese pedido. Si el monto es más que lo cobrado del último, sigue con
+// el anterior. Solo si no hay pedidos que alcancen queda como saldo anterior.
+// ══════════════════════════════════════════════════════════════════════
+var _permitirSaldoGerente=false;
+function fechaEntPed(p){return p.fechaEntrega||p.fecha||'';}
+function cobradoEfectivo(p){return (p.cobrado!==undefined&&p.cobrado!==null)?Number(p.cobrado||0):Number(p.total||0);}
+function pedidosParaImpago(cid){
+  return D.ped.filter(function(p){return p.cid===cid&&pedidoEntregado(p)&&cobradoEfectivo(p)>0;})
+    .sort(function(a,b){return fechaEntPed(b).localeCompare(fechaEntPed(a));});
+}
+// De que pedidos sale lo impago. No guarda nada.
+function planImpago(cid,monto){
+  var resto=Math.round(Number(monto)||0),partes=[];
+  pedidosParaImpago(cid).forEach(function(p){
+    if(resto<=0)return;
+    var q=Math.min(resto,cobradoEfectivo(p));
+    partes.push({p:p,monto:q});resto-=q;
+  });
+  return {partes:partes,sinPedido:Math.max(0,resto)};
+}
+function textoPlanImpago(pl){
+  if(!pl.partes.length&&!pl.sinPedido)return '';
+  var l=pl.partes.map(function(x){
+    return 'No pagó <b>'+plata(x.monto)+'</b> del pedido del '+fmt(x.p.fecha)+' (entregado el '+fmt(fechaEntPed(x.p))+', total '+plata(x.p.total)+')';
+  });
+  if(pl.sinPedido)l.push('<span style="color:var(--orange)"><b>'+plata(pl.sinPedido)+'</b> no tiene pedido entregado al que atarse: queda como <b>saldo anterior</b></span>');
+  return l.join('<br>');
+}
+function aplicarImpago(cid,monto,nota){
+  var pl=planImpago(cid,monto);
+  pl.partes.forEach(function(x){
+    var p=x.p;
+    p.cobrado=cobradoEfectivo(p)-x.monto;
+    p._modBy=D.user?D.user.n:'?';p._modAt=new Date().toISOString();
+    fsSetPedido(p);
+    ajustarDeudaDePedido(p,Number(p.total||0)-p.cobrado);
+  });
+  if(pl.sinPedido>0)nuevoMovimiento(cid,'cargo',pl.sinPedido,'Saldo anterior'+(nota?' · '+nota:''),'');
+  var c=D.cli.find(function(x){return x.id===cid;});
+  logEvento('venta',cid,c?c.nm:'','Deuda cargada como impago: '+plata(monto)+' ('+pl.partes.map(function(x){return plata(x.monto)+' del pedido del '+fmt(x.p.fecha);}).concat(pl.sinPedido?[plata(pl.sinPedido)+' saldo anterior']:[]).join(', ')+')'+(nota?' · '+nota:''),'','');
+  return pl;
+}
+// ── "+ Cargar deuda" (vendedor y admin) ──────────────────────────────
+function cargarDeudaManual(cid,volverA){
+  if(soloLectura())return;
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  var h='<div style="font-size:15px;font-weight:800;margin-bottom:4px">'+es(c.nm)+'</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Se toma como que <b>no pagó (todo) el último pedido entregado</b>. No suma ventas: el pedido queda igual y pasa a figurar con deuda.</div>';
+  h+='<div class="fg"><label class="fl">Cuánto quedó sin pagar</label><input class="fi" type="number" min="1" id="dmMonto" oninput="previewImpago(\''+cid+'\')" style="font-size:18px;font-weight:700"></div>';
+  h+='<div id="dmPlan" style="font-size:12px;line-height:1.5;margin:-4px 0 12px;min-height:16px"></div>';
+  h+='<div class="fg"><label class="fl">Nota <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="dmNota" placeholder="Ej: pagó con transferencia que no llegó"></div>';
+  h+='<button class="btn" onclick="guardarDeudaManual(\''+cid+'\',\''+(volverA||'')+'\')" style="margin:0">Cargar la deuda</button>';
+  oMod('Cargar deuda',h);
+  previewImpago(cid);
+}
+function previewImpago(cid){
+  var el=document.getElementById('dmPlan');if(!el)return;
+  var m=Math.round(Number((document.getElementById('dmMonto')||{}).value)||0);
+  if(m<=0){
+    var ps=pedidosParaImpago(cid);
+    el.innerHTML=ps.length?'<span style="color:var(--muted)">Último pedido entregado: '+fmt(ps[0].fecha)+' · '+plata(ps[0].total)+'</span>':'<span style="color:var(--orange)">No tiene pedidos entregados en el sistema: quedaría como saldo anterior.</span>';
+    return;
+  }
+  el.innerHTML=textoPlanImpago(planImpago(cid,m));
+}
+function guardarDeudaManual(cid,volverA){
+  if(soloLectura())return;
+  var el=document.getElementById('dmMonto');
+  var monto=Math.round(Number(el&&el.value)||0);
+  if(monto<=0){toast('Poné el monto','err');return;}
+  var nota=((document.getElementById('dmNota')||{}).value||'').trim();
+  var pl=aplicarImpago(cid,monto,nota);
+  toast('Deuda cargada: '+plata(monto)+(pl.partes.length?' (pedido del '+fmt(pl.partes[0].p.fecha)+')':' (saldo anterior)'),'ok');
+  if(volverA==='panel')verDeudores();else if(volverA==='cuenta')verCuenta(cid);else{cMod();if(volverA==='tab')renderVV();}
+  refrescarVistaActual();
+}
+// ══════════════════════════════════════════════════════════════════════
+// v9.16 — CORREGIR SALDO CON LA ADMINISTRACION (admin y gerente)
+// Se pone el saldo que dice la administracion y el sistema arma la diferencia:
+//  · más alto  -> no pagó (todo) el último pedido (igual que Cargar deuda)
+//  · más bajo  -> entró un pago (cuenta en Pagos), o una nota de crédito /
+//                 redondeo si no entró plata (no cuenta como cobro)
+// Las ventas no se tocan nunca.
+// ══════════════════════════════════════════════════════════════════════
+function puedeCorregirSaldo(){return !!(D.user&&(D.user.r==='admin'||D.user.r==='gerente'));}
+function abrirCorregirSaldo(cid){
+  if(!puedeCorregirSaldo()){toast('Solo administrador o gerente','err');return;}
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
+  var sal=saldoDe(cid);
+  var h='<div style="font-size:15px;font-weight:800">'+es(c.nm)+'</div>';
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Vendedor: '+es(c.vend||'-')+'</div>';
+  h+='<div style="font-size:13px;margin-bottom:12px">Saldo en el sistema: <b style="color:'+(sal>0?'var(--red)':sal<0?'var(--cyan)':'var(--green)')+'">'+(sal<0?'a favor ':'')+plata(Math.abs(sal))+'</b></div>';
+  h+='<div class="fg"><label class="fl">Saldo según la administración</label><input class="fi" type="number" id="csReal" value="'+sal+'" oninput="previewCorreccion(\''+cid+'\')" style="font-size:18px;font-weight:700;margin:0"><div style="font-size:10px;color:var(--muted);margin-top:3px">Si tiene saldo a favor, poné el número en negativo.</div></div>';
+  h+='<div id="csPrev" style="font-size:12px;line-height:1.5;margin:0 0 12px"></div>';
+  h+='<div id="csResta" style="display:none">';
+  h+='<div class="fl">¿Qué pasó con la diferencia?</div>';
+  h+='<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;font-size:13px"><input type="radio" name="csTipo" value="pago" checked onchange="previewCorreccion(\''+cid+'\')" style="margin-top:2px"><span><b>Entró un pago</b><br><span style="font-size:11px;color:var(--muted)">Pago parcial del último pedido o del saldo. Cuenta en Pagos y en lo cobrado.</span></span></label>';
+  h+='<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;font-size:13px"><input type="radio" name="csTipo" value="ajuste" onchange="previewCorreccion(\''+cid+'\')" style="margin-top:2px"><span><b>No entró plata</b><br><span style="font-size:11px;color:var(--muted)">Nota de crédito, redondeo, descuento. No cuenta como cobro.</span></span></label>';
+  h+='<div class="fg" id="csFechaW"><label class="fl">Fecha del pago</label><input class="fi" type="date" id="csFecha" value="'+today()+'" max="'+today()+'" style="margin:0"></div>';
+  h+='</div>';
+  h+='<div class="fg"><label class="fl">Motivo / de dónde sale la diferencia</label><input class="fi" id="csNota" placeholder="Ej: control con administración, recibo 0012" style="margin:0"></div>';
+  h+='<button class="btn" id="csBtn" onclick="guardarCorreccionSaldo(\''+cid+'\')" style="margin:0 0 8px">Corregir el saldo</button>';
+  h+='<button class="btn sec" onclick="verCuenta(\''+cid+'\')" style="margin:0">Ver la cuenta</button>';
+  oMod('Corregir saldo',h);
+  previewCorreccion(cid);
+}
+function _difCorreccion(cid){
+  var real=Math.round(Number((document.getElementById('csReal')||{}).value));
+  if(isNaN(real))return null;
+  return real-saldoDe(cid);
+}
+function _tipoCorreccion(){var r=document.querySelector('input[name="csTipo"]:checked');return r?r.value:'pago';}
+function previewCorreccion(cid){
+  var el=document.getElementById('csPrev'),rs=document.getElementById('csResta');if(!el)return;
+  var dif=_difCorreccion(cid);
+  if(rs)rs.style.display=dif<0?'':'none';
+  var fw=document.getElementById('csFechaW');if(fw)fw.style.display=_tipoCorreccion()==='pago'?'':'none';
+  if(dif===null||dif===0){el.innerHTML='<span style="color:var(--muted)">Sin diferencia.</span>';return;}
+  if(dif>0)el.innerHTML='<div style="color:var(--red);font-weight:800;margin-bottom:3px">Suma '+plata(dif)+' de deuda</div>'+textoPlanImpago(planImpago(cid,dif));
+  else el.innerHTML='<div style="color:var(--green);font-weight:800">Resta '+plata(-dif)+'</div>';
+}
+function guardarCorreccionSaldo(cid){
+  if(!puedeCorregirSaldo()){toast('Solo administrador o gerente','err');return;}
+  var dif=_difCorreccion(cid);
+  if(dif===null){toast('Poné el saldo','err');return;}
+  if(dif===0){toast('El saldo ya es ese','err');return;}
+  var nota=((document.getElementById('csNota')||{}).value||'').trim();
+  if(!nota){toast('Poné el motivo: queda registrado en la cuenta','err');return;}
+  var c=D.cli.find(function(x){return x.id===cid;});
+  var ant=saldoDe(cid);
+  _permitirSaldoGerente=true;
+  try{
+    if(dif>0)aplicarImpago(cid,dif,'Corrección: '+nota);
+    else if(_tipoCorreccion()==='ajuste')nuevoMovimiento(cid,'pago',-dif,'Ajuste (corrección con administración): '+nota,'',{ajuste:true,corr:true});
+    else{
+      var f=((document.getElementById('csFecha')||{}).value)||today();
+      if(f>today())f=today();
+      nuevoMovimiento(cid,'pago',-dif,'Pago (corrección con administración): '+nota,'',{fecha:f,corr:true});
+    }
+    logEvento('venta',cid,c?c.nm:'','Saldo corregido con administración: '+plata(ant)+' -> '+plata(saldoDe(cid))+' · '+nota,'','');
+  }finally{_permitirSaldoGerente=false;}
+  toast('Saldo corregido: '+plata(saldoDe(cid)),'ok');
+  verCuenta(cid);
+  refrescarVistaActual();
+}
+// Elegir cliente para corregir (admin/gerente, todos los clientes)
+function elegirClienteCorreccion(){
+  if(!puedeCorregirSaldo())return;
+  _dqModo='corr';
+  elegirClienteDeuda(true);
+}
+var _dqModo='deuda';
+// Pasar una deuda vieja cargada a mano (sin pedido) al ultimo pedido
+function vincularDeudaManual(mid){
+  if(soloLectura())return;
+  var m=(D.deudas||[]).find(function(x){return x.id===mid;});if(!m)return;
+  if(!pedidosParaImpago(m.cid).length){toast('Ese cliente no tiene pedidos entregados para atarla','err');return;}
+  if(!confirm('Pasar '+plata(m.monto)+' como no pagado del último pedido entregado?\n\nEl saldo queda igual, pero la deuda queda atada al pedido.'))return;
+  D.deudas=D.deudas.filter(function(x){return x.id!==mid;});
+  fsDelDeuda(mid);
+  aplicarImpago(m.cid,Number(m.monto||0),m.concepto||'');
+  toast('Deuda atada al pedido','ok');
+  abrirRevisarDeudas();
+  refrescarVistaActual();
 }
 // ══════════════════════════════════════════════════════════════════════
 // v9.11 — AJUSTE DE SALDO / NOTA DE CREDITO
