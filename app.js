@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.16 - 24/10/2026';
+var VERSION='9.17 - 25/10/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -252,6 +252,14 @@ function fsSetupListeners(){
       if(!arr.length){fsOnFirstLoad();return;} // primera carga sin nada todavia: esperar la proxima vuelta
     }
     if(arr.length){D.usrs=arr.map(function(u){u.id=isNaN(u.id)?u.id:Number(u.id);return u;});}
+    // v9.17: los vendedores dados de baja no aparecen nunca y se borran de la base
+    // en cuanto entra el admin (antes se intentaba una sola vez y fallaba si los
+    // usuarios todavia no habian cargado).
+    var _baja=D.usrs.filter(esVendedorDeBaja);
+    if(_baja.length){
+      D.usrs=D.usrs.filter(function(u){return !esVendedorDeBaja(u);});
+      try{borrarVendedoresDeBaja(_baja);}catch(e){debugLog('error','baja de vendedores: '+e.message);}
+    }
     fsOnFirstLoad();
     // Si el usuario logueado fue desactivado o eliminado por el admin, cerrar sesion en el acto
     if(D.user&&FS_READY){
@@ -778,27 +786,6 @@ function migrarClientesActivos(){
     toast(arreglados.length+' contactos pasaron a Cliente','ok');
   }
 }
-// Migracion unica: Pablo quedo inactivo y se decidio que todos sus contactos
-// dejan de figurar como clientes y vuelven a prospecto (etapa Negociacion),
-// incluidos los que tenian compras registradas. Las ventas siguen en el
-// historial: si alguna vez se les carga un pedido, vuelven a ser clientes.
-function migrarClientesPabloAProspecto(){
-  if(!D.user||D.user.r!=='admin')return;
-  if(!CFG_CARGADA)return; // sin la config real no se sabe si ya se hizo
-  if(D.cfg&&D.cfg.pabloProspectosV>=1)return;
-  var lista=D.cli.filter(function(c){return !c.esP&&!c.eliminado&&c.vend==='Pablo';});
-  lista.forEach(function(c){
-    c.esP=true;c.etapaEmbudo='Negociacion';
-    c._modBy=D.user?D.user.n:'?';c._modAt=new Date().toISOString();
-    fsSetContacto(c);
-  });
-  D.cfg.pabloProspectosV=1;
-  fsSetConfig({pabloProspectosV:1});
-  if(lista.length){
-    logEvento('etapa','','','Contactos de Pablo pasados de cliente a prospecto: '+lista.length,'Cliente Activo','Negociacion');
-    toast(lista.length+' contactos de Pablo pasaron a prospecto','ok');
-  }
-}
 // Repara la inconsistencia que dejo el bug viejo: contactos con etapa de
 // prospecto pero marcados por dentro como clientes. Pasaba porque poner
 // "Cliente Activo" convertia pero volver atras no revertia, asi que quedaban
@@ -1260,7 +1247,6 @@ function startApp(){
   try{migrarFuente();}catch(e){debugLog('error','migrar fuente: '+e.message);}        // marca los contactos existentes como Prospeccion directa (solo admin)
   try{migrarInstagramARedesSociales();}catch(e){debugLog('error','migrar Instagram: '+e.message);} // renombra Instagram -> Redes Sociales (solo admin)
   try{migrarClientesActivos();}catch(e){debugLog('error','migrar clientes activos: '+e.message);} // convierte los que tenian la etapa pero seguian como prospecto
-  try{migrarClientesPabloAProspecto();}catch(e){debugLog('error','migrar contactos de Pablo: '+e.message);} // los contactos de Pablo vuelven a prospecto (decision comercial)
   try{migrarNombresSucursal();}catch(e){debugLog('error','renombrar sucursales: '+e.message);}     // las sucursales pasan a llevar su calle
   try{limpiarMarcaDeudorVieja();}catch(e){debugLog('error','limpiar marca de deudor: '+e.message);}   // saca el si/no viejo de deudor
   try{migrarCargaInicial();}catch(e){debugLog('error','carga inicial: '+e.message);}         // la entrega del freezer cuenta como primer pedido
@@ -5971,7 +5957,9 @@ function renderGE(){
   document.getElementById('gEF').innerHTML=all.map(function(e){return '<span class="fb'+(gEF2===e?' on':'')+'" onclick="sGEF(\''+es(e)+'\')">'+es(e)+'</span>';}).join('')+'<span style="margin-left:auto">'+botonesVistaHTML()+'</span>';
   var base=cliGlobal();
   var cs=gEF2==='Todos'?base.slice():base.filter(function(c){return c.etapaEmbudo===gEF2;});
-  var h='<div style="padding:8px 14px;font-size:11px;color:var(--muted);font-weight:700">'+cs.length+' REGISTROS</div>';
+  var _q=normTxt((document.getElementById('gEQ')||{}).value||'');
+  if(_q)cs=cs.filter(function(c){return [c.nm,c.fan,c.bar,c.ciu,c.dir,c.tipo,c.vend,c.tel,c.etapaEmbudo].some(function(x){return normTxt(x).indexOf(_q)>=0;});});
+  var h='<div style="padding:8px 14px;font-size:11px;color:var(--muted);font-weight:700">'+cs.length+' REGISTROS'+(_q?' · búsqueda':'')+'</div>';
   if(!cs.length){h+='<div class="empty">Sin contactos</div>';document.getElementById('gEB').innerHTML=h;return;}
   var _totGE=cs.length, _topeGE=tope('ge');
   cs=cs.slice(0,_topeGE);
@@ -5982,7 +5970,7 @@ function renderGE(){
       h+='<span class="ldot" style="background:'+col+'"></span>';
       h+='<div class="ln"><div class="lnm">'+es(c.nm)+(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase()?' <span class="lfan">· '+es(c.fan)+'</span>':'')+'</div>';
       h+='<div class="lsub" style="color:'+col+'">'+es(c.etapaEmbudo||'')+'<span style="color:var(--muted)"> · '+es(c.bar||c.tipo||'')+(c.vend?' · '+es(c.vend):'')+'</span></div></div>';
-      h+=selectorEtapaHTML(c,'max-width:110px;font-size:11px');
+      h+=flechasEtapaHTML(c)+selectorEtapaHTML(c,'max-width:110px;font-size:11px');
       h+='</div>';
     });
     h+=masHTML('ge',cs.length,_totGE);
@@ -5990,7 +5978,7 @@ function renderGE(){
   }
   cs.forEach(function(c){
     var col=EC[c.etapaEmbudo]||'var(--muted)';var nv=D.vis.filter(function(v){return v.cid===c.id;}).length;
-    h+='<div class="cc" onclick="aFicha(\''+c.id+'\')" style="cursor:pointer"><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>'+(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase()?'<div style="font-size:13px;font-weight:700;color:var(--cyan)">'+es(c.fan)+'</div>':'')+'<div style="font-size:12px;color:var(--muted)">'+es(c.bar||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div><div style="text-align:right"><span style="background:rgba('+h2r(col)+',.15);color:'+col+';padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">'+es(c.etapaEmbudo||'')+'</span><div style="font-size:10px;color:var(--muted);margin-top:3px">'+nv+' visita'+(nv!==1?'s':'')+'</div></div></div><div style="margin-top:8px">'+selectorEtapaHTML(c,'max-width:170px')+'</div></div>';
+    h+='<div class="cc" onclick="aFicha(\''+c.id+'\')" style="cursor:pointer"><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>'+(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase()?'<div style="font-size:13px;font-weight:700;color:var(--cyan)">'+es(c.fan)+'</div>':'')+'<div style="font-size:12px;color:var(--muted)">'+es(c.bar||'')+(c.tipo?' · '+es(c.tipo):'')+'</div></div><div style="text-align:right"><span style="background:rgba('+h2r(col)+',.15);color:'+col+';padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">'+es(c.etapaEmbudo||'')+'</span><div style="font-size:10px;color:var(--muted);margin-top:3px">'+nv+' visita'+(nv!==1?'s':'')+'</div></div></div><div style="margin-top:8px;display:flex;align-items:center;gap:6px">'+flechasEtapaHTML(c)+selectorEtapaHTML(c,'max-width:170px')+'</div></div>';
   });
   h+=masHTML('ge',cs.length,_totGE);
   document.getElementById('gEB').innerHTML=h;
@@ -9285,21 +9273,27 @@ function tomadosVsEntregadosHTML(per){
 }
 
 // ══════════════════════════════════════════════════════════════════════
-// v9.11 — Vendedores que ya no estan: se borran sus usuarios una sola vez.
+// v9.11/v9.17 — Vendedores que ya no estan (Chamu y Pablo, eran de ejemplo).
+// No se muestran nunca y el admin borra sus usuarios de la base apenas cargan.
 // ══════════════════════════════════════════════════════════════════════
 var VENDEDORES_DADOS_DE_BAJA=['chamu','pablo'];
-function migrarBajaVendedores(){
-  if(!D.user||D.user.r!=='admin'||!fsDB||!CFG_CARGADA)return;
-  if(D.cfg.bajaVendedoresV>=1)return;
-  var borrar=D.usrs.filter(function(u){return VENDEDORES_DADOS_DE_BAJA.indexOf(u.u)>=0&&u.r==='vendedor';});
-  borrar.forEach(function(u){
-    fsDB.collection('usuarios').doc(String(u.id)).delete().catch(function(e){debugLog('error','borrar usuario '+u.u+': '+e.message);});
+function esVendedorDeBaja(u){return !!(u&&u.r==='vendedor'&&VENDEDORES_DADOS_DE_BAJA.indexOf(String(u.u||'').toLowerCase())>=0);}
+var _bajaBorrando={};
+function borrarVendedoresDeBaja(lista){
+  if(gVendSel&&lista.some(function(u){return u.n===gVendSel;}))gVendSel='';
+  if(!D.user||D.user.r!=='admin'||!fsDB)return;
+  lista.forEach(function(u){
+    var k=String(u.id);if(_bajaBorrando[k])return;_bajaBorrando[k]=1;
+    fsDB.collection('usuarios').doc(k).delete()
+      .then(function(){logEvento('edicion','','','Usuario borrado (ya no es vendedor): '+u.n,'','');})
+      .catch(function(e){_bajaBorrando[k]=0;debugLog('error','borrar usuario '+u.u+': '+e.message);});
   });
-  D.usrs=D.usrs.filter(function(u){return borrar.indexOf(u)<0;});
-  if(gVendSel&&borrar.some(function(u){return u.n===gVendSel;}))gVendSel='';
-  D.cfg.bajaVendedoresV=1;
-  fsSetConfig({bajaVendedoresV:1});
-  if(borrar.length)logEvento('edicion','','','Usuarios borrados (ya no son vendedores): '+borrar.map(function(u){return u.n;}).join(', '),'','');
+}
+function migrarBajaVendedores(){
+  var b=(D.usrs||[]).filter(esVendedorDeBaja);
+  if(!b.length)return;
+  D.usrs=D.usrs.filter(function(u){return !esVendedorDeBaja(u);});
+  borrarVendedoresDeBaja(b);
 }
 // ══════════════════════════════════════════════════════════════════════
 // v9.16 — LA DEUDA CARGADA A MANO ES UN PEDIDO IMPAGO
@@ -9997,6 +9991,15 @@ function cerrarInforme(){var ov=document.getElementById('infOv');if(ov)ov.remove
 // El gerente sigue en solo lectura para todo lo demas.
 // ══════════════════════════════════════════════════════════════════════
 var _permitirEtapaGerente=false;
+// v9.17: flechas para mover un paso atras o adelante dentro del embudo
+function flechasEtapaHTML(c){
+  var i=ET.indexOf(c.etapaEmbudo);if(i<0)return '';
+  var b='background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 9px;font-size:13px;font-weight:800;cursor:pointer;flex-shrink:0';
+  var h='';
+  if(i>0)h+='<button title="Volver a '+es(ET[i-1])+'" style="'+b+'" onclick="event.stopPropagation();cambiarEtapa(\''+c.id+'\',\''+es(ET[i-1])+'\')">&#9664;</button>';
+  if(i<ET.length-1)h+='<button title="Pasar a '+es(ET[i+1])+'" style="'+b+'" onclick="event.stopPropagation();cambiarEtapa(\''+c.id+'\',\''+es(ET[i+1])+'\')">&#9654;</button>';
+  return h;
+}
 function selectorEtapaHTML(c,estilo){
   var col=EC[c.etapaEmbudo]||'var(--muted)';
   var h='<select class="sm" onclick="event.stopPropagation()" onchange="event.stopPropagation();cambiarEtapa(\''+c.id+'\',this.value);this.value=\'\'" style="border-color:'+col+';color:'+col+';'+(estilo||'max-width:140px')+'">';

@@ -1,56 +1,41 @@
-# CRM-Jorge — Versión 9.16 · Deudas sin tocar las ventas
+# CRM-Jorge — Versión 9.17 · Sin Chamu ni Pablo, Embudo con buscador
 
-**Solo cambió `app.js`.** Los otros dos son los mismos; van los tres juntos.
-Para verificar: en el login y en Config > Debug tiene que decir **9.16 - 24/10/2026**.
+**Cambiaron `app.js` e `index.html`.** `estilos.css` es el mismo; van los tres juntos.
+Para verificar: en el login y en Config > Debug tiene que decir **9.17 - 25/10/2026**.
 
 ---
 
-## 1. "+ Cargar deuda" = no pagó el último pedido
+## 1. Chamu y Pablo desaparecen del todo
 
-Cargar una deuda a mano ya no es un cargo suelto: el sistema lo toma como que el
-cliente **no pagó (todo) el último pedido entregado**.
-- El pedido queda con el mismo total (las ventas no cambian) y baja lo cobrado.
-  En Pedidos aparece con "debe $...".
-- La deuda queda atada a ese pedido, con la fecha de la entrega.
-- Antes de guardar se ve de qué pedido sale ("No pagó $30.000 del pedido del 16/10").
-- Si el monto es más que lo cobrado del último pedido, sigue con el anterior.
-- Si el cliente no tiene pedidos entregados en el sistema, queda como **saldo anterior**
-  (avisa antes).
+La limpieza de la 9.11 había fallado: corría una sola vez, al abrir la app, antes de que
+cargaran los usuarios, así que no los encontraba y quedaba marcada como hecha.
 
-## 2. Corregir saldo con la administración (admin y gerente)
+Ahora:
+- No aparecen nunca en filtros, resúmenes, listas ni informes.
+- La primera vez que entre el admin (JL), sus usuarios se borran de la base.
+- Sus 68 contactos ya estaban en la papelera; quedan ahí.
+- El gerente "Pablo Della" (inactivo) no se toca.
 
-Botón **⚖ Corregir saldo** en Deudores y en la cuenta de cada cliente. Ponés el saldo que
-dice la administración y el motivo (obligatorio), y el sistema arma la diferencia:
+**Vendedor nuevo de prueba:** crealo en Config > Usuarios como siempre, con un nombre de
+usuario distinto de "chamu" y "pablo". Acordate de crear también su cuenta en Firebase
+(Authentication > Add user) con el mismo mail; la app te lo recuerda.
 
-| Diferencia | Qué hace | ¿Cuenta como cobro? |
-|---|---|---|
-| **Suma** | No pagó (todo) el último pedido, igual que "Cargar deuda" | No |
-| **Resta, entró un pago** | Pago con la fecha que elijas | **Sí** (Pagos e informe) |
-| **Resta, no entró plata** | Ajuste (nota de crédito, redondeo, descuento) | No |
+## 2. Embudo (admin y gerente): mover etapas con flechas
 
-- El gerente puede corregir saldos; para todo lo demás sigue siendo solo lectura.
-- En la cuenta, los movimientos corregidos llevan la etiqueta **"corrección"**, y queda en el
-  historial quién lo hizo, el saldo de antes y el de después.
-- Las ventas no se tocan nunca.
+Cada contacto del Embudo tiene ahora **◀** y **▶** al lado del selector "Mover etapa":
+- ◀ lo vuelve una etapa (ej: Negociación → Propuesta Enviada).
+- ▶ lo pasa a la siguiente (ej: Contactado → Propuesta Enviada).
+- El selector sigue estando para saltar varias etapas o mandarlo a No le interesa / Perdido.
+- Funciona igual para el gerente y queda en el historial.
 
-### Control de saldos (✓ Saldo OK)
+## 3. Embudo (admin y gerente): buscador
 
-Cuando el gerente (o el admin) corrobora con la administración que un saldo está bien,
-toca **✓ Saldo OK** en la tarjeta del deudor o en su cuenta. Queda asentado:
-**"Controlado OK el 24/10/26 por Gerente"**, con el saldo de ese momento.
-- Arriba de Deudores se ve el resumen: "8 de 12 saldos controlados · 4 sin controlar".
-- Si después el saldo cambia (nuevo pago, nueva deuda), avisa en naranja:
-  "Cambió desde el control del ... (era $...)", y se puede volver a controlar.
-- Queda en el historial. El vendedor no ve el control.
-
-## 3. Deudas a mano viejas
-
-En **Revisar deudas** (admin), las deudas cargadas a mano antes de esta versión tienen un
-botón **Atar al pedido**: las pasa al último pedido entregado. El saldo no cambia.
-Es opcional, una por una. Si alguna era un saldo de antes del sistema, dejala como está.
+Arriba del Embudo hay un buscador. Busca por nombre, nombre de fantasía, barrio, dirección,
+rubro, vendedor o teléfono, sin importar acentos ni mayúsculas ("lucia" encuentra "Lucía").
+Se combina con las solapas de etapa.
 
 ---
 
 ## Probado
 
-319 pruebas en el navegador simulado, sin errores (44 nuevas).
+335 pruebas en el navegador simulado, sin errores (16 nuevas).
