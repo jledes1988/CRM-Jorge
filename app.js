@@ -4,13 +4,13 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.17 - 25/10/2026';
+var VERSION='9.18 - 29/10/2026';
 
-var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo'];
+var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Sin Respuesta','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
-var EC={'Nuevo Prospecto':'#fb923c','Contactado':'#2563eb','Propuesta Enviada':'#a78bfa','Negociacion':'#facc15','Cliente Activo':'#4ade80','No Le Interesa':'#f87171','Perdido':'#f87171'};
+var EC={'Nuevo Prospecto':'#fb923c','Contactado':'#2563eb','Propuesta Enviada':'#a78bfa','Sin Respuesta':'#94a3b8','Negociacion':'#facc15','Cliente Activo':'#4ade80','No Le Interesa':'#f87171','Perdido':'#f87171'};
 var MSG_RONDA_DEF='Hola {nombre}! Soy {vendedor} de Sei Tu.\nEstamos armando el pedido de {negocio} para entregar el {entrega}.\n\nLa vez pasada te llevaste:\n{ultimo}\n\nQue necesitas esta semana?';
-var MD={'Nuevo Prospecto':'Hola! Soy de Sei Tu Helados, pase por tu local y me gustaria contarte nuestra propuesta. Tenes un minuto?','Contactado':'Hola! Te escribo para coordinar una visita y mostrarte la propuesta de Sei Tu. Que dia te viene bien?','Propuesta Enviada':'Hola! Pudiste ver la propuesta? Queda alguna duda que pueda responder?','Negociacion':'Hola! Como venimos con la propuesta? Si necesitas ajustar algo avisame.','Cliente Activo':'Hola! Como va la venta? Aviso si hay novedades o promos.','No Le Interesa':'Gracias por tu tiempo! Si cambia la situacion quedo disponible.','Perdido':'Hola! Hace tiempo no hablamos. Segui interesado en Sei Tu?'};
+var MD={'Sin Respuesta':'Hola {nombre}, ¿cómo estás? Te escribo por la propuesta del freezer de Sei Tu que te acerqué para {negocio}. Sé que son días de mucho trabajo. ¿Pudiste pensarlo? Si te sirve, paso por el local esta semana y lo vemos en cinco minutos.','Nuevo Prospecto':'Hola! Soy de Sei Tu Helados, pase por tu local y me gustaria contarte nuestra propuesta. Tenes un minuto?','Contactado':'Hola! Te escribo para coordinar una visita y mostrarte la propuesta de Sei Tu. Que dia te viene bien?','Propuesta Enviada':'Hola! Pudiste ver la propuesta? Queda alguna duda que pueda responder?','Negociacion':'Hola! Como venimos con la propuesta? Si necesitas ajustar algo avisame.','Cliente Activo':'Hola! Como va la venta? Aviso si hay novedades o promos.','No Le Interesa':'Gracias por tu tiempo! Si cambia la situacion quedo disponible.','Perdido':'Hola! Hace tiempo no hablamos. Segui interesado en Sei Tu?'};
 // Provincias donde opera la empresa. Si se suma una nueva, agregarla aca y en ARG_CIU.
 var ARG_PROV=['Cordoba','Santa Fe','Catamarca','La Rioja','Santiago del Estero','Tucuman','Salta','Jujuy'];
 var ARG_CIU={
@@ -589,8 +589,8 @@ function dias(d){if(!d)return null;return Math.floor((Date.now()-new Date(d+'T12
 // Dias de tolerancia sin gestion antes de considerar un contacto "inactivo", por etapa
 // Umbrales de inaccion por etapa (dias sin gestion antes de marcar como "sin gestionar").
 // Editables desde Config; estos son los valores por defecto.
-var UMBRAL_INACCION_DEF={'Nuevo Prospecto':5,'Contactado':7,'Propuesta Enviada':7,'Negociacion':7,'Cliente Activo':30};
-var PROXIMA_DIAS_DEF={'Nuevo Prospecto':3,'Contactado':5,'Propuesta Enviada':5,'Negociacion':5,'Cliente Activo':21};
+var UMBRAL_INACCION_DEF={'Nuevo Prospecto':5,'Contactado':7,'Propuesta Enviada':7,'Sin Respuesta':30,'Negociacion':7,'Cliente Activo':30};
+var PROXIMA_DIAS_DEF={'Nuevo Prospecto':3,'Contactado':5,'Propuesta Enviada':5,'Sin Respuesta':30,'Negociacion':5,'Cliente Activo':21};
 function umbralEtapa(eta){
   if(D.cfg&&D.cfg.umbrales&&D.cfg.umbrales[eta]!=null)return D.cfg.umbrales[eta];
   return UMBRAL_INACCION_DEF[eta]||14;
@@ -1172,7 +1172,7 @@ function doLogin(){
   }
 
   var email=emailDeUsuario(u);
-  if(!email){e.textContent='Usuario desconocido. Escribi tu usuario o tu email completo.';e.style.display='block';return;}
+  if(!email){e.textContent='Usuario desconocido. Si es la primera vez en este celular, entrá con tu email completo.';e.style.display='block';return;}
 
   var btn=document.querySelector('#sLogin .btn');
   if(btn){btn.disabled=true;btn.textContent='Ingresando...';}
@@ -5960,6 +5960,7 @@ function renderGE(){
   var _q=normTxt((document.getElementById('gEQ')||{}).value||'');
   if(_q)cs=cs.filter(function(c){return [c.nm,c.fan,c.bar,c.ciu,c.dir,c.tipo,c.vend,c.tel,c.etapaEmbudo].some(function(x){return normTxt(x).indexOf(_q)>=0;});});
   var h='<div style="padding:8px 14px;font-size:11px;color:var(--muted);font-weight:700">'+cs.length+' REGISTROS'+(_q?' · búsqueda':'')+'</div>';
+  if(gEF2===SIN_RESP)h+='<div style="padding:0 14px">'+botonRondaSinRespHTML()+'</div>';
   if(!cs.length){h+='<div class="empty">Sin contactos</div>';document.getElementById('gEB').innerHTML=h;return;}
   var _totGE=cs.length, _topeGE=tope('ge');
   cs=cs.slice(0,_topeGE);
@@ -6844,9 +6845,11 @@ function renderGCfg(){
   h+='<input class="fi" id="nuNom" placeholder="Nombre (ej: Martin)" style="margin:0">';
   h+='<input class="fi" id="nuUsr" placeholder="Usuario (ej: martin)" autocapitalize="none" style="margin:0">';
   h+='<input class="fi" id="nuMail" type="email" placeholder="Email (para su cuenta)" autocapitalize="none" style="margin:0">';
+  h+='<input class="fi" id="nuPass" type="text" placeholder="Contraseña inicial (6 o más)" autocapitalize="none" autocomplete="off" style="margin:0">';
   h+='<select class="fi" id="nuRol" style="margin:0"><option value="vendedor">Vendedor</option><option value="gerente">Gerente (solo lectura)</option><option value="admin">Administrador</option></select>';
   h+='</div>';
-  h+='<button class="btn sec" onclick="crearUsuario()" style="margin:0">+ Crear usuario</button>';
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Se crea todo desde acá, también la cuenta para entrar. Después le pasás el usuario y la contraseña.</div>';
+  h+='<button class="btn sec" id="nuBtn" onclick="crearUsuario()" style="margin:0">+ Crear usuario</button>';
   h+='</div>';
   h+='</div>';
 
@@ -7187,27 +7190,7 @@ function togActivo(uid2){
   fsSetUsuario(u);
   renderGCfg();toast(u.n+(u.activo?' activado':' desactivado'),'ok');
 }
-function crearUsuario(){
-  if(soloLectura())return;
-  var n=(document.getElementById('nuNom').value||'').trim();
-  var u=(document.getElementById('nuUsr').value||'').trim().toLowerCase();
-  var mail=(document.getElementById('nuMail').value||'').trim().toLowerCase();
-  var r=document.getElementById('nuRol').value;
-  if(!n||!u||!mail){toast('Completa nombre, usuario y email','err');return;}
-  if(mail.indexOf('@')<1){toast('El email no es valido','err');return;}
-  if(/\s/.test(u)){toast('El usuario no puede tener espacios','err');return;}
-  if(D.usrs.some(function(x){return x.u===u;})){toast('Ya existe un usuario "'+u+'"','err');return;}
-  if(D.usrs.some(function(x){return x.n.toLowerCase()===n.toLowerCase();})){toast('Ya existe un usuario con el nombre "'+n+'"','err');return;}
-  if(D.usrs.some(function(x){return (x.email||'').toLowerCase()===mail;})){toast('Ya hay un usuario con ese email','err');return;}
-  var maxId=D.usrs.reduce(function(m,x){return Math.max(m,x.id||0);},0);
-  var nu={id:maxId+1,n:n,u:u,email:mail,r:r,activo:true,creado:today(),ua:''};
-  D.usrs.push(nu);
-  fsSetUsuario(nu);
-  logEvento('usuario','','','Usuario creado: '+n+' ('+r+')','','');
-  renderVendBtns(); // si es vendedor, aparece en los botones del filtro global
-  renderGCfg();
-  oMod('Usuario creado - falta un paso','<div style="font-size:14px;margin-bottom:12px"><b>'+es(n)+'</b> ya tiene permisos de <b>'+es(r)+'</b> en el sistema.</div><div style="font-size:13px;color:var(--muted);margin-bottom:10px">Para que pueda entrar, falta crear su cuenta en Firebase (la contrasena la maneja Google, no se guarda aca):</div><ol style="font-size:13px;color:var(--muted);padding-left:20px;line-height:1.7"><li>Entra a <b>console.firebase.google.com</b></li><li>Proyecto <b>crm-jorge-63a40</b> &rarr; <b>Authentication</b> &rarr; <b>Users</b></li><li><b>Add user</b>, con el email <b style="color:var(--cyan)">'+es(mail)+'</b> y una contrasena inicial</li><li>Pasale la contrasena para que entre y la cambie</li></ol>');
-}
+// crearUsuario: ver v9.18 (crea tambien la cuenta de acceso)
 // Con autenticacion real, la contrasena de otro usuario no se puede fijar desde aca:
 // se le envia un email para que la restablezca el mismo (es lo seguro y lo estandar).
 function cambPass(uid2){
@@ -8382,7 +8365,7 @@ function renderVE(){
   // muestran algo, sin inundar la vista por defecto.
   var mcAll=misContactos(true);
   var mc=mcAll.filter(function(c){return c.etapaEmbudo!=='No Le Interesa'&&c.etapaEmbudo!=='Perdido';});
-  var all=['Todos','Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo','No Le Interesa','Perdido'];
+  var all=['Todos','Nuevo Prospecto','Contactado','Propuesta Enviada','Sin Respuesta','Negociacion','Cliente Activo','No Le Interesa','Perdido'];
   // Valores dinámicos de zona y tipo
   var eSet={};mc.forEach(function(c){if(c.bar)eSet[c.bar]=true;if(c.ciu)eSet[c.ciu]=true;});
   var eLugares=Object.keys(eSet).sort();
@@ -8422,6 +8405,7 @@ function renderVE(){
     fh+='<span class="fb'+(vEOrd===x[0]?' on':'')+'" onclick="vEOrd=\''+x[0]+'\';renderVE()" style="font-size:10px">'+x[1]+'</span>';
   });
   fh+='</div>';
+  if(vEFil===SIN_RESP)fh+=botonRondaSinRespHTML();
   var _vef=document.getElementById('vEF');if(_vef)_vef.innerHTML=fh;
   // Filtrar
   var fueraDelEmbudo=(vEFil==='No Le Interesa'||vEFil==='Perdido');
@@ -8442,7 +8426,7 @@ function renderVE(){
   var _veb=document.getElementById('vEB');if(!_veb)return;
   // En escritorio con "Todos" seleccionado: tablero Kanban por etapa
   if(window.innerWidth>=900&&vEFil==='Todos'){
-    var etapasK=['Nuevo Prospecto','Contactado','Propuesta Enviada','Negociacion','Cliente Activo','No Le Interesa','Perdido'];
+    var etapasK=['Nuevo Prospecto','Contactado','Propuesta Enviada','Sin Respuesta','Negociacion','Cliente Activo','No Le Interesa','Perdido'];
     var kh='<div class="kanban">';
     etapasK.forEach(function(eta){
       var colCards=cs.filter(function(c){return(c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo'))===eta;});
@@ -9041,7 +9025,7 @@ function migrarProspeccionMiercoles(){
   fsSetConfig({semanaTipo:D.cfg.semanaTipo,prospeccionMieV:1});
 }
 function prioridadProspecto(c){
-  return {'Negociacion':0,'Propuesta Enviada':1,'Contactado':2,'Nuevo Prospecto':3}[c.etapaEmbudo||'Nuevo Prospecto'];
+  return {'Negociacion':0,'Propuesta Enviada':1,'Sin Respuesta':1.5,'Contactado':2,'Nuevo Prospecto':3}[c.etapaEmbudo||'Nuevo Prospecto'];
 }
 function abrirProspeccion(fecha){
   fecha=fecha||today();
@@ -9272,6 +9256,158 @@ function tomadosVsEntregadosHTML(per){
   return sG('Pedidos tomados vs entregados',h);
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// v9.18 — ALTA DE USUARIOS DESDE EL ADMIN (sin entrar a Firebase)
+// La cuenta de acceso se crea con una segunda conexion a Firebase, asi la
+// sesion del admin no se cierra. El admin pone una contrasena inicial y se la
+// pasa al usuario; despues cada uno la cambia con "Olvide mi contrasena".
+// ══════════════════════════════════════════════════════════════════════
+function authAltas(){
+  var app=(firebase.apps||[]).find(function(a){return a.name==='altaUsuarios';});
+  if(!app)app=firebase.initializeApp(firebaseConfig,'altaUsuarios');
+  return app.auth();
+}
+// Crea la cuenta de acceso. Si el mail ya tenia cuenta, sigue igual (ok:'existia').
+function crearCuentaAcceso(mail,pass){
+  if(typeof firebase==='undefined'||!firebase.auth||!firebase.initializeApp)return Promise.reject({code:'auth/network-request-failed'});
+  var a=authAltas();
+  var persist=(firebase.auth.Auth&&firebase.auth.Auth.Persistence)?a.setPersistence(firebase.auth.Auth.Persistence.NONE):Promise.resolve();
+  return persist.then(function(){return a.createUserWithEmailAndPassword(mail,pass);})
+    .then(function(){return a.signOut().catch(function(){});})
+    .then(function(){return 'creada';})
+    .catch(function(e){
+      if(e&&e.code==='auth/email-already-in-use')return 'existia';
+      throw e;
+    });
+}
+function msgErrorAlta(cod){
+  switch(cod){
+    case 'auth/weak-password':return 'La contraseña tiene que tener al menos 6 caracteres.';
+    case 'auth/invalid-email':return 'El email no es válido.';
+    case 'auth/network-request-failed':return 'Sin conexión a internet. Probá de nuevo con señal.';
+    case 'auth/operation-not-allowed':return 'El ingreso con email y contraseña no está habilitado en Firebase.';
+    case 'auth/too-many-requests':return 'Demasiados intentos. Esperá unos minutos.';
+    default:return 'No se pudo crear la cuenta ('+(cod||'error')+').';
+  }
+}
+function crearUsuario(){
+  if(soloLectura())return;
+  if(!D.user||D.user.r!=='admin'){toast('Solo el administrador crea usuarios','err');return;}
+  var n=(document.getElementById('nuNom').value||'').trim();
+  var u=(document.getElementById('nuUsr').value||'').trim().toLowerCase();
+  var mail=(document.getElementById('nuMail').value||'').trim().toLowerCase();
+  var pass=((document.getElementById('nuPass')||{}).value||'').trim();
+  var r=document.getElementById('nuRol').value;
+  if(!n||!u||!mail){toast('Completá nombre, usuario y email','err');return;}
+  if(mail.indexOf('@')<1){toast('El email no es válido','err');return;}
+  if(/\s/.test(u)){toast('El usuario no puede tener espacios','err');return;}
+  if(pass.length<6){toast('La contraseña inicial tiene que tener al menos 6 caracteres','err');return;}
+  if(VENDEDORES_DADOS_DE_BAJA.indexOf(u)>=0){toast('Ese nombre de usuario está reservado, elegí otro','err');return;}
+  if(D.usrs.some(function(x){return x.u===u;})){toast('Ya existe un usuario "'+u+'"','err');return;}
+  if(D.usrs.some(function(x){return x.n.toLowerCase()===n.toLowerCase();})){toast('Ya existe un usuario con el nombre "'+n+'"','err');return;}
+  if(D.usrs.some(function(x){return (x.email||'').toLowerCase()===mail;})){toast('Ya hay un usuario con ese email','err');return;}
+  var btn=document.getElementById('nuBtn');if(btn){btn.disabled=true;btn.textContent='Creando...';}
+  crearCuentaAcceso(mail,pass).then(function(estado){
+    var maxId=D.usrs.reduce(function(m,x){return Math.max(m,Number(x.id)||0);},0);
+    var nu={id:maxId+1,n:n,u:u,email:mail,r:r,activo:true,creado:today(),ua:''};
+    D.usrs.push(nu);
+    fsSetUsuario(nu);
+    logEvento('usuario','','','Usuario creado: '+n+' ('+r+')'+(estado==='existia'?' · el mail ya tenía cuenta':''),'','');
+    renderVendBtns();
+    renderGCfg();
+    mostrarAltaUsuario(nu,pass,estado);
+  }).catch(function(e){
+    if(btn){btn.disabled=false;btn.textContent='+ Crear usuario';}
+    toast(msgErrorAlta(e&&e.code),'err');
+  });
+}
+function textoBienvenida(nu,pass){
+  var url=location.origin+location.pathname;
+  return 'Hola '+nu.n+'! Ya tenés tu usuario en el CRM.\n\nEntrá acá: '+url+'\nUsuario: '+nu.email+'\nContraseña: '+pass+'\n\nLa primera vez entrá con el mail. Después podés cambiar la contraseña con "Olvidé mi contraseña" en la pantalla de ingreso.';
+}
+var _ultimaAlta=null;
+function enviarBienvenidaWA(){if(_ultimaAlta)window.open('https://wa.me/?text='+encodeURIComponent(textoBienvenida(_ultimaAlta.nu,_ultimaAlta.pass)),'_blank');}
+function mostrarAltaUsuario(nu,pass,estado){
+  _ultimaAlta={nu:nu,pass:pass};
+  var h='<div style="font-size:14px;margin-bottom:10px"><b>'+es(nu.n)+'</b> ya puede entrar como <b>'+es(nu.r)+'</b>.</div>';
+  if(estado==='existia')h+='<div style="font-size:12px;color:var(--orange);margin-bottom:10px">Ese mail ya tenía una cuenta: entra con la contraseña que ya tenía. Si no la sabe, mandale el mail para elegir una nueva.</div>';
+  else{
+    h+='<div style="background:var(--s1);border-radius:var(--rsm);padding:12px;margin-bottom:10px;font-size:13px;line-height:1.7">';
+    h+='Usuario: <b style="color:var(--cyan)">'+es(nu.email)+'</b><br>Contraseña: <b style="color:var(--cyan)">'+es(pass)+'</b></div>';
+    h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">La primera vez en su celular entra con el mail (después también con "'+es(nu.u)+'"). Puede cambiar la contraseña con "Olvidé mi contraseña".</div>';
+    h+='<button class="btn" onclick="enviarBienvenidaWA()" style="margin:0 0 8px">Pasarle los datos por WhatsApp</button>';
+  }
+  h+='<button class="btn sec" onclick="confPass(\''+nu.id+'\')" style="margin:0 0 8px">Mandarle el mail para que elija su contraseña</button>';
+  h+='<button class="btn sec" onclick="cMod()" style="margin:0">Listo</button>';
+  oMod('Usuario creado',h);
+}
+// ══════════════════════════════════════════════════════════════════════
+// v9.18 — ETAPA "SIN RESPUESTA" Y SU RONDA DE MENSAJES
+// Los que recibieron la propuesta y no contestaron. Tolerancia de 30 dias sin
+// gestion; despues aparecen en las alertas de inaccion. Cada mensaje enviado
+// desde la ronda cuenta como gestion del dia y vuelve a contar los 30 dias.
+// ══════════════════════════════════════════════════════════════════════
+var SIN_RESP='Sin Respuesta';
+var _srFiltro='todos';
+function contactosSinRespuesta(){
+  var base=(D.user&&(D.user.r==='admin'||D.user.r==='gerente'))?cliGlobal():misContactos();
+  return base.filter(function(c){return !c.eliminado&&c.etapaEmbudo===SIN_RESP;})
+    .map(function(c){return {c:c,dias:diasSinGestion(c)};})
+    .sort(function(a,b){return (b.dias===null?9999:b.dias)-(a.dias===null?9999:a.dias);});
+}
+function msgEnviadoHoy(cid){
+  return D.vis.some(function(v){return v.cid===cid&&v.fecha===today()&&v.msgSR===true;});
+}
+function botonRondaSinRespHTML(){
+  if(D.user&&D.user.r==='gerente')return '';
+  var n=contactosSinRespuesta().length;if(!n)return '';
+  return '<button class="btn" onclick="abrirRondaSinRespuesta()" style="margin:8px 0 4px">&#9993; Enviar mensaje a los '+n+' sin respuesta</button>';
+}
+function abrirRondaSinRespuesta(f){
+  if(f)_srFiltro=f;
+  var umb=umbralEtapa(SIN_RESP);
+  var todos=contactosSinRespuesta();
+  var venc=todos.filter(function(x){return x.dias===null||x.dias>=umb;});
+  var lista=_srFiltro==='vencidos'?venc:todos;
+  var env=todos.filter(function(x){return msgEnviadoHoy(x.c.id);}).length;
+  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Tocá <b>Enviar</b>: se abre WhatsApp con el mensaje de "Sin Respuesta" armado para ese contacto. Cada envío cuenta como gestión de hoy y los '+umb+' días vuelven a empezar.</div>';
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
+  h+='<span class="fb'+(_srFiltro==='todos'?' on':'')+'" onclick="abrirRondaSinRespuesta(\'todos\')">Todos ('+todos.length+')</span>';
+  h+='<span class="fb'+(_srFiltro==='vencidos'?' on':'')+'" onclick="abrirRondaSinRespuesta(\'vencidos\')">'+umb+' días o más ('+venc.length+')</span>';
+  h+='</div>';
+  h+='<div style="font-size:12px;margin-bottom:8px"><b style="color:var(--green)">'+env+'</b> de '+todos.length+' enviados hoy</div>';
+  if(!lista.length)h+='<div class="empty">Nadie en esta lista.</div>';
+  lista.forEach(function(x){
+    var c=x.c,ya=msgEnviadoHoy(c.id),vence=x.dias===null||x.dias>=umb;
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(c.nm)+'</div>';
+    h+='<div style="font-size:11px;color:'+(vence?'var(--orange)':'var(--muted)')+'">'+es(c.bar||'')+(c.vend&&D.user&&D.user.r!=='vendedor'?' · '+es(c.vend):'')+' · '+(x.dias===null?'sin gestiones':'hace '+x.dias+' días')+'</div></div>';
+    if(ya)h+='<span style="font-size:11px;font-weight:800;color:var(--green)">&#10003; enviado</span>';
+    else if(!c.tel)h+='<span style="font-size:11px;color:var(--muted)">sin teléfono</span>';
+    else h+='<button class="sm wa" onclick="enviarMsgSinResp(\''+c.id+'\')">Enviar</button>';
+    h+='</div>';
+  });
+  oMod('Sin Respuesta · ronda de mensajes',h);
+}
+function enviarMsgSinResp(cid){
+  if(soloLectura())return;
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c||!c.tel)return;
+  envWA(cid);
+  var hoy=today(),vend=D.user?D.user.n:'';
+  var v=D.vis.find(function(x){return x.cid===cid&&x.fecha===hoy&&x.vend===vend;});
+  if(v){
+    v.msgSR=true;if(!v.gestion)v.gestion='mensaje';
+    if((v.obs||'').indexOf('Mensaje de WhatsApp')<0)v.obs=(v.obs?v.obs+' · ':'')+'Mensaje de WhatsApp (Sin Respuesta)';
+  } else {
+    v={id:uid(),cid:cid,fecha:hoy,vend:vend,tipo:c.esP?'prospecto':'cliente',obs:'Mensaje de WhatsApp (Sin Respuesta)',gestion:'mensaje',msgSR:true};
+    D.vis.push(v);
+  }
+  fsSetVisita(v);
+  c.ul=hoy;c._modBy=vend||'?';c._modAt=new Date().toISOString();
+  fsSetContacto(c);
+  logEvento('visita',cid,c.nm,'Mensaje de WhatsApp enviado (Sin Respuesta)','','');
+  abrirRondaSinRespuesta();
+}
 // ══════════════════════════════════════════════════════════════════════
 // v9.11/v9.17 — Vendedores que ya no estan (Chamu y Pablo, eran de ejemplo).
 // No se muestran nunca y el admin borra sus usuarios de la base apenas cargan.
@@ -9769,7 +9905,7 @@ function datosInforme(t){
   // Cambios de etapa del periodo (historial)
   var movs=(D.log||[]).filter(function(l){return (l.tipo==='etapa'||l.tipo==='conversion')&&ids[l.cid]&&en((l.ts||'').slice(0,10),desde,hasta);});
   var orden={};ET.concat(SA).forEach(function(e,i){orden[e]=i;});
-  var avances=movs.filter(function(l){return l.ant&&l.nue&&orden[l.nue]>orden[l.ant]&&SA.indexOf(l.nue)<0;});
+  var avances=movs.filter(function(l){return l.ant&&l.nue&&orden[l.nue]>orden[l.ant]&&SA.indexOf(l.nue)<0&&l.nue!=='Sin Respuesta';});
   var perdidos=movs.filter(function(l){return SA.indexOf(l.nue)>=0;});
   // Situacion actual (foto al momento de generar)
   var embudo=ET.concat(SA).map(function(e){return {e:e,n:vivos.filter(function(c){return (c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo'))===e;}).length};});

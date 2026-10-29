@@ -1,41 +1,57 @@
-# CRM-Jorge — Versión 9.17 · Sin Chamu ni Pablo, Embudo con buscador
+# CRM-Jorge — Versión 9.18 · Alta de usuarios fácil y etapa "Sin Respuesta"
 
-**Cambiaron `app.js` e `index.html`.** `estilos.css` es el mismo; van los tres juntos.
-Para verificar: en el login y en Config > Debug tiene que decir **9.17 - 25/10/2026**.
+**Solo cambió `app.js`.** Los otros dos son los mismos; van los tres juntos.
+Para verificar: en el login y en Config > Debug tiene que decir **9.18 - 29/10/2026**.
 
 ---
 
-## 1. Chamu y Pablo desaparecen del todo
+## 1. Crear usuarios sin entrar a Firebase
 
-La limpieza de la 9.11 había fallado: corría una sola vez, al abrir la app, antes de que
-cargaran los usuarios, así que no los encontraba y quedaba marcada como hecha.
+En **Config > Usuarios > Crear nuevo usuario** ahora se completa:
+nombre, usuario, email, **contraseña inicial** (6 o más) y perfil. Tocás **+ Crear usuario** y listo:
+el sistema crea también la cuenta para entrar. Tu sesión de admin no se cierra.
 
-Ahora:
-- No aparecen nunca en filtros, resúmenes, listas ni informes.
-- La primera vez que entre el admin (JL), sus usuarios se borran de la base.
-- Sus 68 contactos ya estaban en la papelera; quedan ahí.
-- El gerente "Pablo Della" (inactivo) no se toca.
+Al terminar te muestra el usuario y la contraseña, con dos botones:
+- **Pasarle los datos por WhatsApp:** arma el mensaje con el link de la app, el mail y la contraseña.
+- **Mandarle el mail para que elija su contraseña** (opcional).
 
-**Vendedor nuevo de prueba:** crealo en Config > Usuarios como siempre, con un nombre de
-usuario distinto de "chamu" y "pablo". Acordate de crear también su cuenta en Firebase
-(Authentication > Add user) con el mismo mail; la app te lo recuerda.
+Importante para el vendedor nuevo: **la primera vez en su celular entra con el mail**
+(no con el nombre de usuario). Después puede cambiar la contraseña con "Olvidé mi contraseña".
 
-## 2. Embudo (admin y gerente): mover etapas con flechas
+Solo el admin crea usuarios. "chamu" y "pablo" quedan reservados.
 
-Cada contacto del Embudo tiene ahora **◀** y **▶** al lado del selector "Mover etapa":
-- ◀ lo vuelve una etapa (ej: Negociación → Propuesta Enviada).
-- ▶ lo pasa a la siguiente (ej: Contactado → Propuesta Enviada).
-- El selector sigue estando para saltar varias etapas o mandarlo a No le interesa / Perdido.
-- Funciona igual para el gerente y queda en el historial.
+## 2. Nueva etapa "Sin Respuesta"
 
-## 3. Embudo (admin y gerente): buscador
+Va entre **Propuesta Enviada** y **Negociación**, en gris. Es para los que recibieron la
+propuesta y no contestaron.
+- Desde Propuesta Enviada, la flecha ▶ lo pasa a Sin Respuesta. Si responde, ▶ lo pasa a Negociación.
+- Pasar a Sin Respuesta no cuenta como "avanzó" en el informe de la junta.
 
-Arriba del Embudo hay un buscador. Busca por nombre, nombre de fantasía, barrio, dirección,
-rubro, vendedor o teléfono, sin importar acentos ni mayúsculas ("lucia" encuentra "Lucía").
-Se combina con las solapas de etapa.
+## 3. Mensaje predeterminado y ronda de mensajes
+
+Mensaje que viene cargado (se edita en **Config > Mensajes**, como los demás):
+
+> Hola {nombre}, ¿cómo estás? Te escribo por la propuesta del freezer de Sei Tu que te
+> acerqué para {negocio}. Sé que son días de mucho trabajo. ¿Pudiste pensarlo? Si te sirve,
+> paso por el local esta semana y lo vemos en cinco minutos.
+
+En el Embudo, en la solapa **Sin Respuesta**, aparece el botón
+**✉ Enviar mensaje a los N sin respuesta**. Abre la lista, del más estancado al menos, con:
+- Filtro "Todos" o "30 días o más".
+- **Enviar** en cada uno: abre WhatsApp con el mensaje armado para ese contacto.
+- Cada envío **cuenta como gestión de hoy** y los 30 días vuelven a empezar.
+- Marca los ya enviados hoy y los que no tienen teléfono.
+
+(WhatsApp no permite enviar a todos de un solo toque: se manda uno por uno, pero sin escribir nada.)
+
+## 4. Inacción de 30 días
+
+"Sin Respuesta" tiene **30 días** de tolerancia (las otras etapas tienen 5 a 7). Si pasan 30 días
+desde la última visita o mensaje, aparece en las alertas de **contactos sin gestionar** para volver
+a insistir. Los 30 días se cambian en **Config > Umbrales de inacción**.
 
 ---
 
 ## Probado
 
-335 pruebas en el navegador simulado, sin errores (16 nuevas).
+368 pruebas en el navegador simulado, sin errores (33 nuevas).
