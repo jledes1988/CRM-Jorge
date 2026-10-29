@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.18 - 29/10/2026';
+var VERSION='9.19 - 29/10/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Sin Respuesta','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -7713,9 +7713,42 @@ function wf(inp,fk,lk,pk){
   });
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// v9.19 — ZONA FIJA AL PROSPECTAR A PIE
+// Al cargar un prospecto a mano, provincia, ciudad y barrio quedan fijos 30
+// minutos para el proximo. Cada carga vuelve a contar los 30 minutos. Se guarda
+// solo en este celular (cada vendedor prospecta en su zona).
+// ══════════════════════════════════════════════════════════════════════
+var ZONA_FIJA_MIN=30;
+function zonaFija(){
+  var z=lg('jzonaPros',null);
+  if(!z||!z.ts||!z.prov)return null;
+  if(Date.now()-z.ts>ZONA_FIJA_MIN*60000)return null;
+  if(D.user&&z.u&&z.u!==D.user.u)return null;
+  return z;
+}
+function guardarZonaFija(prov,ciu,bar){
+  if(!prov||!ciu)return;
+  ls('jzonaPros',{prov:prov,ciu:ciu,bar:bar||'',ts:Date.now(),u:D.user?D.user.u:''});
+}
+function soltarZonaFija(){
+  ls('jzonaPros',null);
+  ['pProv','pCiudad','pBarrio'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var bf=document.getElementById('pBarrioFg');if(bf)bf.style.display='none';
+  var n=document.getElementById('pZonaNota');if(n)n.style.display='none';
+  var p=document.getElementById('pProv');if(p)p.focus();
+}
+function notaZonaFijaHTML(z){
+  var hasta=new Date(z.ts+ZONA_FIJA_MIN*60000);
+  var hh=('0'+hasta.getHours()).slice(-2)+':'+('0'+hasta.getMinutes()).slice(-2);
+  return '<div id="pZonaNota" style="margin:-6px 0 12px;padding:8px 10px;border-radius:8px;border:1px solid var(--cyan);font-size:12px;display:flex;align-items:center;gap:8px"><div style="flex:1">&#128205; Zona fija hasta las <b>'+hh+'</b>: '+es(z.ciu)+(z.bar?' · '+es(z.bar):'')+'</div><button class="sm" onclick="soltarZonaFija()" style="font-size:11px;padding:3px 8px">Cambiar</button></div>';
+}
 // ── NUEVO PROSPECTO: wizard 4 pasos ───────────────────────────────────
 function aVisPros(id,nu){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
+  // Zona fija: solo en un alta nueva y si todavia no tiene ubicacion cargada
+  var _zf=(nu&&!c.prov&&!c.ciu)?zonaFija():null;
+  var _zp={prov:c.prov||(_zf?_zf.prov:''),ciu:c.ciu||(_zf?_zf.ciu:''),bar:c.bar||(_zf?_zf.bar:'')};
   var steps=[
     {sub:'1/4 · Datos del local',
      render:function(){
@@ -7735,9 +7768,10 @@ function aVisPros(id,nu){
          '<div class="fg"><label class="fl">Email <span style="font-size:10px;color:var(--muted)">(opcional)</span></label><input class="fi" id="pEmail" type="email" inputmode="email" placeholder="mail@ejemplo.com" value="'+es(c.email||'')+'"></div>'+
          '<div id="pDupAviso"></div>'+
          '<div class="fg"><label class="fl">Direccion</label><input class="fi" id="pDir" placeholder="Calle y numero" value="'+es(c.dir||'')+'"></div>'+
-         '<div class="fg" style="position:relative"><label class="fl">Provincia *</label><input class="fi" id="pProv" autocomplete="off" placeholder="Escribi para buscar..." value="'+es(c.prov||'')+'"><div id="pProvSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>'+
-         '<div class="fg" style="position:relative"><label class="fl">Ciudad *</label><input class="fi" id="pCiudad" autocomplete="off" placeholder="Escribi para buscar..." value="'+es(c.ciu||'')+'"><div id="pCiudadSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>'+
-         '<div class="fg" id="pBarrioFg" style="position:relative;'+(c.ciu==='Córdoba Capital'?'':'display:none')+'"><label class="fl">Barrio</label><input class="fi" id="pBarrio" autocomplete="off" placeholder="Escribi para buscar..." value="'+es(c.bar||'')+'"><div id="pBarrioSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>'+
+         '<div class="fg" style="position:relative"><label class="fl">Provincia *</label><input class="fi" id="pProv" autocomplete="off" placeholder="Escribi para buscar..." value="'+es(_zp.prov)+'"><div id="pProvSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>'+
+         '<div class="fg" style="position:relative"><label class="fl">Ciudad *</label><input class="fi" id="pCiudad" autocomplete="off" placeholder="Escribi para buscar..." value="'+es(_zp.ciu)+'"><div id="pCiudadSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>'+
+         '<div class="fg" id="pBarrioFg" style="position:relative;'+(_zp.ciu==='Córdoba Capital'?'':'display:none')+'"><label class="fl">Barrio</label><input class="fi" id="pBarrio" autocomplete="off" placeholder="Escribi para buscar..." value="'+es(_zp.bar)+'"><div id="pBarrioSugg" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);max-height:200px;overflow-y:auto;z-index:50"></div></div>'+
+         (_zf?notaZonaFijaHTML(_zf):'')+
          '<div class="fg"><label class="fl">Tipo de negocio</label><div class="chips" style="margin-top:6px">'+tH+'</div></div>'+
          '<div class="fg"><label class="fl">Productos que le queremos vender (podes elegir varios)</label><div class="chips" style="margin-top:6px">'+prodH+'</div></div>';
      },
@@ -7779,6 +7813,7 @@ function aVisPros(id,nu){
        c.prov=d.prov=document.getElementById('pProv').value.trim();
        c.ciu=d.ciu=document.getElementById('pCiudad').value.trim();
        var bEl=document.getElementById('pBarrio');c.bar=d.bar=(bEl&&c.ciu==='Córdoba Capital')?bEl.value.trim():'';
+       if(nu)guardarZonaFija(c.prov,c.ciu,c.bar);   // v9.19: queda fija 30 min para el proximo
        c.tipo=d.tipo=gc('tip');
        c.prods=d.prods=gcs('prods');
        var emailEl2=document.getElementById('pEmail');c.email=d.email=emailEl2?emailEl2.value.trim():'';

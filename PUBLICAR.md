@@ -1,9 +1,22 @@
-# CRM-Jorge — Versión 9.18 · Alta de usuarios fácil y etapa "Sin Respuesta"
+# CRM-Jorge — Versión 9.19 · Zona fija al prospectar, alta de usuarios fácil y etapa "Sin Respuesta"
 
 **Solo cambió `app.js`.** Los otros dos son los mismos; van los tres juntos.
-Para verificar: en el login y en Config > Debug tiene que decir **9.18 - 29/10/2026**.
+Para verificar: en el login y en Config > Debug tiene que decir **9.19 - 29/10/2026**.
+
+(Si no llegaste a subir la 9.18, esta la incluye: subí solo esta.)
 
 ---
+
+## 0. Zona fija al prospectar a pie (nuevo en la 9.19)
+
+Al cargar un prospecto a mano, **provincia, ciudad y barrio quedan fijos 30 minutos**:
+el próximo prospecto ya los trae cargados y solo completás nombre y teléfono.
+- Arriba de "Tipo de negocio" se ve: "📍 Zona fija hasta las 10:30: Córdoba Capital · Alberdi".
+- Cada prospecto que cargás vuelve a contar los 30 minutos, así que mientras sigas
+  caminando la zona no se pierde.
+- Si cambiás de barrio, tocá **Cambiar** y elegís la zona nueva (queda fija desde ahí).
+- Es por celular y por usuario: no le pasa la zona a otro vendedor.
+- Editar un prospecto que ya existe no le cambia la zona.
 
 ## 1. Crear usuarios sin entrar a Firebase
 
@@ -54,4 +67,4 @@ a insistir. Los 30 días se cambian en **Config > Umbrales de inacción**.
 
 ## Probado
 
-368 pruebas en el navegador simulado, sin errores (33 nuevas).
+380 pruebas en el navegador simulado, sin errores (45 nuevas).
