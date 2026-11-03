@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.19 - 29/10/2026';
+var VERSION='9.20 - 03/11/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Sin Respuesta','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -697,9 +697,9 @@ function plata(n){
   n=Number(n)||0;
   return '$'+n.toLocaleString('es-AR',{maximumFractionDigits:0});
 }
-// Suma lo facturado por un contacto (solo visitas con monto cargado)
+// Suma lo facturado por un contacto: sus pedidos entregados (v9.20)
 function facturadoDe(cid){
-  return D.vis.reduce(function(t,v){return t+((v.cid===cid&&v.vendio===true&&v.monto)?Number(v.monto):0);},0);
+  return sumaPedidos(D.ped.filter(function(p){return p.cid===cid&&pedidoEntregado(p);}));
 }
 function h2r(h){return parseInt(h.slice(1,3),16)+','+parseInt(h.slice(3,5),16)+','+parseInt(h.slice(5,7),16);}
 function toast(m,t){var el=document.getElementById('toast');el.textContent=m;el.className='on';el.style.background=t==='err'?'rgba(248,113,113,.2)':t==='ok'?'rgba(74,222,128,.2)':'rgba(34,211,238,.15)';el.style.color=t==='err'?'var(--red)':t==='ok'?'var(--green)':'var(--cyan)';setTimeout(function(){el.className='';},2500);}
@@ -1418,11 +1418,11 @@ function renderVH(){
 
   // Stat boxes de HOY
   var visHoy=misVis.filter(function(v){return v.fecha===hoy;});
-  var ventasHoy=visHoy.filter(function(v){return v.vendio===true;});
+  var ventasHoy=pedidosTomadosEn(misPedidos(),hoy,hoy);
   var prosHoy=misCli.filter(function(c){return c.ing===hoy;});
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">';
   h+='<div class="sb"><div class="sn">'+visHoy.length+'</div><div class="sl2">Visitas hoy</div></div>';
-  h+='<div class="sb"><div class="sn" style="color:var(--green)">'+ventasHoy.length+'</div><div class="sl2">Ventas hoy</div></div>';
+  h+='<div class="sb"><div class="sn" style="color:var(--green)">'+ventasHoy.length+'</div><div class="sl2">Pedidos hoy</div></div>';
   h+='<div class="sb"><div class="sn" style="color:var(--orange)">'+prosHoy.length+'</div><div class="sl2">Prospectos hoy</div></div>';
   h+='</div>';
 
@@ -1450,9 +1450,9 @@ function renderVH(){
     });
     visHoy.forEach(function(v){
       var c=D.cli.find(function(x){return x.id===v.cid;});
-      h+='<div class="vh" style="border-left:3px solid '+(v.vendio===true?'var(--green)':'var(--border)')+'">';
+      h+='<div class="vh" style="border-left:3px solid '+(visitaConVenta(v)?'var(--green)':'var(--border)')+'">';
       h+='<div class="vhd">'+es(c?c.nm:'?')+(c&&c.fan?' · '+es(c.fan):'')+'</div>';
-      h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita a prospecto':v.vendio===true?'Venta realizada':'Sin venta')+'</div>';
+      h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita a prospecto':visitaConVenta(v)?'Venta realizada':'Sin venta')+'</div>';
       if(v.vendio===false&&v.razones)h+='<div class="vhx" style="color:var(--muted)">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>';
       if(v.nt)h+='<div class="vhx" style="font-style:italic">'+es(v.nt)+'</div>';
       h+='</div>';
@@ -1579,9 +1579,9 @@ function verDetalleDiaVH(dia){
   });
   misVis.forEach(function(v){
     var c=D.cli.find(function(x){return x.id===v.cid;});
-    h+='<div class="vh" style="border-left:3px solid '+(v.vendio===true?'var(--green)':'var(--border)')+'">';
+    h+='<div class="vh" style="border-left:3px solid '+(visitaConVenta(v)?'var(--green)':'var(--border)')+'">';
     h+='<div class="vhd">'+es(c?c.nm:'?')+(c&&c.fan?' · '+es(c.fan):'')+'</div>';
-    h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita a prospecto':v.vendio===true?'Venta realizada':'Sin venta')+'</div>';
+    h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita a prospecto':visitaConVenta(v)?'Venta realizada':'Sin venta')+'</div>';
     if(v.vendio===false&&v.razones)h+='<div class="vhx" style="color:var(--muted)">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>';
     if(v.nt)h+='<div class="vhx" style="font-style:italic">'+es(v.nt)+'</div>';
     h+='</div>';
@@ -1723,7 +1723,7 @@ function abrirFichaV(id){
     h+='<div class="div"></div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">ULTIMAS VISITAS</div>';
     vs.forEach(function(v){
       h+='<div class="vh"><div class="vhd">'+fmt(v.fecha)+'</div>';
-      h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita prospecto':v.vendio===true?'Venta realizada':'Sin venta')+'</div>';
+      h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita prospecto':visitaConVenta(v)?'Venta realizada':'Sin venta')+'</div>';
       if(v.obs)h+='<div class="vhx">'+es(v.obs)+'</div>';
       h+='</div>';
     });
@@ -1929,8 +1929,8 @@ function guardarDatosAlta(cid){
   refrescarVistaActual();
 }
 function sincronizarEsP(c,eta){
-  if(eta==='Cliente Activo'){ if(c.esP){c.esP=false;return 'alta';} return ''; }
-  if(!c.esP)  { c.esP=true; return 'baja'; }
+  if(eta==='Cliente Activo'){ if(c.esP){c.esP=false;c.fAlta=today();return 'alta';} return ''; }
+  if(!c.esP)  { c.esP=true; delete c.fAlta; return 'baja'; }
   return '';
 }
 function cambiarEtapa(id,eta){
@@ -3035,7 +3035,7 @@ function guardarVisitaProspecto(id){
     if(ped){
       v.pid=ped.id;v.fechaPedido=ped.fecha;v.monto=Number(ped.total||0);
       c.uv=ped.fecha;
-      if(c.esP){c.esP=false;c.etapaEmbudo='Cliente Activo';v.eta='Cliente Activo';v.conversion=true;conv=true;}
+      if(c.esP){c.esP=false;c.etapaEmbudo='Cliente Activo';c.fAlta=hoy;v.eta='Cliente Activo';v.conversion=true;conv=true;}
     } else {
       toast('Marcaste que vendiste pero no cargaste el pedido','err');
       return;
@@ -3366,7 +3366,7 @@ function renderGP(){
     '</div>';
   // gVendSel: si el admin esta mirando a un vendedor puntual, se respeta
   var base=D.ped.slice();
-  if(gVendSel){var ids={};cliGlobal().forEach(function(c){ids[c.id]=true;});base=base.filter(function(p){return ids[p.cid];});}
+  if(gVendSel)base=pedidosAlcanceAdmin();
   cont.innerHTML=gPSolapa==='ronda'?htmlRondaPanel():
                  gPSolapa==='entr'?htmlEntregasPanel():
                  gPSolapa==='pagos'?htmlPagosPanel():
@@ -3395,6 +3395,7 @@ function renderVV(){
 // ── Solapa Pedidos ───────────────────────────────────────────────────
 function htmlPedidosPanel(base){
   var ps=pedidosDelPeriodo(base,vVPer);
+  var _canc=ps.filter(function(p){return estadoPedido(p)==='anulado';});
   var tot=ps.reduce(function(t,p){return t+Number(p.total||0);},0);
   // Solo debe lo ENTREGADO y no cobrado: lo tomado se cobra al entregar
   var cob=ps.reduce(function(t,p){return t+(pedidoEntregado(p)&&p.cobrado!==undefined?Math.min(Number(p.cobrado||0),Number(p.total||0)):Number(p.total||0));},0);
@@ -3407,7 +3408,8 @@ function htmlPedidosPanel(base){
   if(vVPer==='rango')h+=filtroRangoHTML('ped');
   h+='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">';
   h+='<div><div style="font-size:22px;font-weight:800">'+ps.length+'</div><div style="font-size:10px;color:var(--muted)">PEDIDOS</div></div>';
-  h+='<div><div style="font-size:22px;font-weight:800;color:var(--green)">'+plata(tot)+'</div><div style="font-size:10px;color:var(--muted)">VENDIDO</div></div>';
+  h+='<div><div style="font-size:22px;font-weight:800;color:var(--green)">'+plata(tot)+'</div><div style="font-size:10px;color:var(--muted)">TOMADO</div></div>';
+  if(_canc.length)h+='<div><div style="font-size:22px;font-weight:800;color:var(--muted)">'+_canc.length+'</div><div style="font-size:10px;color:var(--muted)">CANCELADOS</div></div>';
   h+='<div><div style="font-size:22px;font-weight:800;color:'+(tot-cob>0?'var(--red)':'var(--muted)')+'">'+plata(tot-cob)+'</div><div style="font-size:10px;color:var(--muted)">SIN COBRAR</div></div>';
   h+='</div></div>';
   if(!ps.length){
@@ -4264,23 +4266,23 @@ function renderGD(){
   var prospectos=cliBase.filter(function(c){return c.esP;});
   var vendedores=D.usrs.filter(function(u){return u.r==='vendedor'&&u.activo!==false;});
   // Metricas
-  var pros_nuevos=prospectos.filter(function(c){return c.ing>=per.desde&&c.ing<=per.hasta;});
+  var pros_nuevos=contactosNuevosEn(cliBase,per.desde,per.hasta);
   var cli_visit=clientes.filter(function(c){return vis.some(function(v){return v.cid===c.id;});});
-  var ventas=vis.filter(function(v){return v.vendio===true;});
-  var conv=vis.filter(function(v){return v.conversion===true;});
-  // Firmados en el periodo: los que tienen fecha de firma; los viejos (sin esa fecha), si ya pasaron la firma
-  var com_per=D.com.filter(function(co){
-    var e=estadoComodato(co);
-    if(co.ff)return co.ff>=per.desde&&co.ff<=per.hasta;
-    return (e==='por_entregar'||e==='activo')&&co.fe>=per.desde&&co.fe<=per.hasta;
-  });
+  // v9.20: ventas y facturacion salen de los PEDIDOS (como en la pestaña Pedidos)
+  var _peds=pedidosAlcanceAdmin();
+  var tom=pedidosTomadosEn(_peds,per.desde,per.hasta);
+  var ent=pedidosEntregadosEn(_peds,per.desde,per.hasta);
+  var canc=tom.filter(function(p){return estadoPedido(p)==='anulado';});
+  var conv=convertidosEn(clientes,per.desde,per.hasta);
+  var _idsBase={};cliBase.forEach(function(c){_idsBase[c.id]=true;});
+  var com_per=D.com.filter(function(co){return _idsBase[co.cid]&&comodatoFirmadoEn(co,per.desde,per.hasta);});
   // Alertas
   var alertas=[];
   var sv30=clientes.filter(function(c){return !c.ul||dias(c.ul)>30;});
   if(sv30.length)alertas.push({t:'r',msg:sv30.length+' cliente'+(sv30.length!==1?'s':'')+' sin visita hace +30 dias',ids:sv30.map(function(c){return c.id;})});
-  var ps7=prospectos.filter(function(c){return !c.ul||dias(c.ul)>7;});
-  if(ps7.length)alertas.push({t:'r',msg:ps7.length+' prospecto'+(ps7.length!==1?'s':'')+' sin seguimiento hace +7 dias',ids:ps7.map(function(c){return c.id;})});
-  var pest=prospectos.filter(function(c){return c.ul&&dias(c.ul)>14&&c.etapaEmbudo!=='Cliente Activo';});
+  var ps7=prospectos.filter(fueraDePlazo);
+  if(ps7.length)alertas.push({t:'r',msg:ps7.length+' prospecto'+(ps7.length!==1?'s':'')+' sin seguimiento (pasaron el plazo de su etapa)',ids:ps7.map(function(c){return c.id;})});
+  var pest=prospectos.filter(function(c){var e=etapaDe(c);return c.ul&&dias(c.ul)>14&&e!=='Cliente Activo'&&e!=='Sin Respuesta'&&SA.indexOf(e)<0;});
   if(pest.length)alertas.push({t:'o',msg:pest.length+' prospecto'+(pest.length!==1?'s':'')+' estancado'+(pest.length!==1?'s':'')+' en el embudo sin avance +14 dias',ids:pest.map(function(c){return c.id;})});
   var msv=clientes.filter(function(c){var vc=D.vis.filter(function(v){return v.cid===c.id&&v.tipo==='cliente';}).slice(-3);return vc.length>=3&&vc.every(function(v){return v.vendio===false;});});
   if(msv.length)alertas.push({t:'o',msg:msv.length+' cliente'+(msv.length!==1?'s':'')+' con 3+ visitas consecutivas sin compra',ids:msv.map(function(c){return c.id;})});
@@ -4329,32 +4331,30 @@ function renderGD(){
   [{n:pros_nuevos.length,l:'Prospectos nuevos',c:'var(--orange)',ids:pros_nuevos.map(function(c){return c.id;})},
    {n:cli_visit.length,l:'Clientes visitados',c:'var(--cyan)',ids:cli_visit.map(function(c){return c.id;})},
    {n:vis.length,l:'Visitas totales',c:'var(--text)',ids:null},
-   {n:ventas.length,l:'Ventas realizadas',c:'var(--green)',ids:null},
-   {n:conv.length,l:'Conversiones',c:'var(--purple)',ids:conv.map(function(v){return v.cid;}).filter(function(id,i,a){return a.indexOf(id)===i;})},
+   {n:tom.length,l:'Pedidos tomados',c:'var(--green)',ids:cidsUnicos(tom)},
+   {n:ent.length,l:'Pedidos entregados',c:'var(--green)',ids:cidsUnicos(ent)},
+   {n:conv.length,l:'Pasaron a cliente',c:'var(--purple)',ids:conv.map(function(c){return c.id;})},
    {n:com_per.length,l:'Comodatos firmados',c:'var(--yellow)',ids:null}
   ].forEach(function(k){
     var click=k.ids&&k.ids.length?' onclick="abrirListaDash('+JSON.stringify(k.ids).replace(/"/g,"'")+')" style="cursor:pointer"':' style="cursor:default"';
     h+='<div class="sb"'+click+'><div class="sn" style="color:'+k.c+'">'+k.n+'</div><div class="sl2">'+es(k.l)+'</div></div>';
   });
   h+='</div>';
-  // Facturacion del periodo: solo cuenta las ventas que tienen monto cargado.
-  // Si hay ventas sin monto se avisa, para que el numero no se lea como total real.
-  var conMonto=ventas.filter(function(v){return v.monto;});
-  var totalFact=conMonto.reduce(function(t,v){return t+Number(v.monto||0);},0);
-  var ticket=conMonto.length?Math.round(totalFact/conMonto.length):0;
+  // Facturacion del periodo (v9.20): lo ENTREGADO, por fecha de entrega
+  var totalFact=sumaPedidos(ent);
+  var ticket=ent.length?Math.round(totalFact/ent.length):0;
   h+='<div class="sg" style="margin-bottom:14px">';
-  h+='<div class="sb"><div class="sn" style="color:var(--green);font-size:22px">'+plata(totalFact)+'</div><div class="sl2">Facturado en el periodo</div></div>';
+  h+='<div class="sb"><div class="sn" style="color:var(--green);font-size:22px">'+plata(totalFact)+'</div><div class="sl2">Facturado (entregado)</div></div>';
   h+='<div class="sb"><div class="sn" style="color:var(--cyan);font-size:22px">'+plata(ticket)+'</div><div class="sl2">Ticket promedio</div></div>';
+  h+='<div class="sb"><div class="sn" style="font-size:22px">'+plata(sumaPedidos(tom))+'</div><div class="sl2">Tomado en el período</div></div>';
   h+='</div>';
-  if(ventas.length>conMonto.length){
-    h+='<div style="font-size:11px;color:var(--orange);margin:-6px 0 14px">&#9888; '+(ventas.length-conMonto.length)+' de '+ventas.length+' ventas del periodo no tienen monto cargado: la facturacion real es mayor.</div>';
-  }
+  if(canc.length)h+='<div style="font-size:11px;color:var(--muted);margin:-6px 0 14px">'+canc.length+' de los '+tom.length+' pedidos tomados se cancelaron ('+plata(sumaPedidos(canc))+').</div>';
   // Ranking vendedores
   if(vendedores.length){
     var rvh='<div class="bc">';
     var mx=0;
-    var rvd=vendedores.map(function(u){var vv=vis.filter(function(v){return v.vend===u.n;});var vtas=vv.filter(function(v){return v.vendio===true;}).length;mx=Math.max(mx,vv.length);return{n:u.n,v:vv.length,vtas:vtas};}).sort(function(a,b){return b.v-a.v;});
-    rvd.forEach(function(d){rvh+='<div class="br" style="cursor:pointer" onclick="oMod(\'Informe: '+es(d.n)+'\',\'\');_renderInformeVendedor(\''+es(d.n)+'\')"><div class="bl" style="color:var(--cyan);text-decoration:underline">'+es(d.n)+'</div><div class="bt"><div class="bf" style="width:'+(mx>0?Math.round(d.v/mx*100):0)+'%;background:var(--cyan)"></div></div><div class="bv">'+d.v+'</div><div style="font-size:10px;color:var(--green);width:44px;text-align:right">'+d.vtas+' vtas</div></div>';});
+    var rvd=vendedores.map(function(u){var vv=vis.filter(function(v){return v.vend===u.n;});var vtas=pedidosTomadosEn(pedidosDeVendedor(u.n),per.desde,per.hasta).length;mx=Math.max(mx,vv.length);return{n:u.n,v:vv.length,vtas:vtas};}).sort(function(a,b){return b.v-a.v;});
+    rvd.forEach(function(d){rvh+='<div class="br" style="cursor:pointer" onclick="oMod(\'Informe: '+es(d.n)+'\',\'\');_renderInformeVendedor(\''+es(d.n)+'\')"><div class="bl" style="color:var(--cyan);text-decoration:underline">'+es(d.n)+'</div><div class="bt"><div class="bf" style="width:'+(mx>0?Math.round(d.v/mx*100):0)+'%;background:var(--cyan)"></div></div><div class="bv">'+d.v+'</div><div style="font-size:10px;color:var(--green);width:44px;text-align:right">'+d.vtas+' ped.</div></div>';});
     rvh+='</div>';
     h+=sG('Ranking de vendedores',rvh);
   }
@@ -4362,11 +4362,11 @@ function renderGD(){
   var emh='<div>';
   var totCli=cliBase.length||1;
   ET.forEach(function(et){
-    var n=cliBase.filter(function(c){return c.etapaEmbudo===et;}).length;if(!n)return;
+    var n=cliBase.filter(function(c){return etapaDe(c)===et;}).length;if(!n)return;
     var col=EC[et]||'var(--muted)';var pct=Math.round(n/totCli*100);
     emh+='<div class="br" style="cursor:pointer;margin-bottom:4px" onclick="abrirListaEtapa(\''+es(et)+'\')"><div class="bl">'+es(et)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(n/Math.max(totCli,1)*100)+'%;background:'+col+'"></div></div><div class="bv">'+n+'</div><div style="font-size:10px;color:var(--muted);width:30px;text-align:right">'+pct+'%</div></div>';
   });
-  SA.forEach(function(et){var n=cliBase.filter(function(c){return c.etapaEmbudo===et;}).length;if(!n)return;emh+='<div class="br"><div class="bl" style="color:var(--red)">'+es(et)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(n/totCli*100)+'%;background:var(--red);opacity:.4"></div></div><div class="bv">'+n+'</div></div>';});
+  SA.forEach(function(et){var n=cliBase.filter(function(c){return etapaDe(c)===et;}).length;if(!n)return;emh+='<div class="br"><div class="bl" style="color:var(--red)">'+es(et)+'</div><div class="bt"><div class="bf" style="width:'+Math.round(n/totCli*100)+'%;background:var(--red);opacity:.4"></div></div><div class="bv">'+n+'</div></div>';});
   emh+='</div>';
   h+=sG('Embudo de ventas (clickeable por etapa)',emh);
   // Clientes sin visitar
@@ -4426,7 +4426,7 @@ function renderGD(){
   var rec=recBase.filter(function(v){return dias(v.fecha)<=2;}).slice().reverse().slice(0,15);
   if(rec.length){
     var rh='';
-    rec.forEach(function(v){var c=D.cli.find(function(x){return x.id===v.cid;});rh+='<div class="vh"><div class="vhd">'+fmt(v.fecha)+(v.vend?' · '+es(v.vend):'')+'</div><div class="vhr">'+es(c?c.nm:'?')+' — '+(v.tipo==='prospecto'?'Visita prospecto':v.vendio===true?'VENTA':'Sin venta')+'</div>'+(v.vendio===false&&v.razones?'<div class="vhx">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>':'')+'</div>';});
+    rec.forEach(function(v){var c=D.cli.find(function(x){return x.id===v.cid;});rh+='<div class="vh"><div class="vhd">'+fmt(v.fecha)+(v.vend?' · '+es(v.vend):'')+'</div><div class="vhr">'+es(c?c.nm:'?')+' — '+(v.tipo==='prospecto'?'Visita prospecto':visitaConVenta(v)?'VENTA':'Sin venta')+'</div>'+(v.vendio===false&&v.razones?'<div class="vhx">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>':'')+'</div>';});
     h+=sG('Actividad reciente (48hs)',rh);
   }
   // ── EMBUDO EN BARRAS DE PORCENTAJE ─────────────────────────────────
@@ -4463,8 +4463,8 @@ function renderGD(){
     h+=sG('Distribucion por tipo de negocio',pieChartHTML(pTipo));
   }
   // 3. Resultado de visitas en el periodo
-  var vVenta=vis.filter(function(v){return v.vendio===true;}).length;
-  var vSinVenta=vis.filter(function(v){return v.vendio===false;}).length;
+  var vVenta=vis.filter(function(v){return visitaConVenta(v);}).length;
+  var vSinVenta=vis.filter(visitaSinVenta).length;
   var vSinDef=vis.length-vVenta-vSinVenta;
   var pRes=[];
   if(vVenta)pRes.push({label:'Con venta',value:vVenta,color:'var(--green)'});
@@ -5428,7 +5428,7 @@ function ajustarDeudaDePedido(ped,debe){
 function recalcularUltimaCompra(cid){
   var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
   var ps=pedidosDe(cid);
-  var vs=D.vis.filter(function(v){return v.cid===cid&&v.vendio===true&&v.fecha;});
+  var vs=D.vis.filter(function(v){return v.cid===cid&&visitaConVenta(v)&&v.fecha;});
   var fechas=ps.map(function(p){return p.fecha;}).concat(vs.map(function(v){return v.fecha;})).filter(Boolean).sort();
   c.uv=fechas.length?fechas[fechas.length-1]:'';
   fsSetContacto(c);
@@ -5809,7 +5809,7 @@ function aFicha(id){
   vs.forEach(function(v){
     h+='<div class="vh"><div class="vhd">'+fmt(v.fecha)+(v.vend?' · '+es(v.vend):'')+'</div>';
     if(v.tipo==='cliente'){
-      h+='<div class="vhr">'+(v.vendio===true?('Venta realizada'+(v.monto?' &middot; <span style="color:var(--green)">'+plata(v.monto)+'</span>':'')):v.vendio===false?'Sin venta':'Sin dato de venta')+'</div>';
+      h+='<div class="vhr">'+(visitaConVenta(v)?('Venta realizada'+(v.monto?' &middot; <span style="color:var(--green)">'+plata(v.monto)+'</span>':'')):v.vendio===false?'Sin venta':'Sin dato de venta')+'</div>';
       if(v.vendio===false&&v.razones)h+='<div class="vhx">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>';
       if(v.iE)h+='<div class="vhx">Local ext: '+es(v.iE)+(v.iI?' · int: '+es(v.iI):'')+'</div>';
       if(v.frfX&&v.frfX!=='OK')h+='<div class="vhx" style="color:var(--orange)">Freezer ext: '+es(v.frfX)+'</div>';
@@ -5992,7 +5992,8 @@ var gVF={per:'30d',vend:'',res:'',tipNeg:'',prov:'',eta:'',bar:'',comp:'',q:'',d
 // KPIs, grilla dia-por-dia y comparativa semanal para controlar el trabajo de cada vendedor.
 function kpisVendedor(vend,desde,hasta){
   var vs=D.vis.filter(function(v){return v.vend===vend&&v.fecha>=desde&&v.fecha<=hasta;});
-  var ventas=vs.filter(function(v){return v.vendio===true;}).length;
+  var ventas=pedidosTomadosEn(pedidosDeVendedor(vend),desde,hasta).length;
+  var conVenta=vs.filter(visitaConVenta).length;
   var diasTrab={};vs.forEach(function(v){diasTrab[v.fecha]=true;});
   var nDias=Object.keys(diasTrab).length;
   // Dias habiles del periodo sin ninguna actividad
@@ -6002,7 +6003,7 @@ function kpisVendedor(vend,desde,hasta){
     if(d.getDay()>=1&&d.getDay()<=5&&ds<=hoyS&&!diasTrab[ds])sinAct++;
     d.setDate(d.getDate()+1);
   }
-  return{visitas:vs.length,ventas:ventas,efect:vs.length?Math.round(ventas/vs.length*100):0,prom:nDias?(vs.length/nDias).toFixed(1):'0',diasTrab:nDias,sinAct:sinAct};
+  return{visitas:vs.length,ventas:ventas,conVenta:conVenta,efect:vs.length?Math.round(conVenta/vs.length*100):0,prom:nDias?(vs.length/nDias).toFixed(1):'0',diasTrab:nDias,sinAct:sinAct};
 }
 function panelControlHTML(vend,desde,hasta){
   var k=kpisVendedor(vend,desde,hasta);
@@ -6026,7 +6027,7 @@ function panelControlHTML(vend,desde,hasta){
   h+='<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">ESTA SEMANA VS. LA ANTERIOR</div>';
   h+='<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-bottom:14px">';
   h+='<div>Visitas: <b>'+kAct.visitas+'</b> '+flecha(kAct.visitas,kAnt.visitas)+' <span style="color:var(--muted);font-size:11px">(ant: '+kAnt.visitas+')</span></div>';
-  h+='<div>Ventas: <b>'+kAct.ventas+'</b> '+flecha(kAct.ventas,kAnt.ventas)+' <span style="color:var(--muted);font-size:11px">(ant: '+kAnt.ventas+')</span></div>';
+  h+='<div>Pedidos: <b>'+kAct.ventas+'</b> '+flecha(kAct.ventas,kAnt.ventas)+' <span style="color:var(--muted);font-size:11px">(ant: '+kAnt.ventas+')</span></div>';
   h+='<div>Efectividad: <b>'+kAct.efect+'%</b> '+flecha(kAct.efect,kAnt.efect)+' <span style="color:var(--muted);font-size:11px">(ant: '+kAnt.efect+'%)</span></div>';
   h+='</div>';
   // Grilla dia por dia del periodo (ultimos 14 dias habiles como maximo visual)
@@ -6037,8 +6038,8 @@ function panelControlHTML(vend,desde,hasta){
     var ds2=fechaLocal(dd);
     if(dd.getDay()>=1&&dd.getDay()<=5&&ds2<=hoyS2){
       var vsD=D.vis.filter(function(v){return v.vend===vend&&v.fecha===ds2;});
-      var venD=vsD.filter(function(v){return v.vendio===true;}).length;
-      var col=vsD.length===0?'var(--red)':venD>0?'var(--green)':'var(--orange)';
+      var venD=vsD.filter(visitaConVenta).length+pedidosTomadosEn(pedidosDeVendedor(vend),ds2,ds2).length;
+      var col=(vsD.length===0&&!venD)?'var(--red)':venD>0?'var(--green)':'var(--orange)';
       var nom=dd.toLocaleDateString('es-AR',{weekday:'short',day:'numeric'});
       celdas.push('<div onclick="verDiaVendedor(\''+es(vend)+'\',\''+ds2+'\')" style="cursor:pointer;background:var(--s2);border:1px solid '+col+';border-radius:8px;padding:6px 8px;text-align:center;min-width:52px"><div style="font-size:9px;color:var(--muted)">'+nom+'</div><div style="font-size:13px;font-weight:800;color:'+col+'">'+vsD.length+'</div><div style="font-size:9px;color:var(--muted)">'+venD+' vta'+(venD!==1?'s':'')+'</div></div>');
     }
@@ -6046,7 +6047,7 @@ function panelControlHTML(vend,desde,hasta){
   }
   h+=celdas.reverse().join('');
   h+='</div>';
-  h+='<div style="font-size:10px;color:var(--muted);margin-top:6px">Verde: con venta &middot; Naranja: visitas sin venta &middot; Rojo: sin actividad &middot; Toca un dia para ver el detalle</div>';
+  h+='<div style="font-size:10px;color:var(--muted);margin-top:6px">Verde: con pedido &middot; Naranja: visitas sin pedido &middot; Rojo: sin actividad &middot; Toca un dia para ver el detalle</div>';
   h+='</div>';
   return h;
 }
@@ -6057,9 +6058,9 @@ function verDiaVendedor(vend,fecha){
   if(!vs.length)h='<div class="empty">Sin visitas registradas ese dia</div>';
   vs.forEach(function(v){
     var c=D.cli.find(function(x){return x.id===v.cid;});
-    h+='<div class="vh" style="border-left:3px solid '+(v.vendio===true?'var(--green)':'var(--border)')+'">';
+    h+='<div class="vh" style="border-left:3px solid '+(visitaConVenta(v)?'var(--green)':'var(--border)')+'">';
     h+='<div class="vhd">'+es(c?c.nm:'?')+'</div>';
-    h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita a prospecto':v.vendio===true?'Venta realizada':'Sin venta')+'</div>';
+    h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita a prospecto':visitaConVenta(v)?'Venta realizada':'Sin venta')+'</div>';
     if(v.nt)h+='<div class="vhx" style="font-style:italic">'+es(v.nt)+'</div>';
     h+='</div>';
   });
@@ -6139,8 +6140,8 @@ function renderGV(){
   else if(gVF.per==='rng'){desde=gVF.desde;hasta=gVF.hasta||hoy;}
   if(desde)vs=vs.filter(function(v){return v.fecha>=desde&&v.fecha<=hasta;});
   if(gVF.vend)vs=vs.filter(function(v){return v.vend===gVF.vend;});
-  if(gVF.res==='venta')vs=vs.filter(function(v){return v.vendio===true;});
-  else if(gVF.res==='sinventa')vs=vs.filter(function(v){return v.vendio===false;});
+  if(gVF.res==='venta')vs=vs.filter(function(v){return visitaConVenta(v);});
+  else if(gVF.res==='sinventa')vs=vs.filter(visitaSinVenta);
   else if(gVF.res==='prospecto')vs=vs.filter(function(v){return v.tipo==='prospecto';});
   if(gVF.tipNeg||gVF.prov||gVF.eta||gVF.bar||gVF.comp){
     vs=vs.filter(function(v){
@@ -6156,8 +6157,8 @@ function renderGV(){
   }
   if(gVF.q){var q=gVF.q.toLowerCase();vs=vs.filter(function(v){var c=D.cli.find(function(x){return x.id===v.cid;});return c&&((c.nm||'').toLowerCase().includes(q)||(c.fan||'').toLowerCase().includes(q));});}
   // Resultado
-  var ventas=vs.filter(function(v){return v.vendio===true;}).length;
-  var sinventa=vs.filter(function(v){return v.vendio===false;}).length;
+  var ventas=vs.filter(function(v){return visitaConVenta(v);}).length;
+  var sinventa=vs.filter(visitaSinVenta).length;
   h+='<div style="display:flex;gap:6px;padding:10px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap">';
   h+='<span style="font-size:11px;font-weight:700;color:var(--muted)">'+vs.length+' VISITAS</span>';
   h+='<span style="font-size:11px;color:var(--green)">'+ventas+' con venta</span>';
@@ -6167,8 +6168,8 @@ function renderGV(){
   if(!vs.length){h+='<div class="empty">Sin visitas con los filtros actuales</div>';document.getElementById('gVB').innerHTML=h;return;}
   vs.forEach(function(v){
     var c=D.cli.find(function(x){return x.id===v.cid;});
-    var res=v.tipo==='prospecto'?'Prospecto':v.vendio===true?'VENTA':'Sin venta';
-    var col=v.tipo==='prospecto'?'var(--orange)':v.vendio===true?'var(--green)':'var(--red)';
+    var res=v.tipo==='prospecto'?'Prospecto':visitaConVenta(v)?'VENTA':'Sin venta';
+    var col=v.tipo==='prospecto'?'var(--orange)':visitaConVenta(v)?'var(--green)':'var(--red)';
     h+='<div class="vh" style="cursor:pointer" onclick="'+(c?'aFicha(\''+c.id+'\')':'')+'">';
     h+='<div style="display:flex;justify-content:space-between;align-items:center">';
     h+='<div class="vhd">'+fmt(v.fecha)+(v.vend?' · <span style="color:var(--cyan)">'+es(v.vend)+'</span>':'')+'</div>';
@@ -6188,7 +6189,7 @@ function expCSV(){
   vs.forEach(function(v){
     var c=D.cli.find(function(x){return x.id===v.cid;});
     var m=v.razones?(Array.isArray(v.razones)?v.razones.join('; '):v.razones):'';
-    filas.push([v.fecha,v.vend||'',(c?c.nm:'?'),(c?c.tipo||'':''),(c?c.ciu||'':''),(c?c.bar||'':''),v.tipo||'',v.vendio===true?'SI':v.vendio===false?'NO':'',m,v.eta||c&&c.etapaEmbudo||'',v.nt||'']);
+    filas.push([v.fecha,v.vend||'',(c?c.nm:'?'),(c?c.tipo||'':''),(c?c.ciu||'':''),(c?c.bar||'':''),v.tipo||'',visitaConVenta(v)?'SI':v.vendio===false?'NO':'',m,v.eta||c&&c.etapaEmbudo||'',v.nt||'']);
   });
   descargarXLSX(filas,'visitas_'+today()+'.xlsx');
   toast('Excel exportado ('+vs.length+' visitas)','ok');
@@ -6218,9 +6219,9 @@ function _renderInformeVendedor(vend){
   });
   var prosT=misCli.filter(function(c){return c.esP;});
   var cliT=misCli.filter(function(c){return !c.esP;});
-  var prosNuevos=prosT.filter(function(c){return c.ing>=desde;});
-  var conv=misVisP.filter(function(v){return v.conversion===true;});
-  var ventasP=misVisP.filter(function(v){return v.vendio===true;});
+  var prosNuevos=contactosNuevosEn(misCli,desde,today());
+  var conv=convertidosEn(cliT,desde,today());
+  var ventasP=pedidosTomadosEn(pedidosDeVendedor(vend),desde,today());
   var cliVisP=cliT.filter(function(c){return misVisP.some(function(v){return v.cid===c.id;});});
   var cliNoVis=cliT.filter(function(c){return !c.ul||dias(c.ul)>30;});
   var comP=misCom.filter(function(co){return co.fe>=desde;});
@@ -6243,7 +6244,7 @@ function _renderInformeVendedor(vend){
   // KPIs principales
   h+='<div class="ct" style="margin-bottom:8px">RESUMEN DEL PERÍODO</div>';
   h+='<div class="sg" style="margin-bottom:14px">';
-  [{n:misVisP.length,l:'Visitas',c:'var(--cyan)'},{n:ventasP.length,l:'Ventas',c:'var(--green)'},{n:prosNuevos.length,l:'Prospectos nuevos',c:'var(--orange)'},{n:conv.length,l:'Conversiones',c:'var(--purple)'},{n:comP.length,l:'Comodatos firmados',c:'var(--yellow)'}].forEach(function(k){
+  [{n:misVisP.length,l:'Visitas',c:'var(--cyan)'},{n:ventasP.length,l:'Pedidos',c:'var(--green)'},{n:prosNuevos.length,l:'Prospectos nuevos',c:'var(--orange)'},{n:conv.length,l:'Conversiones',c:'var(--purple)'},{n:comP.length,l:'Comodatos firmados',c:'var(--yellow)'}].forEach(function(k){
     h+='<div class="sb"><div class="sn" style="color:'+k.c+'">'+k.n+'</div><div class="sl2">'+k.l+'</div></div>';
   });
   h+='</div>';
@@ -6283,7 +6284,7 @@ function _renderInformeVendedor(vend){
     var wEnd=new Date(wStart);wEnd.setDate(wStart.getDate()+6);
     var ws=fechaLocal(wStart);var we=fechaLocal(wEnd);
     var visW=misVis.filter(function(v){return v.fecha>=ws&&v.fecha<=we;});
-    var ventW=visW.filter(function(v){return v.vendio===true;});
+    var ventW=pedidosTomadosEn(pedidosDeVendedor(vend),ws,we);
     h+='<div class="br"><div class="bl" style="font-size:11px">'+wStart.toLocaleDateString('es-AR',{day:'numeric',month:'short'})+'</div><div class="bt"><div class="bf" style="width:'+(visW.length?Math.min(Math.round(visW.length/10*100),100):0)+'%;background:var(--cyan)"></div></div><div class="bv">'+visW.length+'</div><div style="font-size:10px;color:var(--green);width:40px;text-align:right">'+ventW.length+' vta</div></div>';
   }
   document.getElementById('mB').innerHTML=h;
@@ -6294,7 +6295,7 @@ function expCSVVendedor(vend){
   misVis.forEach(function(v){
     var c=D.cli.find(function(x){return x.id===v.cid;});
     var m=v.razones?(Array.isArray(v.razones)?v.razones.join('; '):v.razones):'';
-    filas.push([v.fecha,(c?c.nm:'?'),(c?c.tipo||'':''),(c?c.ciu||'':''),v.tipo||'',v.vendio===true?'SI':v.vendio===false?'NO':'',m,v.eta||c&&c.etapaEmbudo||'',v.nt||'']);
+    filas.push([v.fecha,(c?c.nm:'?'),(c?c.tipo||'':''),(c?c.ciu||'':''),v.tipo||'',visitaConVenta(v)?'SI':v.vendio===false?'NO':'',m,v.eta||c&&c.etapaEmbudo||'',v.nt||'']);
   });
   descargarXLSX(filas,'informe_'+vend+'_'+today()+'.xlsx');
   toast('Excel de '+vend+' exportado','ok');
@@ -6624,16 +6625,16 @@ function renderGI(){
   h+=rankingFreezersHTML();
   // ── PROSPECTOS ──
   h+='<div class="card"><div class="ct">PROSPECTOS</div>';
-  var prosNuevos=prospectos.filter(function(c){return c.ing>=per.desde&&c.ing<=per.hasta;});
-  var prosConv=visP.filter(function(v){return v.conversion===true;});
+  var prosNuevos=contactosNuevosEn(cliGlobal(),per.desde,per.hasta);
+  var prosConv=convertidosEn(clientes,per.desde,per.hasta);
   var prosPerdidos=prospectos.filter(function(c){return c.etapaEmbudo==='Perdido';});
   var prosNoInteresa=prospectos.filter(function(c){return c.etapaEmbudo==='No Le Interesa';});
-  var prosSinSeg=prospectos.filter(function(c){return !c.ul||dias(c.ul)>7;});
+  var prosSinSeg=prospectos.filter(fueraDePlazo);
   var tasaConv=prospectos.length?Math.round(prosConv.length/Math.max(prospectos.length+clientes.length,1)*100):0;
   h+='<div class="sg">';
   h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(prosNuevos.map(function(c){return c.id;})).replace(/"/g,"'")+')" style="cursor:pointer"><div class="sn" style="color:var(--orange)">'+prosNuevos.length+'</div><div class="sl2">Nuevos (periodo)</div></div>';
   h+='<div class="sb"><div class="sn" style="color:var(--green)">'+prosConv.length+'</div><div class="sl2">Convertidos</div></div>';
-  h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(prosSinSeg.map(function(c){return c.id;})).replace(/"/g,"'")+')" style="cursor:pointer"><div class="sn" style="color:var(--red)">'+prosSinSeg.length+'</div><div class="sl2">Sin seguimiento +7d</div></div>';
+  h+='<div class="sb" onclick="abrirListaDash('+JSON.stringify(prosSinSeg.map(function(c){return c.id;})).replace(/"/g,"'")+')" style="cursor:pointer"><div class="sn" style="color:var(--red)">'+prosSinSeg.length+'</div><div class="sl2">Sin seguimiento (fuera de plazo)</div></div>';
   h+='<div class="sb"><div class="sn">'+tasaConv+'%</div><div class="sl2">Tasa conversion</div></div>';
   h+='</div>';
   h+='<div style="margin-top:10px"><div class="br"><div class="bl">Prospectos por ciudad</div></div>';
@@ -6657,7 +6658,7 @@ function renderGI(){
 
   // ── VISITAS ──
   h+='<div class="card"><div class="ct">VISITAS (PERIODO)</div>';
-  var ventasP=visP.filter(function(v){return v.vendio===true;});
+  var ventasP=visP.filter(function(v){return visitaConVenta(v);});
   h+='<div class="sg">';
   h+='<div class="sb"><div class="sn">'+visP.length+'</div><div class="sl2">Total visitas</div></div>';
   h+='<div class="sb"><div class="sn" style="color:var(--green)">'+ventasP.length+'</div><div class="sl2">Con venta</div></div>';
@@ -6665,7 +6666,7 @@ function renderGI(){
   h+='<div style="margin-top:10px">';
   vendedores.forEach(function(u){
     var vv=visP.filter(function(v){return v.vend===u.n;});
-    var vt=vv.filter(function(v){return v.vendio===true;});
+    var vt=vv.filter(function(v){return visitaConVenta(v);});
     h+='<div class="br" style="cursor:pointer" onclick="oMod(\'Informe: '+es(u.n)+'\',\'\');_renderInformeVendedor(\''+es(u.n)+'\')"><div class="bl" style="color:var(--cyan);text-decoration:underline">'+es(u.n)+'</div><div class="bt"><div class="bf" style="width:'+(visP.length?Math.round(vv.length/Math.max(visP.length,1)*100):0)+'%;background:var(--cyan)"></div></div><div class="bv">'+vv.length+'</div><div style="font-size:10px;color:var(--green);width:50px;text-align:right">'+vt.length+' vtas</div></div>';
   });
   h+='</div></div>';
@@ -6728,7 +6729,7 @@ function renderGI(){
       g+='<div style="font-size:9px;color:var(--green)">'+d.s+' vta'+(d.s!==1?'s':'')+'</div>';
       g+='</div>';
     });
-    g+='</div><div style="font-size:10px;color:var(--muted);margin-top:8px">Barra cyan: visitas &middot; Barra verde: ventas</div></div>';
+    g+='</div><div style="font-size:10px;color:var(--muted);margin-top:8px">Barra cyan: visitas &middot; Barra verde: pedidos tomados</div></div>';
     return g;
   }
   var visBase=visGlobal();
@@ -6736,7 +6737,7 @@ function renderGI(){
   var mm=mesesConDatos().slice(0,12).reverse();
   h+=barrasDobles(mm.map(function(m){
     var vsM=visBase.filter(function(v){return v.fecha&&v.fecha.slice(0,7)===m;});
-    return{l:nombreMes(m).slice(0,3)+' '+m.slice(2,4),v:vsM.length,s:vsM.filter(function(v){return v.vendio===true;}).length};
+    return{l:nombreMes(m).slice(0,3)+' '+m.slice(2,4),v:vsM.length,s:pedidosTomadosEn(pedidosAlcanceAdmin(),m+'-01',m+'-31').length};
   }),'EVOLUCION MENSUAL'+(gVendSel?' - '+es(gVendSel).toUpperCase():''));
   // Evolucion semanal (ultimas 8 semanas)
   var sems=[];
@@ -6745,14 +6746,14 @@ function renderGI(){
     var finW=new Date(lunW);finW.setDate(finW.getDate()+6);
     var dW=fechaLocal(lunW),hW=fechaLocal(finW);
     var vsW=visBase.filter(function(v){return v.fecha>=dW&&v.fecha<=hW;});
-    sems.push({l:lunW.getDate()+'/'+(lunW.getMonth()+1),v:vsW.length,s:vsW.filter(function(v){return v.vendio===true;}).length});
+    sems.push({l:lunW.getDate()+'/'+(lunW.getMonth()+1),v:vsW.length,s:pedidosTomadosEn(pedidosAlcanceAdmin(),dW,hW).length});
   }
   h+=barrasDobles(sems,'EVOLUCION SEMANAL (ULTIMAS 8 SEMANAS)'+(gVendSel?' - '+es(gVendSel).toUpperCase():''));
   // Comparativa entre vendedores en el periodo elegido (solo si se ven todos)
   if(!gVendSel){
     h+=barrasDobles(vendedores.map(function(u){
       var vsU=D.vis.filter(function(v){return v.vend===u.n&&v.fecha>=per.desde&&v.fecha<=per.hasta;});
-      return{l:u.n,v:vsU.length,s:vsU.filter(function(v){return v.vendio===true;}).length};
+      return{l:u.n,v:vsU.length,s:pedidosTomadosEn(pedidosDeVendedor(u.n),per.desde,per.hasta).length};
     }),'COMPARATIVA DE VENDEDORES EN EL PERIODO');
   }
   document.getElementById('gIB').innerHTML=h;
@@ -7596,7 +7597,7 @@ function wFin(){
   var c=D.cli.find(function(x){return x.id===W.cid;});
   if(c){
     c.ul=v.fecha;
-    if(v.vendio===true)c.uv=v.fecha;
+    if(visitaConVenta(v))c.uv=v.fecha;
     // El pedido ya actualizo uv y la deuda: aca solo queda el vinculo
     if(v.eta){c.etapaEmbudo=v.eta;
       // Misma regla que en la visita a prospecto, y para los dos lados:
@@ -7631,7 +7632,7 @@ function wFin(){
     }
   }
   // Trazabilidad
-  if(W.tipo==='cliente'){logEvento('visita',W.cid,c?c.nm:'?',v.vendio===true?'Visita con venta':'Visita sin venta','','');}
+  if(W.tipo==='cliente'){logEvento('visita',W.cid,c?c.nm:'?',visitaConVenta(v)?'Visita con venta':'Visita sin venta','','');}
   else if(W.nu){logEvento('prospecto',W.cid,c?c.nm:'?','Nuevo prospecto registrado','','');}
   else{logEvento('visita',W.cid,c?c.nm:'?','Visita a prospecto','','');}
   fsSetVisita(v);
@@ -8711,7 +8712,7 @@ function entregarPedido(p,cobrado,prom){
   var convertido=false;
   if(c){
     c.uv=p.fechaEntrega;
-    if(c.esP){c.esP=false;c.etapaEmbudo='Cliente Activo';convertido=true;}
+    if(c.esP){c.esP=false;c.etapaEmbudo='Cliente Activo';c.fAlta=p.fechaEntrega;convertido=true;logEvento('conversion',c.id,c.nm,'Paso a Cliente Activo con su primer pedido entregado','',"Cliente Activo");}
     fsSetContacto(c);
   }
   var debe=Number(p.total||0)-p.cobrado;
@@ -8846,9 +8847,7 @@ function confirmarCierre(){
 // ── Entregados de los ultimos dias, para corregir despues ──
 function pedidosVisiblesUsuario(){
   if(!D.user||D.user.r==='admin'||D.user.r==='gerente'){
-    if(!gVendSel)return D.ped.slice();
-    var ids={};cliGlobal().forEach(function(c){ids[c.id]=true;});
-    return D.ped.filter(function(p){return ids[p.cid];});
+    return pedidosAlcanceAdmin();
   }
   return misPedidos();
 }
@@ -9925,13 +9924,13 @@ function datosInforme(t){
     var pagos=(D.deudas||[]).filter(function(m){return ids[m.cid]&&m.tipo==='pago'&&!m.aFavor&&!m.ajuste&&en(m.fecha,a,b);});
     var nuevos=misCli.filter(function(c){return c.esP!==undefined&&en(c.ing,a,b);});
     var colocados=D.com.filter(function(co){return ids[co.cid]&&estadoComodato(co)!=='cancel'&&(co.estado==='activo'||co.ret)&&en(co.fe,a,b);});
-    var firmados=D.com.filter(function(co){return ids[co.cid]&&co.ff&&en(co.ff,a,b);});
-    var conv=(D.log||[]).filter(function(l){return l.tipo==='conversion'&&ids[l.cid]&&en((l.ts||'').slice(0,10),a,b);});
+    var firmados=D.com.filter(function(co){return ids[co.cid]&&comodatoFirmadoEn(co,a,b);});
+    var conv=convertidosEn(misCli.filter(function(c){return !c.eliminado;}),a,b);
     return {ent:ent,entT:ent.reduce(function(s,p){return s+Number(p.total||0);},0),
       tom:tom,tomT:tom.reduce(function(s,p){return s+Number(p.total||0);},0),
       can:tom.filter(function(p){return estadoPedido(p)==='anulado';}),
       vis:vs,visCli:vs.filter(function(x){return x.tipo==='cliente';}).length,visPros:vs.filter(function(x){return x.tipo!=='cliente';}).length,
-      visVenta:vs.filter(function(x){return x.vendio===true;}).length,
+      visVenta:vs.filter(visitaConVenta).length,
       dias:Object.keys(vs.reduce(function(o,x){o[x.fecha]=1;return o;},{})).length,
       cobrado:pagos.reduce(function(s,m){return s+Number(m.monto||0);},0),
       nuevos:nuevos,colocados:colocados,firmados:firmados,conv:conv};
@@ -10504,4 +10503,71 @@ function arranquesHTML(){
     x+='<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:12px"><b>'+(b.ms/1000).toFixed(1).replace('.',',')+' s</b> <span style="color:var(--muted)">'+fmtTs(b.f)+'</span><div style="font-size:11px;color:var(--muted)">Lo mas lento: '+es(cols||'-')+'</div></div>';
   });
   return x;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// v9.20 — UNA SOLA REGLA PARA CADA NUMERO
+// Antes el Dashboard, Visitas e Informes contaban las "ventas" con las visitas
+// marcadas "vendio", y la pestaña Pedidos con los pedidos: un pedido cargado
+// sin visita (directo o por la ronda de WhatsApp) no aparecia en el Dashboard.
+// Reglas, iguales en todas las pestañas:
+//  · Pedido TOMADO: por la fecha en que se tomo (incluye los que despues se
+//    cancelaron, que se muestran aparte).
+//  · Pedido ENTREGADO = venta real / facturado: por la fecha de entrega.
+//  · Visita CON VENTA: marcada "vendio" o con un pedido de ese cliente ese dia.
+//  · Contacto NUEVO: ingresado en el periodo (sea hoy prospecto o cliente).
+//  · CONVERSION: el dia que el contacto paso a cliente.
+//  · COMODATO FIRMADO: por la fecha de firma.
+// ══════════════════════════════════════════════════════════════════════
+function etapaDe(c){return c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');}
+function enRango(f,desde,hasta){f=f||'';return !!f&&f>=desde&&f<=hasta;}
+// Pedidos que le corresponden a un vendedor: los de sus clientes y los que tomo el
+function pedidosDeVendedor(vend){
+  if(!vend)return D.ped.slice();
+  var ids={};D.cli.forEach(function(c){if(c.vend===vend)ids[c.id]=true;});
+  return D.ped.filter(function(p){return ids[p.cid]||p.vend===vend;});
+}
+// Pedidos del alcance que esta mirando el admin/gerente (todos o el vendedor elegido)
+function pedidosAlcanceAdmin(){return pedidosDeVendedor(gVendSel||'');}
+function pedidosTomadosEn(lista,desde,hasta){return lista.filter(function(p){return enRango(p.fecha,desde,hasta);});}
+function pedidosEntregadosEn(lista,desde,hasta){return lista.filter(function(p){return pedidoEntregado(p)&&enRango(fechaEntPed(p),desde,hasta);});}
+function sumaPedidos(l){return l.reduce(function(t,p){return t+Number(p.total||0);},0);}
+function cidsUnicos(l){var o={},r=[];l.forEach(function(x){var id=x.cid||x.id;if(id&&!o[id]){o[id]=1;r.push(id);}});return r;}
+// Indice cliente+dia de pedidos vigentes (no cancelados), para saber si una visita vendio
+var _idxPV={n:-1,ref:null,t:0,set:null};
+function _indicePedidosDia(){
+  var ahora=Date.now();
+  if(_idxPV.set&&_idxPV.ref===D.ped&&_idxPV.n===D.ped.length&&ahora-_idxPV.t<3000)return _idxPV.set;
+  var s={};D.ped.forEach(function(p){if(estadoPedido(p)!=='anulado'&&p.cid&&p.fecha)s[p.cid+'|'+p.fecha]=true;});
+  _idxPV={n:D.ped.length,ref:D.ped,t:ahora,set:s};
+  return s;
+}
+function visitaConVenta(v){
+  if(!v)return false;
+  if(v.vendio===true)return true;
+  return !!_indicePedidosDia()[v.cid+'|'+v.fecha];
+}
+function visitaSinVenta(v){return !visitaConVenta(v)&&v.vendio===false;}
+// Fecha en que el contacto paso a cliente. Para los viejos (sin la fecha guardada):
+// la visita de conversion o el primer pedido entregado.
+function fechaAltaCliente(c){
+  if(!c||c.esP)return '';
+  if(c.fAlta)return c.fAlta;
+  var f='';
+  D.vis.forEach(function(v){if(v.cid===c.id&&v.conversion===true&&v.fecha&&(!f||v.fecha<f))f=v.fecha;});
+  D.ped.forEach(function(p){if(p.cid===c.id&&pedidoEntregado(p)){var x=fechaEntPed(p);if(x&&(!f||x<f))f=x;}});
+  return f;
+}
+function convertidosEn(lista,desde,hasta){return lista.filter(function(c){return enRango(fechaAltaCliente(c),desde,hasta);});}
+function contactosNuevosEn(lista,desde,hasta){return lista.filter(function(c){return enRango(c.ing,desde,hasta);});}
+function comodatoFirmadoEn(co,desde,hasta){
+  if(co.ff)return enRango(co.ff,desde,hasta);
+  var e=estadoComodato(co);
+  return (e==='por_entregar'||e==='activo')&&enRango(co.fe,desde,hasta);
+}
+// Prospecto que paso los dias de tolerancia de su etapa (los mismos de las alertas de inaccion)
+function fueraDePlazo(c){
+  var e=etapaDe(c);if(SA.indexOf(e)>=0)return false;
+  var d=diasSinGestion(c);
+  return d===null||d>=umbralEtapa(e);
 }
