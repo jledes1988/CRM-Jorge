@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.20 - 03/11/2026';
+var VERSION='9.21 - 03/11/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Sin Respuesta','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -963,7 +963,9 @@ function fechaFreezerPuesto(cid){
 //      es empezar de cero: no se puede castigar por lo que paso antes);
 //   3) si tampoco hay freezer, la fecha de ingreso.
 function refInactividad(c){
-  return c.uv||fechaFreezerPuesto(c.id)||c.ing;
+  var lp=ultimoPedidoVigente(c.id),u=c.uv||'';
+  var ult=lp>u?lp:u;
+  return ult||fechaFreezerPuesto(c.id)||c.ing;
 }
 function clientesEnRecaida(){
   var lim=diasRecaida();
@@ -1253,6 +1255,7 @@ function startApp(){
   try{repararEsP();}catch(e){debugLog('error','reparar clientes trabados: '+e.message);}                // destraba los que quedaron como clientes por el bug viejo
   try{migrarFraccionProductos();}catch(e){debugLog('error','fraccion de productos: '+e.message);}
   try{migrarPreciosSet26();}catch(e){debugLog('error','lista de precios: '+e.message);}       // lista de precios del 21/09/2026   // suma la fraccion al catalogo ya guardado
+  try{sincronizarClientesConPedidos();}catch(e){debugLog('error','clientes con pedido: '+e.message);}
   try{revisarClientesInactivos();}catch(e){debugLog('error','regla de clientes inactivos: '+e.message);}
   setTimeout(function(){try{migrarProspeccionMiercoles();}catch(e){debugLog('error','prospeccion miercoles: '+e.message);}},3000);
   setTimeout(function(){try{migrarBajaVendedores();}catch(e){debugLog('error','baja de vendedores: '+e.message);}},3500);
@@ -1452,7 +1455,7 @@ function renderVH(){
       var c=D.cli.find(function(x){return x.id===v.cid;});
       h+='<div class="vh" style="border-left:3px solid '+(visitaConVenta(v)?'var(--green)':'var(--border)')+'">';
       h+='<div class="vhd">'+es(c?c.nm:'?')+(c&&c.fan?' · '+es(c.fan):'')+'</div>';
-      h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita a prospecto':visitaConVenta(v)?'Venta realizada':'Sin venta')+'</div>';
+      h+='<div class="vhr">'+(visitaConVenta(v)?'Venta realizada'+(v.tipo==='prospecto'?' (prospecto)':''):v.tipo==='prospecto'?'Visita a prospecto':'Sin venta')+'</div>';
       if(v.vendio===false&&v.razones)h+='<div class="vhx" style="color:var(--muted)">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>';
       if(v.nt)h+='<div class="vhx" style="font-style:italic">'+es(v.nt)+'</div>';
       h+='</div>';
@@ -1581,7 +1584,7 @@ function verDetalleDiaVH(dia){
     var c=D.cli.find(function(x){return x.id===v.cid;});
     h+='<div class="vh" style="border-left:3px solid '+(visitaConVenta(v)?'var(--green)':'var(--border)')+'">';
     h+='<div class="vhd">'+es(c?c.nm:'?')+(c&&c.fan?' · '+es(c.fan):'')+'</div>';
-    h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita a prospecto':visitaConVenta(v)?'Venta realizada':'Sin venta')+'</div>';
+    h+='<div class="vhr">'+(visitaConVenta(v)?'Venta realizada'+(v.tipo==='prospecto'?' (prospecto)':''):v.tipo==='prospecto'?'Visita a prospecto':'Sin venta')+'</div>';
     if(v.vendio===false&&v.razones)h+='<div class="vhx" style="color:var(--muted)">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>';
     if(v.nt)h+='<div class="vhx" style="font-style:italic">'+es(v.nt)+'</div>';
     h+='</div>';
@@ -1723,7 +1726,7 @@ function abrirFichaV(id){
     h+='<div class="div"></div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">ULTIMAS VISITAS</div>';
     vs.forEach(function(v){
       h+='<div class="vh"><div class="vhd">'+fmt(v.fecha)+'</div>';
-      h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita prospecto':visitaConVenta(v)?'Venta realizada':'Sin venta')+'</div>';
+      h+='<div class="vhr">'+(visitaConVenta(v)?'Venta realizada'+(v.tipo==='prospecto'?' (prospecto)':''):v.tipo==='prospecto'?'Visita prospecto':'Sin venta')+'</div>';
       if(v.obs)h+='<div class="vhx">'+es(v.obs)+'</div>';
       h+='</div>';
     });
@@ -2926,6 +2929,9 @@ function abrirVisitaProspecto(id){
   var c=D.cli.find(function(x){return x.id===id;});if(!c)return;
   vpCid=id;
   if(!vpEstado||vpEstado.cid!==id){vpVendio=null;vpPedidoId='';}
+  // v9.21: si hoy ya se le tomo un pedido, queda vinculado a esta visita
+  var _vpAuto=false;
+  if(!vpPedidoId){var _pp=pedidoDelDiaSinVisita(id);if(_pp){vpPedidoId=_pp.id;vpVendio=true;_vpAuto=true;}}
   var h='<div style="font-size:22px;font-weight:800;margin-bottom:6px">'+es(c.nm)+'</div>';
   h+='<div style="font-size:13px;color:var(--muted);margin-bottom:16px">'+es(c.etapaEmbudo||'Prospecto')+(c.bar?' · '+es(c.bar):'')+'</div>';
   h+='<div id="deuPros">'+deudaEnVisitaHTML(id,'pros')+'</div>';
@@ -2950,7 +2956,7 @@ function abrirVisitaProspecto(id){
     var e=document.getElementById('vpEta');if(e)e.value=vpEstado.eta||'';
     var p=document.getElementById('vpProx');if(p&&vpEstado.prox)p.value=vpEstado.prox;
     if(vpEstado.vendio!==null&&vpEstado.vendio!==undefined)togVP(vpEstado.vendio);
-  }
+  } else if(_vpAuto)togVP(true);
 }
 // Recordatorio de deuda para el paso Venta de cualquier visita. Si el cliente
 // no debe nada no muestra nada, para no ensuciar la pantalla.
@@ -3140,7 +3146,7 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin,filtroTipo){
   if(bounds.length)mapa.fitBounds(bounds,{padding:[35,35],maxZoom:15});
   return capa;
 }
-function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro,filtroTipo,fnFiltroTipo){
+function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro,filtroTipo,fnFiltroTipo,rubro,fnRubro,listaTodos){
   var conf=lista.filter(function(c){return c.gpsOk&&c.lat&&c.lng;}).length;
   var sinConf=lista.length-conf;
   var selEstilo='background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;font-size:12px;cursor:pointer';
@@ -3155,6 +3161,16 @@ function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro,filtroTipo,fnFiltroT
   h+='<option value="">Todas las etapas</option>';
   ET.concat(SA).forEach(function(e){h+='<option value="'+es(e)+'"'+(filtroActual===e?' selected':'')+'>'+es(e)+'</option>';});
   h+='</select>';
+  // v9.21: tipo de negocio (solo los que tienen contactos cargados)
+  if(fnRubro){
+    var cnt={};(listaTodos||lista).forEach(function(c){if(c.tipo)cnt[c.tipo]=(cnt[c.tipo]||0)+1;});
+    var tipos=Object.keys(cnt).sort(function(a,b){return a.localeCompare(b);});
+    h+='<select onchange="'+fnRubro+'(this.value)" style="'+selEstilo+(rubro?';border-color:var(--cyan);color:var(--cyan)':'')+'">';
+    h+='<option value="">Todos los tipos de negocio</option>';
+    tipos.forEach(function(t){h+='<option value="'+es(t)+'"'+(rubro===t?' selected':'')+'>'+es(t)+' ('+cnt[t]+')</option>';});
+    h+='<option value="__sin"'+(rubro==='__sin'?' selected':'')+'>Sin tipo cargado</option>';
+    h+='</select>';
+  }
   h+='<button class="sm g" onclick="'+fnCentro+'()" style="font-size:11px">&#128205; Mi ubicacion</button>';
   h+='<span style="font-size:11px;color:var(--muted);margin-left:auto">'+conf+' en el mapa</span>';
   if(sinConf)h+='<button class="sm" onclick="abrirSinUbicacion(\'todos\')" style="font-size:11px;color:var(--orange);border-color:var(--orange)">&#128205; Sin ubicación ('+sinConf+')</button>';
@@ -3172,6 +3188,14 @@ function setVMFiltroEtapa(v){vMFiltroEtapa=v;renderVM();}
 function setGMFiltroEtapa(v){gMFiltroEtapa=v;renderGM();}
 function setVMFiltroTipo(v){vMFiltroTipo=v;renderVM();}
 function setGMFiltroTipo(v){gMFiltroTipo=v;renderGM();}
+var vMRubro='',gMRubro='';
+function setVMRubro(v){vMRubro=v;renderVM();}
+function setGMRubro(v){gMRubro=v;renderGM();}
+function filtrarRubroMapa(lista,r){
+  if(!r)return lista;
+  if(r==='__sin')return lista.filter(function(c){return !c.tipo;});
+  return lista.filter(function(c){return c.tipo===r;});
+}
 // P3: desde el popup del mapa, agendar una visita eligiendo solo la fecha.
 function agregarAGiraDesdeMapa(cid){
   var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
@@ -3220,8 +3244,9 @@ function centrarGM(){if(gMapaObj)centrarMiUbicacion(gMapaObj);}
 function renderVM(){
   var top=document.getElementById('vMTop');var cont=document.getElementById('vMapa');
   if(!top||!cont)return;
-  var mc=misContactos();
-  top.innerHTML=barraMapaHTML(mc,vMFiltroEtapa,'setVMFiltroEtapa','centrarVM',vMFiltroTipo,'setVMFiltroTipo');
+  var mcTodos=misContactos();
+  var mc=filtrarRubroMapa(mcTodos,vMRubro);
+  top.innerHTML=barraMapaHTML(mc,vMFiltroEtapa,'setVMFiltroEtapa','centrarVM',vMFiltroTipo,'setVMFiltroTipo',vMRubro,'setVMRubro',mcTodos);
   if(typeof L==='undefined'){cont.innerHTML='<div class="empty" style="padding-top:40px">El mapa necesita conexion a internet la primera vez que se abre.</div>';return;}
   if(!vMapaObj){cont.innerHTML='';vMapaObj=crearMapa('vMapa');}
   vMapaCapa=pintarMarcadores(vMapaObj,vMapaCapa,mc,vMFiltroEtapa,false,vMFiltroTipo);
@@ -3848,12 +3873,13 @@ function pintarRecorrido(mapa,capaVieja,vend,dia){
 function renderGM(){
   var top=document.getElementById('gMTop');var cont=document.getElementById('gMapa');
   if(!top||!cont)return;
-  var base=cliGlobal();
+  var baseTodos=cliGlobal();
+  var base=filtrarRubroMapa(baseTodos,gMRubro);
   // El recorrido (rastro GPS del dia) es informacion sensible: solo el admin lo ve, no el gerente.
   // La gira PLANIFICADA (a diferencia del recorrido) la pueden ver admin y gerente por igual.
   var esAdmin=D.user&&D.user.r==='admin';
   if(!esAdmin&&recorridoActivo.vend)recorridoActivo={vend:'',dia:''};
-  top.innerHTML=barraMapaHTML(base,gMFiltroEtapa,'setGMFiltroEtapa','centrarGM',gMFiltroTipo,'setGMFiltroTipo')+(esAdmin?barraRecorridoHTML():'')+barraGiraVerHTML();
+  top.innerHTML=barraMapaHTML(base,gMFiltroEtapa,'setGMFiltroEtapa','centrarGM',gMFiltroTipo,'setGMFiltroTipo',gMRubro,'setGMRubro',baseTodos)+(esAdmin?barraRecorridoHTML():'')+barraGiraVerHTML();
   if(typeof L==='undefined'){cont.innerHTML='<div class="empty" style="padding-top:40px">El mapa necesita conexion a internet la primera vez que se abre.</div>';return;}
   if(!gMapaObj){cont.innerHTML='';gMapaObj=crearMapa('gMapa');}
   if(esAdmin&&recorridoActivo.vend){
@@ -4421,14 +4447,21 @@ function renderGD(){
   });
   teh+='</div>';
   h+=sG('Prospectos por etapa y tiempo promedio',teh);
-  // Actividad reciente
-  var recBase=visGlobal();
-  var rec=recBase.filter(function(v){return dias(v.fecha)<=2;}).slice().reverse().slice(0,15);
-  if(rec.length){
-    var rh='';
-    rec.forEach(function(v){var c=D.cli.find(function(x){return x.id===v.cid;});rh+='<div class="vh"><div class="vhd">'+fmt(v.fecha)+(v.vend?' · '+es(v.vend):'')+'</div><div class="vhr">'+es(c?c.nm:'?')+' — '+(v.tipo==='prospecto'?'Visita prospecto':visitaConVenta(v)?'VENTA':'Sin venta')+'</div>'+(v.vendio===false&&v.razones?'<div class="vhx">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>':'')+'</div>';});
-    h+=sG('Actividad reciente (48hs)',rh);
-  }
+  // Actividad reciente (v9.21): visitas y tambien los pedidos tomados sin visita
+  var recItems=[];
+  visGlobal().filter(function(v){return dias(v.fecha)<=2;}).forEach(function(v){
+    var c=D.cli.find(function(x){return x.id===v.cid;});
+    var pv=v.pid?D.ped.find(function(p){return p.id===v.pid;}):null;
+    var lbl=visitaConVenta(v)?'VENTA'+(v.tipo==='prospecto'?' (prospecto)':''):v.tipo==='prospecto'?'Visita prospecto':'Sin venta';
+    if(visitaConVenta(v)&&!pv)pv=D.ped.find(function(p){return p.cid===v.cid&&p.fecha===v.fecha&&estadoPedido(p)!=='anulado';});
+    recItems.push({f:v.fecha,k:String(v.id),h:'<div class="vh"><div class="vhd">'+fmt(v.fecha)+(v.vend?' · '+es(v.vend):'')+'</div><div class="vhr">'+es(c?c.nm:'?')+' — '+lbl+(pv?' · '+plata(pv.total):'')+'</div>'+(v.vendio===false&&v.razones?'<div class="vhx">'+es(Array.isArray(v.razones)?v.razones.join(', '):v.razones)+'</div>':'')+'</div>'});
+  });
+  pedidosAlcanceAdmin().filter(function(p){return p.fecha&&dias(p.fecha)<=2&&!D.vis.some(function(v){return v.cid===p.cid&&v.fecha===p.fecha;});}).forEach(function(p){
+    var c=D.cli.find(function(x){return x.id===p.cid;});
+    recItems.push({f:p.fecha,k:String(p.id),h:'<div class="vh" style="cursor:pointer" onclick="verPedido(\''+p.id+'\')"><div class="vhd">'+fmt(p.fecha)+(p.vend?' · '+es(p.vend):'')+'</div><div class="vhr">'+es(c?c.nm:(p.cliente||'?'))+' — PEDIDO '+(estadoPedido(p)==='anulado'?'cancelado':'tomado')+' · '+plata(p.total)+'</div></div>'});
+  });
+  recItems.sort(function(a,b){return b.f.localeCompare(a.f)||b.k.localeCompare(a.k);});
+  if(recItems.length)h+=sG('Actividad reciente (48hs)',recItems.slice(0,20).map(function(x){return x.h;}).join(''));
   // ── EMBUDO EN BARRAS DE PORCENTAJE ─────────────────────────────────
   h+=sG('Embudo de ventas - % por etapa'+(gVendSel?' ('+es(gVendSel)+')':''),embudoBarrasHTML(cliBase));
   // Distribucion por fuente del lead (de donde vienen los prospectos)
@@ -4716,7 +4749,16 @@ function devolverTodosAProspecto(){
 function productos(){ return (D.cfg.productos&&D.cfg.productos.length)?D.cfg.productos:PRODUCTOS_DEF; }
 function materiales(){ return (D.cfg.materiales&&D.cfg.materiales.length)?D.cfg.materiales:MATERIALES_DEF; }
 function pedidosDe(cid){ return D.ped.filter(function(p){return p.cid===cid;}).sort(function(a,b){return(b.fecha||'').localeCompare(a.fecha||'');}); }
-function esPrimerPedido(cid){ return pedidosDe(cid).length===0; }
+// v9.21: un pedido es el PRIMERO si no hay otro (no cancelado) anterior del mismo
+// cliente. Asi, al volver a abrir o copiar el primer pedido ya guardado, sigue
+// saliendo con el encabezado completo.
+function esPrimerPedido(cid,pid){
+  var me=pid?D.ped.find(function(p){return p.id===pid;}):null;
+  var otros=D.ped.filter(function(p){return p.cid===cid&&p.id!==pid&&estadoPedido(p)!=='anulado';});
+  if(!me)return otros.length===0;
+  var fm=me.fecha||'';
+  return !otros.some(function(p){var f=p.fecha||'';return f<fm||(f===fm&&String(p.id)<String(me.id));});
+}
 // ── Calendario del negocio ───────────────────────────────────────────
 // Los pedidos se toman de jueves a lunes y se entregan el miercoles siguiente.
 // Los dias son editables desde Config por si el dia de entrega cambia.
@@ -4925,8 +4967,8 @@ function renderPedido(){
   var lineas=['Impulsivos','Postres','Granel'];
   if(!pedActual.linea)pedActual.linea=lineas[0];
   var h='<div style="font-size:15px;font-weight:800">'+es(c.nm)+'</div>';
-  if(pedActual.editId)h+='<div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:10px">Editando el pedido del '+fmt(pedActual.fechaOrig)+'. Al guardar se pisa ese mismo pedido.</div>';
-  else h+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">'+(esPrimerPedido(c.id)?'Primer pedido: se manda el encabezado completo':'Ya tuvo pedidos: encabezado corto')+'</div>';
+  if(pedActual.editId)h+='<div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:10px">Editando el pedido del '+fmt(pedActual.fechaOrig)+'. Al guardar se pisa ese mismo pedido.'+(esPrimerPedido(c.id,pedActual.editId)?' Es su primer pedido: lleva el encabezado completo.':'')+'</div>';
+  else h+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">'+(esPrimerPedido(c.id,pedActual.editId)?'Primer pedido: se manda el encabezado completo':'Ya tuvo pedidos: encabezado corto')+'</div>';
   // Materiales en comodato
   h+='<div class="card" style="margin-bottom:10px"><div class="ct">MATERIALES EN COMODATO (sin costo)</div><div class="chips">';
   materiales().forEach(function(m){
@@ -5018,7 +5060,7 @@ function textoFabrica(){
   leerNotas();
   if(!Object.keys(pedActual.items).length&&!Object.keys(pedActual.frac||{}).length&&!Object.keys(pedActual.mats).length)return '';
   var L=[];
-  if(esPrimerPedido(c.id)){
+  if(esPrimerPedido(c.id,pedActual.editId)){
     L.push('Nombre del negocio: *'+(c.nm||'')+'*');
     L.push('Direccion: '+(c.dir||''));
     L.push('Localidad: '+(c.ciu||''));
@@ -5119,8 +5161,9 @@ function guardarPedido(){
       notaPago:pedActual.notaPago,notaConv:pedActual.notaConv,obs:pedActual.obs,instr:pedActual.instr||'',
       estado:'tomado', entrega:proximaEntrega()};
     D.ped.push(ped);
-    // OJO: aca ya NO se toca c.uv ni se convierte a cliente. El pedido todavia
-    // no se entrego: eso pasa el miercoles, en marcarEntrega().
+    // v9.21: al tomarle el pedido pasa a Cliente Activo (en todas las pestañas y
+    // en el embudo). c.uv (ultima compra) se sigue marcando al entregar.
+    pasarAClientePorPedido(c,ped.fecha);
     logEvento('venta',c.id,c.nm,'Pedido TOMADO por '+plata(tot)+' · entrega '+fmt(ped.entrega),'','');
     // Queda agendado solo en la gira del dia de entrega, para que aparezca
     // en el recorrido del miercoles sin que haya que acordarse.
@@ -6060,7 +6103,7 @@ function verDiaVendedor(vend,fecha){
     var c=D.cli.find(function(x){return x.id===v.cid;});
     h+='<div class="vh" style="border-left:3px solid '+(visitaConVenta(v)?'var(--green)':'var(--border)')+'">';
     h+='<div class="vhd">'+es(c?c.nm:'?')+'</div>';
-    h+='<div class="vhr">'+(v.tipo==='prospecto'?'Visita a prospecto':visitaConVenta(v)?'Venta realizada':'Sin venta')+'</div>';
+    h+='<div class="vhr">'+(visitaConVenta(v)?'Venta realizada'+(v.tipo==='prospecto'?' (prospecto)':''):v.tipo==='prospecto'?'Visita a prospecto':'Sin venta')+'</div>';
     if(v.nt)h+='<div class="vhx" style="font-style:italic">'+es(v.nt)+'</div>';
     h+='</div>';
   });
@@ -6168,8 +6211,8 @@ function renderGV(){
   if(!vs.length){h+='<div class="empty">Sin visitas con los filtros actuales</div>';document.getElementById('gVB').innerHTML=h;return;}
   vs.forEach(function(v){
     var c=D.cli.find(function(x){return x.id===v.cid;});
-    var res=v.tipo==='prospecto'?'Prospecto':visitaConVenta(v)?'VENTA':'Sin venta';
-    var col=v.tipo==='prospecto'?'var(--orange)':visitaConVenta(v)?'var(--green)':'var(--red)';
+    var res=visitaConVenta(v)?'VENTA':v.tipo==='prospecto'?'Prospecto':'Sin venta';
+    var col=visitaConVenta(v)?'var(--green)':v.tipo==='prospecto'?'var(--orange)':'var(--red)';
     h+='<div class="vh" style="cursor:pointer" onclick="'+(c?'aFicha(\''+c.id+'\')':'')+'">';
     h+='<div style="display:flex;justify-content:space-between;align-items:center">';
     h+='<div class="vhd">'+fmt(v.fecha)+(v.vend?' · <span style="color:var(--cyan)">'+es(v.vend)+'</span>':'')+'</div>';
@@ -6895,14 +6938,16 @@ function renderGCfg(){
     {key:'marcas',label:'Marcas competidoras'},
     {key:'razones',label:'Motivos de no venta'},
     {key:'fuentes',label:'Formas de prospeccion (como llego el contacto)'},
+    {key:'materiales',label:'Publicidad / comodato del pedido (freezer, totem, cartel...)',def:MATERIALES_DEF}
   ];
   catalogos.forEach(function(cat){
-    var items=D.cfg[cat.key]||[];
+    var items=(D.cfg[cat.key]&&D.cfg[cat.key].length)?D.cfg[cat.key]:(cat.def||[]);
     h+='<div style="border:1px solid var(--border);border-radius:var(--rsm);padding:12px;margin-bottom:12px">';
     h+='<div style="font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">'+es(cat.label)+' ('+items.length+')</div>';
     items.forEach(function(item,i){
       h+='<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)">';
       h+='<span style="flex:1;font-size:13px">'+es(item)+'</span>';
+      h+='<button class="sm" onclick="renombrarItemCat(\''+cat.key+'\','+i+')" title="Cambiar el nombre" style="font-size:11px;padding:3px 8px">&#9998;</button>';
       h+='<button class="sm rd" onclick="elimItemCat(\''+cat.key+'\','+i+')" style="font-size:11px;padding:3px 8px">&#215;</button></div>';
     });
     h+='<div style="display:flex;gap:6px;margin-top:8px">';
@@ -7138,10 +7183,29 @@ function guardarUmbrales(){
   toast('Umbrales guardados','ok');
   renderGCfg();
 }
+// Las listas con valores por defecto (materiales) se copian a la config la primera vez que se tocan
+function listaCatEditable(cat){
+  if(!D.cfg[cat]||!D.cfg[cat].length){
+    if(cat==='materiales')D.cfg[cat]=MATERIALES_DEF.slice();
+    else if(!D.cfg[cat])D.cfg[cat]=[];
+  }
+  return D.cfg[cat];
+}
+function renombrarItemCat(cat,idx){
+  if(soloLectura())return;
+  var l=listaCatEditable(cat);var ant=l[idx];if(ant===undefined)return;
+  var nv=prompt('Nuevo nombre para "'+ant+'":',ant);
+  if(nv===null)return;nv=nv.trim();
+  if(!nv||nv===ant)return;
+  if(l.indexOf(nv)>=0){toast('Ya existe en la lista','err');return;}
+  l[idx]=nv;
+  var o={};o[cat]=l;fsSetConfig(o);
+  renderGCfg();toast('Cambiado: '+nv,'ok');
+}
 function addItemCat(cat){
   var inp=document.getElementById('niCat_'+cat);if(!inp)return;
   var val=inp.value.trim();if(!val)return;
-  if(!D.cfg[cat])D.cfg[cat]=[];
+  listaCatEditable(cat);
   if(D.cfg[cat].indexOf(val)<0){
     D.cfg[cat].push(val);
     fsSetConfig(D.cfg);
@@ -7151,6 +7215,7 @@ function addItemCat(cat){
   }
 }
 function elimItemCat(cat,idx){
+  listaCatEditable(cat);
   if(!D.cfg[cat])return;
   var item=D.cfg[cat][idx];
   if(!confirm('Eliminar "'+item+'" de la lista?'))return;
@@ -7593,6 +7658,7 @@ function wNext(){
 function wFin(){
   var v={id:uid(),cid:W.cid,fecha:today(),vend:D.user?D.user.n:'',tipo:W.tipo};
   Object.assign(v,W.data);
+  if(v.vendio!==false&&!v.pid){var _pp=pedidoDelDiaSinVisita(v.cid,v.fecha);if(_pp){v.pid=_pp.id;v.vendio=true;v.monto=Number(_pp.total||0);}}
   D.vis.push(v);
   var c=D.cli.find(function(x){return x.id===W.cid;});
   if(c){
@@ -7943,6 +8009,8 @@ function aVisita(id){
     // PASO 3: Venta
     {sub:'Venta',
      render:function(){
+       // v9.21: si hoy ya se le tomo un pedido, es el pedido de esta visita
+       if(!W.data.pid){var _pp=pedidoDelDiaSinVisita(W.cid);if(_pp){W.data.pid=_pp.id;W.data.vendio=true;W.data.monto=Number(_pp.total||0);}}
        var rzH=rz.map(function(r){return ch(r,r,'nv',true,'');}).join('');
        return '<div style="font-size:20px;font-weight:800;margin-bottom:14px">Venta</div><div id="deuWiz">'+deudaEnVisitaHTML(W.cid,'wiz')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px"><div id="bS" onclick="tgV(true)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">SI</div><div id="bN" onclick="tgV(false)" style="padding:18px;border-radius:var(--r);border:2px solid var(--border);text-align:center;font-size:18px;font-weight:800;cursor:pointer;background:var(--s2);color:var(--muted)">NO</div></div><div id="nvSi" style="display:none">'+pedidoEnVisitaHTML()+'</div><div id="nvS" style="display:none"><div class="ct">Motivo (podes elegir varios)</div><div class="chips">'+rzH+'</div><div id="nvO" style="display:none;margin-top:8px"><input class="fi" id="otroT" placeholder="Especifica el motivo..."></div></div><div class="fg" style="margin-top:14px"><label class="fl">Notas de la visita</label><textarea class="fi fta" id="ntV" placeholder="Observaciones, acuerdos..."></textarea></div><div class="fg"><label class="fl">Proxima visita</label><input class="fi" type="date" id="prV"></div>';
      },
@@ -10570,4 +10638,58 @@ function fueraDePlazo(c){
   var e=etapaDe(c);if(SA.indexOf(e)>=0)return false;
   var d=diasSinGestion(c);
   return d===null||d>=umbralEtapa(e);
+}
+// ══════════════════════════════════════════════════════════════════════
+// v9.21 — PEDIDO, VISITA Y EMBUDO CRUZADOS
+// ══════════════════════════════════════════════════════════════════════
+// Pedido de hoy (o de la fecha dada) de ese cliente que todavia no esta
+// vinculado a ninguna visita: es el que se tomo en la visita que se registra.
+function pedidoDelDiaSinVisita(cid,fecha){
+  fecha=fecha||today();
+  var usados={};D.vis.forEach(function(v){if(v.pid)usados[v.pid]=1;});
+  var ps=D.ped.filter(function(p){return p.cid===cid&&p.fecha===fecha&&estadoPedido(p)!=='anulado'&&!usados[p.id];});
+  return ps.length?ps[ps.length-1]:null;
+}
+function ultimoPedidoVigente(cid){
+  var f='';D.ped.forEach(function(p){if(p.cid===cid&&estadoPedido(p)!=='anulado'&&p.fecha&&p.fecha>f)f=p.fecha;});
+  return f;
+}
+// Un pedido convierte al prospecto en Cliente Activo en el momento en que se toma
+function pasarAClientePorPedido(c,fecha){
+  if(!c||!c.esP)return false;
+  var ant=c.etapaEmbudo||'Nuevo Prospecto';
+  c.esP=false;c.etapaEmbudo='Cliente Activo';c.fAlta=fecha||today();
+  c._modBy=D.user?D.user.n:'?';c._modAt=new Date().toISOString();
+  fsSetContacto(c);
+  logEvento('conversion',c.id,c.nm,'Paso a Cliente Activo al tomarle el pedido',ant,'Cliente Activo');
+  return true;
+}
+// Al abrir (admin): los prospectos que ya tienen un pedido reciente pasan a
+// cliente, y la etapa del embudo queda igual a lo que dice el resto del sistema.
+function sincronizarClientesConPedidos(){
+  if(!D.user||D.user.r!=='admin'||!CFG_CARGADA)return;
+  var lim=sumarDias(today(),-diasRecaida());
+  var nConv=0,nEta=0;
+  D.cli.forEach(function(c){
+    if(c.eliminado)return;
+    var lp=ultimoPedidoVigente(c.id);
+    if(c.esP&&lp&&lp>=lim){
+      var prim='';D.ped.forEach(function(p){if(p.cid===c.id&&estadoPedido(p)!=='anulado'&&p.fecha&&p.fecha>=lim&&(!prim||p.fecha<prim))prim=p.fecha;});
+      var ant=c.etapaEmbudo||'Nuevo Prospecto';
+      c.esP=false;c.etapaEmbudo='Cliente Activo';c.fAlta=prim||lp;
+      c._modBy='Sistema';c._modAt=new Date().toISOString();fsSetContacto(c);
+      logEvento('conversion',c.id,c.nm,'Paso a Cliente Activo: tenia pedido del '+fmt(prim||lp),ant,'Cliente Activo');
+      nConv++;
+    } else if(!c.esP&&c.etapaEmbudo!=='Cliente Activo'){
+      var a2=c.etapaEmbudo||'';
+      c.etapaEmbudo='Cliente Activo';c._modBy='Sistema';c._modAt=new Date().toISOString();fsSetContacto(c);
+      logEvento('etapa',c.id,c.nm,'Etapa corregida: figuraba como cliente con etapa "'+a2+'"',a2,'Cliente Activo');
+      nEta++;
+    } else if(c.esP&&c.etapaEmbudo==='Cliente Activo'){
+      c.etapaEmbudo='Negociacion';c._modBy='Sistema';c._modAt=new Date().toISOString();fsSetContacto(c);
+      logEvento('etapa',c.id,c.nm,'Etapa corregida: figuraba como Cliente Activo sin pedidos recientes','Cliente Activo','Negociacion');
+      nEta++;
+    }
+  });
+  if(nConv||nEta)toast((nConv?nConv+' prospecto'+(nConv>1?'s':'')+' con pedido pasaron a cliente':'')+(nConv&&nEta?' · ':'')+(nEta?nEta+' etapa'+(nEta>1?'s':'')+' corregida'+(nEta>1?'s':''):''),'ok');
 }
