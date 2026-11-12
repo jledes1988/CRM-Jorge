@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.21 - 03/11/2026';
+var VERSION='9.22 - 12/11/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Sin Respuesta','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -1259,6 +1259,7 @@ function startApp(){
   try{revisarClientesInactivos();}catch(e){debugLog('error','regla de clientes inactivos: '+e.message);}
   setTimeout(function(){try{migrarProspeccionMiercoles();}catch(e){debugLog('error','prospeccion miercoles: '+e.message);}},3000);
   setTimeout(function(){try{migrarBajaVendedores();}catch(e){debugLog('error','baja de vendedores: '+e.message);}},3500);
+  setTimeout(function(){try{migrarRutaAB();}catch(e){debugLog('error','ruta A/B: '+e.message);}},4000);
   // cliente sin pedido en X dias vuelve a prospecto (solo admin)
   // Aviso de backup: se espera unos segundos para que la config real ya haya
   // bajado (si no, parece que nunca se hizo un backup y avisaria de mas).
@@ -1984,6 +1985,7 @@ function giraDeContacto(cid){
 function giraFichaHTML(cid,ctx){
   var gs=giraDeContacto(cid);
   var h='<div class="card" style="margin-bottom:10px"><div class="ct">EN LA GIRA</div>';
+  h+=visitaFijaHTML(cid);
   if(!gs.length)h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">No esta agendado en ningun dia.</div>';
   else{
     gs.forEach(function(g){
@@ -2622,12 +2624,17 @@ function buscarContactoPorNombre(nom,usados){
 function vincularSemanaTipo(st){
   var cambio=false;
   Object.keys(st).forEach(function(dw){
-    var usados={};
-    (st[dw].visitas||[]).forEach(function(v){if(v.cid&&D.cli.some(function(c){return c.id===v.cid&&!c.eliminado;}))usados[v.cid]=true;else if(v.cid){v.cid='';cambio=true;}});
+    // v9.22: un semanal va dos veces el mismo dia (A y B): los usados se cuentan por letra
+    var usados={A:{},B:{}};
+    (st[dw].visitas||[]).forEach(function(v){
+      if(v.cid&&D.cli.some(function(c){return c.id===v.cid&&!c.eliminado;}))letrasDe(v).forEach(function(l){usados[l][v.cid]=true;});
+      else if(v.cid){v.cid='';cambio=true;}
+    });
     (st[dw].visitas||[]).forEach(function(v){
       if(v.cid)return;
-      var id=buscarContactoPorNombre(v.n,usados);
-      if(id){v.cid=id;usados[id]=true;cambio=true;}
+      var ocup={};letrasDe(v).forEach(function(l){Object.keys(usados[l]).forEach(function(k){ocup[k]=true;});});
+      var id=buscarContactoPorNombre(v.n,ocup);
+      if(id){v.cid=id;letrasDe(v).forEach(function(l){usados[l][id]=true;});cambio=true;}
     });
   });
   return cambio;
@@ -2703,16 +2710,17 @@ function abrirCargarSemana(){
   var st=asegurarSemanaTipo();
   var hoy=today();
   var fechas=fechasSemanaGira();
-  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Carga las visitas fijas con su hora en cada dia de esta semana. Los dias que ya pasaron no se tocan. Lo que ya tenias agendado se queda, despues de las visitas fijas.</div>';
+  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Carga las visitas fijas con su hora en cada dia de esta semana. Los quincenales entran solo en su semana (A o B; el ciclo va de jueves a miércoles). Los dias que ya pasaron no se tocan. Lo que ya tenias agendado se queda, despues de las visitas fijas.</div>';
   var total=0,sinVinc=0;
   fechas.forEach(function(f){
     var dow=new Date(f+'T12:00:00').getDay();
     var dt=st[String(dow)]||{visitas:[],bloques:[]};
     var pasado=f<hoy;
     var nom=new Date(f+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'numeric'});
-    h+='<div style="margin:12px 0 4px;display:flex;align-items:center;gap:8px"><div style="font-size:12px;font-weight:800;color:'+(pasado?'var(--muted)':'var(--cyan)')+';text-transform:capitalize">'+es(nom)+'</div><div style="flex:1;height:1px;background:var(--border)"></div>'+(pasado?'<span style="font-size:10px;color:var(--muted)">ya pasó</span>':'')+'</div>';
+    var _let=letraSemana(f);
+    h+='<div style="margin:12px 0 4px;display:flex;align-items:center;gap:8px"><div style="font-size:12px;font-weight:800;color:'+(pasado?'var(--muted)':'var(--cyan)')+';text-transform:capitalize">'+es(nom)+' <span style="text-transform:none;font-size:10px;padding:1px 6px;border-radius:8px;border:1px solid currentColor">semana '+_let+'</span></div><div style="flex:1;height:1px;background:var(--border)"></div>'+(pasado?'<span style="font-size:10px;color:var(--muted)">ya pasó</span>':'')+'</div>';
     var items=[];
-    (dt.visitas||[]).forEach(function(v){items.push({h:v.h,v:v});});
+    (dt.visitas||[]).forEach(function(v){if(visitaVaEnFecha(v,f))items.push({h:v.h,v:v});});
     (dt.bloques||[]).forEach(function(b){items.push({h:b.d,b:b});});
     items.sort(function(a,b){return hm2min(a.h)-hm2min(b.h);});
     if(!items.length)h+='<div style="font-size:12px;color:var(--muted)">Nada cargado para este día</div>';
@@ -2737,7 +2745,7 @@ function confirmarCargarSemana(){
   fechasSemanaGira().forEach(function(f){
     if(f<hoy)return;
     var dow=new Date(f+'T12:00:00').getDay();
-    var vs=((st[String(dow)]||{}).visitas||[]).filter(function(v){return v.cid&&/^\d\d:\d\d$/.test(v.h||'');})
+    var vs=((st[String(dow)]||{}).visitas||[]).filter(function(v){return v.cid&&/^\d\d:\d\d$/.test(v.h||'')&&visitaVaEnFecha(v,f);})
       .slice().sort(function(a,b){return hm2min(a.h)-hm2min(b.h);});
     if(!vs.length)return;
     dias++;
@@ -2772,7 +2780,10 @@ function abrirSemanaTipo(){
 }
 function pintarSemanaTipo(){
   var st=_stEdit;
-  var h='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Tu semana fija. Las visitas en rojo no están vinculadas a un contacto: tocá <b>Elegir</b>. Los cambios se guardan al tocar <b>Guardar</b>.</div>';
+  var _hoyL=letraSemana(today()),_juev=juevesDelCiclo(today());
+  var _sig=new Date(_juev+'T12:00:00');_sig.setDate(_sig.getDate()+7);
+  var h='<div style="padding:9px 12px;border-radius:8px;border:1px solid var(--cyan);margin-bottom:10px;font-size:13px"><b>Hoy es semana '+_hoyL+'</b> <span style="font-size:11px;color:var(--muted)">(ciclo de jueves a miércoles; el jueves '+fmt(fechaLocal(_sig))+' arranca la semana '+(_hoyL==='A'?'B':'A')+')</span></div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Tu semana fija. Al lado de la hora elegís <b>A+B</b> (todas las semanas), <b>A</b> o <b>B</b> (quincenal). Un cliente semanal va dos veces: una A y una B. Las visitas en rojo no están vinculadas a un contacto: tocá <b>Elegir</b>. Los cambios se guardan al tocar <b>Guardar</b>.</div>';
   [1,2,3,4,5].forEach(function(dw){
     var dt=st[String(dw)]||(st[String(dw)]={visitas:[],bloques:[]});
     h+='<div style="margin:14px 0 6px;font-size:12px;font-weight:800;color:var(--cyan)">'+DIAS_NOM[dw]+'</div>';
@@ -2780,6 +2791,7 @@ function pintarSemanaTipo(){
       var ok=!!v.cid;
       h+='<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
       h+='<input class="fi" type="time" value="'+es(v.h||'')+'" data-dw="'+dw+'" data-i="'+i+'" onchange="stSetHora(this)" style="margin:0;width:88px;flex-shrink:0;padding:6px">';
+      h+='<select class="fi" data-dw="'+dw+'" data-i="'+i+'" onchange="stSetSem(this)" title="Semana" style="margin:0;width:62px;flex-shrink:0;padding:6px 4px;font-size:12px;font-weight:800;'+(v.sem?'color:var(--cyan);border-color:var(--cyan)':'')+'"><option value=""'+(!v.sem?' selected':'')+'>A+B</option><option value="A"'+(v.sem==='A'?' selected':'')+'>A</option><option value="B"'+(v.sem==='B'?' selected':'')+'>B</option></select>';
       h+='<span style="flex:1;min-width:0;font-size:12px"><b>'+es(v.n)+'</b><span style="display:block;font-size:11px;color:'+(ok?'var(--muted)':'var(--red)')+'">'+(ok?es(nombreContacto(v.cid)):'sin vincular')+'</span></span>';
       h+='<button class="sm" data-dw="'+dw+'" data-i="'+i+'" onclick="stElegir(this)" style="font-size:11px;padding:3px 8px">'+(ok?'Cambiar':'Elegir')+'</button>';
       h+='<button class="lx" data-dw="'+dw+'" data-i="'+i+'" data-k="visitas" onclick="stQuitar(this)">✕</button>';
@@ -2801,6 +2813,7 @@ function pintarSemanaTipo(){
 }
 function stDia(el){return _stEdit[el.getAttribute('data-dw')];}
 function stSetHora(el){var v=stDia(el).visitas[+el.getAttribute('data-i')];if(v)v.h=el.value;}
+function stSetSem(el){var v=stDia(el).visitas[+el.getAttribute('data-i')];if(!v)return;if(el.value)v.sem=el.value;else delete v.sem;pintarSemanaTipo();}
 function stSetBloque(el){var b=stDia(el).bloques[+el.getAttribute('data-i')];if(b)b[el.getAttribute('data-f')]=el.value;}
 function stQuitar(el){stDia(el)[el.getAttribute('data-k')].splice(+el.getAttribute('data-i'),1);pintarSemanaTipo();}
 function stAgregarBloque(el){var d=stDia(el);d.bloques=d.bloques||[];d.bloques.push({d:'',a:'',t:''});pintarSemanaTipo();}
@@ -2831,7 +2844,11 @@ function stUsar(cid){
   if(_stSel.i<0){
     var ult=d.visitas.length?d.visitas[d.visitas.length-1].h:'';
     var c=D.cli.find(function(x){return x.id===cid;});
-    d.visitas.push({h:ult?min2hm(hm2min(ult)+cfgHorario().minVisita+5):cfgHorario().inicio,n:c?c.nm:'',cid:cid});
+    var nA=d.visitas.filter(function(v){return v.sem==='A';}).length,nB=d.visitas.filter(function(v){return v.sem==='B';}).length;
+    var hayAB=nA||nB;
+    var nv={h:ult?min2hm(hm2min(ult)+cfgHorario().minVisita+5):cfgHorario().inicio,n:c?c.nm:'',cid:cid};
+    if(hayAB)nv.sem=nA<=nB?'A':'B';   // v9.22: en un dia con quincenales, va a la semana con menos visitas
+    d.visitas.push(nv);
   } else d.visitas[_stSel.i].cid=cid;
   _stSel=null;
   pintarSemanaTipo();
@@ -2843,6 +2860,8 @@ function guardarSemanaTipo(){
     var d=st[dw];
     d.bloques=(d.bloques||[]).filter(function(b){return b.d||b.a||b.t;});
     d.visitas.forEach(function(v){if(!/^\d\d:\d\d$/.test(v.h||''))err='Falta la hora de '+v.n+' ('+DIAS_NOM[+dw]+')';});
+    var _oc={A:{},B:{}};
+    d.visitas.forEach(function(v){if(!v.cid)return;letrasDe(v).forEach(function(l){if(_oc[l][v.cid])err=v.n+' está dos veces en la semana '+l+' del '+DIAS_NOM[+dw].toLowerCase();_oc[l][v.cid]=true;});});
     d.bloques.forEach(function(b){
       if(!b.d||!b.a||!b.t)err='Completá desde, hasta y texto de cada bloque ('+DIAS_NOM[+dw]+')';
       else if(hm2min(b.a)<=hm2min(b.d))err='Un bloque del '+DIAS_NOM[+dw].toLowerCase()+' termina antes de empezar';
@@ -10692,4 +10711,90 @@ function sincronizarClientesConPedidos(){
     }
   });
   if(nConv||nEta)toast((nConv?nConv+' prospecto'+(nConv>1?'s':'')+' con pedido pasaron a cliente':'')+(nConv&&nEta?' · ':'')+(nEta?nEta+' etapa'+(nEta>1?'s':'')+' corregida'+(nEta>1?'s':''):''),'ok');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// v9.22 — SEMANA A / SEMANA B (clientes semanales y quincenales)
+// El ciclo va de jueves a miercoles. La semana A arranca el jueves del ancla
+// (por defecto 12/11/2026) y despues se alternan. Cada visita de la semana tipo
+// lleva "sem": '' = todas las semanas, 'A' o 'B' = quincenal. Un cliente
+// semanal tiene dos visitas el mismo dia (una A y una B, con su propia hora).
+// ══════════════════════════════════════════════════════════════════════
+var ANCLA_SEMANA_A_DEF='2026-11-12';
+function anclaSemanaA(){return (D.cfg&&D.cfg.anclaSemanaA)||ANCLA_SEMANA_A_DEF;}
+// Jueves que abre el ciclo de esa fecha (jueves a miercoles)
+function juevesDelCiclo(fecha){
+  var d=new Date(fecha+'T12:00:00');
+  var atras=(d.getDay()-4+7)%7;
+  d.setDate(d.getDate()-atras);
+  return fechaLocal(d);
+}
+function letraSemana(fecha){
+  var j=new Date(juevesDelCiclo(fecha)+'T12:00:00'),a=new Date(juevesDelCiclo(anclaSemanaA())+'T12:00:00');
+  var sem=Math.round((j-a)/(7*864e5));
+  return ((sem%2)+2)%2===0?'A':'B';
+}
+function visitaVaEnFecha(v,fecha){return !v.sem||v.sem===letraSemana(fecha);}
+function etiquetaSem(s){return s==='A'?'semana A':s==='B'?'semana B':'todas las semanas';}
+// Letras que ocupa una visita, para no vincular dos visitas de la misma semana al mismo contacto
+function letrasDe(v){return v.sem?[v.sem]:['A','B'];}
+// Como figura un contacto en la semana tipo (para su ficha)
+function visitaFijaDe(cid){
+  var st=semanaTipo();if(!st||!cid)return [];
+  var out=[];
+  [1,2,3,4,5].forEach(function(dw){
+    var vs=((st[String(dw)]||{}).visitas||[]).filter(function(v){return v.cid===cid;});
+    if(!vs.length)return;
+    var tieneTodas=vs.some(function(v){return !v.sem;});
+    var A=vs.filter(function(v){return v.sem==='A';}),B=vs.filter(function(v){return v.sem==='B';});
+    var semanal=tieneTodas||(A.length&&B.length);
+    var det=vs.slice().sort(function(a,b){return hm2min(a.h)-hm2min(b.h);}).map(function(v){return (v.sem?v.sem+' ':'')+v.h;}).join(' · ');
+    out.push({dw:dw,tipo:semanal?'Semanal':'Quincenal',sem:semanal?'':(A.length?'A':'B'),det:det});
+  });
+  return out;
+}
+function visitaFijaHTML(cid){
+  var vf=visitaFijaDe(cid);
+  if(!vf.length)return '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Visita fija: no está en la semana tipo.</div>';
+  return vf.map(function(x){
+    var proxLetra=letraSemana(today());
+    return '<div style="font-size:12px;margin-bottom:6px;padding:6px 9px;border-radius:8px;border:1px solid var(--cyan)"><b>Visita fija:</b> '+DIAS_NOM[x.dw]+' · <b>'+x.tipo+'</b>'+(x.sem?' · semana '+x.sem:'')+' <span style="color:var(--muted)">('+es(x.det)+')</span>'+(x.sem?'<span style="display:block;font-size:10px;color:var(--muted)">Esta semana es '+proxLetra+(x.sem===proxLetra?': le toca':': no le toca')+'</span>':'')+'</div>';
+  }).join('');
+}
+// ── Ruta del 12/11/2026 (migracion unica, semanaTipoV = 2) ──
+var RUTA_AB_2026={
+  '4':{A:[['08:30','Club Municipal'],['08:53','La cantina'],['09:15','Athe minimarket'],['09:37','MaxiKiosco Emilio'],['10:03','Despensa MyM'],['10:28','Corner Despensa'],['10:52','Almacén Patria']],
+       B:[['08:30','Club Municipal'],['08:57','Minimarket Vale'],['09:19','Al lado'],['09:41','Despensa Hidalgo'],['10:04','Despensa MyM'],['10:26','La esquina Market'],['10:52','Almacén Patria']],
+       bloques:[['11:15','14:00','Prospección en Alta Córdoba, Cofico y Pueyrredón'],['16:00','19:00','Prospección y revisitas zona norte (pedido del viernes: corte jueves 12:00)']]},
+  '5':{A:[['08:30','Drugstore del boulevard'],['08:52','Pantri'],['09:15','Minimarket 27'],['09:37','Super homero'],['10:05','Colegio Garzon'],['10:28','Minimarket Ohana'],['10:56','La fiambreta 3']],
+       B:[['08:30','Alto Paz - Patria'],['08:54','Lo de Sonia'],['09:16','Colegio Garzon'],['09:42','Olmos Mercado'],['10:04','Maxikiosco kiostar'],['10:26','Panda 2'],['10:48','Panda']],
+       bloques:[['11:15','14:00','Prospección en Centro y General Paz'],['16:00','19:00','Prospección y revisitas en General Paz y Pueyrredón']]},
+  '1':{A:[['08:30','Keops 1'],['08:54','Uff! Que Miga'],['09:17','Keops 1 - Sucursal Caseros 1440'],['09:39','Keops 1 - Sucursal Caseros 1244'],['10:05','Palta'],['10:27','Pecorino'],['10:49','Autoservicio NC'],['11:11','Norte drugstore'],['11:33','24/7 - Sucursal Ob. Oro 321'],['11:55','Sur almacén'],['12:23','Lo de Pol']],
+       B:[['08:30','Di Navarro'],['08:52','Sur almacén'],['09:14','Coco loco'],['09:36','Lo de Ema'],['10:00','Free time'],['10:22','Buenos muchachos'],['10:44','La fiambreta 2'],['11:06','Max Candy'],['11:28','24/7'],['11:50','Unagi']],
+       bloques:[['12:45','14:00','Prospección en Nueva Córdoba y Alberdi'],['16:00','19:00','Ronda de WhatsApp a todos los clientes, revisitas y cierres, armado del pedido']]},
+  '2':{A:[['10:30','La campiña']],B:[['10:30','M&M Sandwich']],
+       bloques:[['08:30','10:00','Cerrar y enviar el pedido del miércoles (corte 10:00)'],['11:00','14:00','Reforzar una zona y cerrar negociaciones abiertas'],['16:00','19:00','Revisitas a los que dijeron "me interesa"']]}
+};
+function diaDesdeRutaAB(r){
+  var vis=[];
+  ['A','B'].forEach(function(s){(r[s]||[]).forEach(function(x){vis.push({h:x[0],n:x[1],cid:'',sem:s});});});
+  vis.sort(function(a,b){return hm2min(a.h)-hm2min(b.h)||(a.sem<b.sem?-1:1);});
+  return {visitas:vis,bloques:(r.bloques||[]).map(function(x){return {d:x[0],a:x[1],t:x[2]};})};
+}
+function migrarRutaAB(intento){
+  intento=intento||0;
+  if(!CFG_CARGADA||!D.user){if(intento<10)setTimeout(function(){migrarRutaAB(intento+1);},2000);return;}
+  if(D.user.r==='gerente'||soloLectura())return;
+  if((Number(D.cfg.semanaTipoV)||0)>=2)return;
+  var st=JSON.parse(JSON.stringify(semanaTipo()||{}));
+  ['1','2','4','5'].forEach(function(dw){st[dw]=diaDesdeRutaAB(RUTA_AB_2026[dw]);});
+  if(!st['3'])st['3']={visitas:[],bloques:[]};
+  vincularSemanaTipo(st);
+  var hor=Object.assign({},D.cfg.rutaHorario||{},{inicio:'08:30',finTarde:'19:00',minVisita:20});
+  D.cfg.semanaTipo=st;D.cfg.semanaTipoV=2;D.cfg.rutaHorario=hor;
+  if(!D.cfg.anclaSemanaA)D.cfg.anclaSemanaA=ANCLA_SEMANA_A_DEF;
+  fsSetConfig({semanaTipo:st,semanaTipoV:2,rutaHorario:hor,anclaSemanaA:D.cfg.anclaSemanaA});
+  var sin=0;Object.keys(st).forEach(function(dw){(st[dw].visitas||[]).forEach(function(v){if(!v.cid)sin++;});});
+  logEvento('edicion','','','Semana tipo A/B cargada (ruta del 12/11/2026)'+(sin?' · '+sin+' visitas sin vincular':''),'','');
+  toast('Ruta nueva con semana A/B cargada'+(sin?' · '+sin+' para vincular a mano':''),sin?'err':'ok');
 }

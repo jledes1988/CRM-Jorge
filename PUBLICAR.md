@@ -1,58 +1,48 @@
-# CRM-Jorge — Versión 9.21 · Pedido, visita y embudo cruzados
+# CRM-Jorge — Versión 9.22 · Ruta semanal con semana A / semana B
 
 **Solo cambió `app.js`.** Los otros dos son los mismos; van los tres juntos.
-Para verificar: en el login y en Config > Debug tiene que decir **9.21 - 03/11/2026**.
+Para verificar: en el login y en Config > Debug tiene que decir **9.22 - 12/11/2026**.
 
 ---
 
-## 1. El primer pedido siempre sale con todos los datos
+## Cómo funciona la semana A / B
 
-Antes, al guardar el primer pedido y volver a abrirlo para copiarlo, salía con el encabezado
-corto, porque el sistema veía que "ya tenía un pedido" (el mismo). Ahora un pedido es el
-**primero** si no hay otro anterior de ese cliente (los cancelados no cuentan). Cuando lo abrís
-para corregir o copiar, dice "Es su primer pedido: lleva el encabezado completo".
+- El ciclo va de **jueves a miércoles**. La **semana A arranca hoy, jueves 12/11/2026**, y
+  después se alternan: 19/11 = B, 26/11 = A, y así.
+- El lunes 16 y el martes 17 son **semana A**, porque pertenecen al ciclo que empezó el jueves 12.
+- Cada visita de la semana tipo dice **A+B** (todas las semanas), **A** o **B** (quincenal).
+- Un cliente **semanal** está dos veces el mismo día, una en A y otra en B, cada una con su hora.
 
-## 2. La visita usa el pedido que ya tomaste ese día
+## La ruta nueva ya cargada
 
-Si primero cargás el pedido y después registrás la visita del mismo día, la visita ya trae
-**"Sí vendió"** con el pedido vinculado ("PEDIDO CARGADO"). No te pide tomar otro.
-Funciona en la visita a cliente y en la visita a prospecto. Un pedido se vincula a una sola visita.
+La primera vez que abras la app (como JL o como Jorge, no como gerente) se reemplazan **lunes,
+martes, jueves y viernes** de la semana tipo con la ruta nueva. El **miércoles queda como estaba**.
+El horario pasa a 08:30–14:00 y 16:00–19:00, con visitas de 20 minutos.
+Las visitas se vinculan solas a cada contacto por el nombre. Si alguna no encuentra su
+contacto, te avisa y queda en rojo en **Editar la semana tipo** para que toques **Elegir**.
 
-## 3. Al tomar el pedido pasa a Cliente Activo
+## Qué cambia en la pantalla
 
-Antes pasaba recién al entregarlo. Ahora, **en el momento en que se toma el pedido**, el
-prospecto pasa a Cliente Activo en todas las pestañas y en el Embudo, y queda en el historial.
-- La regla de "X días sin pedido vuelve a prospecto" cuenta también el último pedido tomado,
-  para que no lo devuelva enseguida.
-- **Al abrir la app como admin (JL)** se acomodan los datos de antes, una vez:
-  - los prospectos con un pedido dentro del plazo de la regla pasan a Cliente Activo;
-  - los clientes que tenían otra etapa en el Embudo quedan en Cliente Activo;
-  - los prospectos que figuraban en "Cliente Activo" sin ser clientes vuelven a Negociación.
-  Te avisa cuántos acomodó y cada cambio queda en el historial.
+- **Cargar semana:** cada día muestra si es **semana A** o **semana B**, y solo carga las
+  visitas de esa letra (más las A+B).
+- **Editar la semana tipo:** arriba dice **"Hoy es semana A"** y cuándo arranca la próxima.
+  Al lado de la hora de cada visita hay un selector **A+B / A / B**. Si agregás un cliente en un
+  día con quincenales, va solo a la semana con menos visitas (lo podés cambiar). No deja poner
+  el mismo cliente dos veces en la misma semana del mismo día.
+- **Ficha del cliente (EN LA GIRA):** "Visita fija: Jueves · **Semanal**" o "Viernes ·
+  **Quincenal** · semana B", con las horas y si le toca esta semana.
 
-## 4. Dashboard: las visitas con pedido se ven como venta
+## Cómo se mantiene
 
-Lo de Sonia: en "Actividad reciente" (y en los historiales de visitas) una visita a un
-prospecto salía siempre como "Visita prospecto", aunque le hayas tomado el pedido. Ahora dice
-**VENTA** con el monto. Además, en "Actividad reciente" aparecen los **pedidos tomados sin
-visita** (tocándolos se abre el pedido).
-
-## 5. Mapa por tipo de negocio
-
-En el Mapa (admin y vendedor) hay un selector nuevo, **"Todos los tipos de negocio"**, con los
-tipos que tienen contactos cargados y cuántos hay de cada uno. Incluye "Sin tipo cargado".
-Se combina con los filtros de etapa y de clientes/prospectos.
-
-## 6. Publicidad / comodato del pedido, editable
-
-En **Config > Administrador de catálogos > Publicidad / comodato del pedido** está la lista
-(freezer + comodato, veleta, totem c/display, cartel...). Podés agregar, **✎ renombrar** y
-borrar. Los cambios se ven al instante al tomar un pedido.
-(El ✎ para renombrar quedó también en las demás listas del administrador de catálogos.)
+- **Cliente nuevo con freezer:** Editar la semana tipo → día de su zona → **+ Visita** → semana
+  A o B → hora en el recorrido → Guardar.
+- **Recalificación mensual (primer lunes):** al quincenal que empezó a pedir todas las semanas
+  con buen volumen, pasalo a A+B (o agregale la otra letra). Al semanal que pide poco, dejalo en A o B.
 
 ---
 
 ## Probado
 
-50 pruebas en el navegador simulado, sin errores (26 nuevas + las 24 de la 9.20).
+85 pruebas en el navegador simulado, sin errores (35 nuevas). Simulé el jueves 12
+(semana A) y el jueves 19 (semana B), la carga de los días siguientes, el editor y la ficha.
 Todas las pantallas abren sin errores con admin y vendedor.
