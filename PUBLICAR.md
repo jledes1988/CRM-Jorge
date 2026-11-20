@@ -1,48 +1,85 @@
-# CRM-Jorge — Versión 9.22 · Ruta semanal con semana A / semana B
+# CRM-Jorge — Versión 9.23 · Deuda, visitas, clasificación, inactivos, mapa y WhatsApp
 
-**Solo cambió `app.js`.** Los otros dos son los mismos; van los tres juntos.
-Para verificar: en el login y en Config > Debug tiene que decir **9.22 - 12/11/2026**.
+**Esta vez son 4 archivos:** `app.js`, `index.html`, `estilos.css` y **`sw.js`** (cambió).
+Van dentro del .zip. Para verificar: en el login tiene que decir **9.23 - 20/11/2026**.
 
 ---
 
-## Cómo funciona la semana A / B
+## 1. Antigüedad de la deuda
 
-- El ciclo va de **jueves a miércoles**. La **semana A arranca hoy, jueves 12/11/2026**, y
-  después se alternan: 19/11 = B, 26/11 = A, y así.
-- El lunes 16 y el martes 17 son **semana A**, porque pertenecen al ciclo que empezó el jueves 12.
-- Cada visita de la semana tipo dice **A+B** (todas las semanas), **A** o **B** (quincenal).
-- Un cliente **semanal** está dos veces el mismo día, una en A y otra en B, cada una con su hora.
+- La deuda empieza a contar **el día de la entrega** del pedido que no se pagó.
+- Los pagos cancelan **primero la deuda más vieja**. Si paga lo anterior y ese mismo día recibe
+  un pedido que no paga, el conteo **arranca de nuevo** desde ese día.
+- Si paga una parte, sigue sumando días desde el pedido viejo...
+- ...salvo que queden **menos de $5.000**: ese saldo chico pasa al pedido siguiente y **no sigue
+  sumando días**. Si el pedido siguiente tampoco lo paga, el atraso cuenta desde ese pedido.
+- En Deudores dice "atraso: N días" o "saldo chico: va con el próximo pedido".
+- Los $5.000 se cambian en **Config › Reglas y ajustes**.
 
-## La ruta nueva ya cargada
+## 2. Pedido y entrega de freezer cuentan como visita
 
-La primera vez que abras la app (como JL o como Jorge, no como gerente) se reemplazan **lunes,
-martes, jueves y viernes** de la semana tipo con la ruta nueva. El **miércoles queda como estaba**.
-El horario pasa a 08:30–14:00 y 16:00–19:00, con visitas de 20 minutos.
-Las visitas se vinculan solas a cada contacto por el nombre. Si alguna no encuentra su
-contacto, te avisa y queda en rojo en **Editar la semana tipo** para que toques **Elegir**.
+- Al **tomar un pedido** queda registrada una visita de ese día (con el pedido).
+- Al **entregar un freezer**, también.
+- Si después cargás la visita a mano ese mismo día, se **fusiona** con la automática: no queda doble.
+- **Por única vez**, al entrar como JL, los pedidos y entregas de freezer anteriores que no
+  tenían visita ese día se suman como visitas. Te avisa cuántos.
 
-## Qué cambia en la pantalla
+## 3 y 6. Clasificación automática por consumo
 
-- **Cargar semana:** cada día muestra si es **semana A** o **semana B**, y solo carga las
-  visitas de esa letra (más las A+B).
-- **Editar la semana tipo:** arriba dice **"Hoy es semana A"** y cuándo arranca la próxima.
-  Al lado de la hora de cada visita hay un selector **A+B / A / B**. Si agregás un cliente en un
-  día con quincenales, va solo a la semana con menos visitas (lo podés cambiar). No deja poner
-  el mismo cliente dos veces en la misma semana del mismo día.
-- **Ficha del cliente (EN LA GIRA):** "Visita fija: Jueves · **Semanal**" o "Viernes ·
-  **Quincenal** · semana B", con las horas y si le toca esta semana.
+La hace el CRM solo, con los pedidos (la carga inicial no cuenta como consumo; mira las
+últimas 12 semanas). Mismos criterios que la planilla:
 
-## Cómo se mantiene
+| Categoría | Regla | Visita sugerida |
+|---|---|---|
+| **A · Alto consumo** | Repone $60 mil o más por semana y pide cada 14 días o menos | Semanal |
+| **B · Estable** | Ya repone | Quincenal |
+| **Nuevo** | Solo la carga inicial, hace 3 semanas o menos | Quincenal |
+| **Revisar** | Sin reponer hace más de 3 semanas | Quincenal + visita de diagnóstico |
+| **Inactivo** | Sin pedido hace más de 45 días | WhatsApp / evaluar retiro del freezer |
 
-- **Cliente nuevo con freezer:** Editar la semana tipo → día de su zona → **+ Visita** → semana
-  A o B → hora en el recorrido → Guardar.
-- **Recalificación mensual (primer lunes):** al quincenal que empezó a pedir todas las semanas
-  con buen volumen, pasalo a A+B (o agregale la otra letra). Al semanal que pide poco, dejalo en A o B.
+Dónde se ve:
+- **Informes › Clasificación de clientes por consumo:** cuántos hay de cada categoría,
+  **ranking de puntos Sei Tu** por consumo semanal (con % de la zona y tendencia de las
+  últimas 4 semanas), consumo semanal de la zona, promedio por freezer y la lista de
+  **cambios de frecuencia sugeridos** comparando con la semana tipo. Botón **Exportar a Excel**.
+- **Ficha del cliente (En la Gira):** categoría, consumo por semana, cada cuántos días pide,
+  tendencia y la visita sugerida.
+- **Dashboard:** avisos de clientes inactivos, freezers para revisar y clientes para cambiar
+  de frecuencia.
+- Los montos y días de los criterios se cambian en **Config › Reglas y ajustes**.
+
+## 4. Cliente inactivo (en vez de volver a prospecto)
+
+- Un cliente **nunca vuelve a prospecto**. Si pasa 45 días sin pedido queda **inactivo**,
+  tenga o no freezer. Con el próximo pedido vuelve a estar activo.
+- En el mapa va en **gris**, y hay un filtro "Clientes inactivos (gris)".
+- **Por única vez**, al entrar como JL, los que la regla vieja había pasado a prospecto y
+  tienen freezer o ya habían comprado vuelven a ser clientes.
+
+## 5. Mapa
+
+- Fondo **claro con calles** (se lee mucho mejor). Arriba a la derecha podés elegir
+  Claro / Oscuro / OpenStreetMap; queda guardado.
+- Se reacomoda varias veces mientras se abre la pantalla, para que no quede gris.
+- Si el servidor del mapa falla, pasa solo a OpenStreetMap.
+
+## 7. Enviar el pedido por WhatsApp
+
+- En el pedido hay un botón verde **Enviar por WhatsApp**: abre el chat con el texto listo.
+- El chat fijo se pone en **Config › Reglas y ajustes › WhatsApp para enviar los pedidos**
+  (número con código de país, ej. 5493511234567).
+- **WhatsApp no permite abrir un grupo directo.** Si los pedidos van a un grupo, dejá el
+  número vacío: el botón abre la lista de chats y elegís el grupo (queda primero en recientes).
+
+## Otro cambio: sin mails escritos en el código
+
+El mail de la cuenta de admin estaba escrito dentro de `app.js` (que es público). Se sacó: cada
+usuario se identifica con el email guardado en su ficha. Para vos no cambia nada en los
+celulares donde ya entraste. En un celular nuevo, la primera vez entrás con tu **email**
+(después alcanza con "jl"). También es un paso necesario para licenciar el sistema.
 
 ---
 
 ## Probado
 
-85 pruebas en el navegador simulado, sin errores (35 nuevas). Simulé el jueves 12
-(semana A) y el jueves 19 (semana B), la carga de los días siguientes, el editor y la ficha.
-Todas las pantallas abren sin errores con admin y vendedor.
+126 pruebas en el navegador simulado, sin errores (41 nuevas).
