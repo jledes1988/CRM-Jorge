@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.22 - 12/11/2026';
+var VERSION='9.23 - 20/11/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Sin Respuesta','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -71,7 +71,7 @@ var PRODUCTOS_DEF=[
 ];
 // Materiales que se entregan en comodato: van en el pedido pero NO suman al total.
 var MATERIALES_DEF=['freezer + comodato','veleta','totem c/display','caja material pop','saltarines','cenefa','cartel impulsivos sei tu','display'];
-var D={deudas:[],user:null,usrs:[{id:1,n:'JL',u:'jl',email:'jorge.ledesmagd@gmail.com',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',email:'jledes.tf@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],rec:[],ped:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
+var D={deudas:[],user:null,usrs:[{id:1,n:'JL',u:'jl',r:'admin',activo:true,creado:'2026-06-01',ua:''},{id:2,n:'Jorge',u:'jorge',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}],cli:[],vis:[],com:[],gira:[],rec:[],ped:[],log:[],cfg:JSON.parse(JSON.stringify(CFG))};
 
 // ════════════════════════════════════════════════════════════════════
 // FIREBASE / FIRESTORE - FUENTE UNICA DE DATOS EN TIEMPO REAL
@@ -193,7 +193,8 @@ function fsSetupListeners(){
 
   // Cuanto historial se trae. El admin necesita mas para los informes; el vendedor
   // trabaja con lo reciente. Asi el volumen deja de crecer para siempre.
-  var _esAdminSes=!!(AUTH_USER&&AUTH_USER.email==='jorge.ledesmagd@gmail.com');
+  // v9.23: sin mails escritos en el codigo. El rol se recuerda en el equipo desde el ultimo ingreso.
+  var _esAdminSes=!!(AUTH_USER&&lg('jrolAdm',null)===AUTH_USER.uid);
   function _hace(n){var d=new Date();d.setDate(d.getDate()-n);return fechaLocal(d);}
   var DESDE_VIS=_hace(_esAdminSes?365:120);
   var DESDE_GIRA=_hace(45);
@@ -234,8 +235,8 @@ function fsSetupListeners(){
   // recorrido y log: NO se suscriben aca. Ver cargarRecorridoDia() y cargarLogCompleto().
 
   var USUARIOS_DEFAULT=[
-    {id:1,n:'JL',u:'jl',email:'jorge.ledesmagd@gmail.com',r:'admin',activo:true,creado:'2026-06-01',ua:''},
-    {id:2,n:'Jorge',u:'jorge',email:'jledes.tf@gmail.com',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}
+    {id:1,n:'JL',u:'jl',r:'admin',activo:true,creado:'2026-06-01',ua:''},
+    {id:2,n:'Jorge',u:'jorge',r:'vendedor',activo:true,creado:'2026-06-01',ua:''}
   ];
   fsDB.collection('usuarios').onSnapshot(function(snap){
     var arr=fsSnapToArr(snap);
@@ -245,13 +246,14 @@ function fsSetupListeners(){
     var faltantes=USUARIOS_DEFAULT.filter(function(def){return !arr.some(function(a){return a.u===def.u;});});
     if(faltantes.length){
       var batch=fsDB.batch();
-      faltantes.forEach(function(u){batch.set(fsDB.collection('usuarios').doc(String(u.id)),u);});
+      // merge: si el documento existe en el servidor (con su email), no se le borra nada
+      faltantes.forEach(function(u){batch.set(fsDB.collection('usuarios').doc(String(u.id)),u,{merge:true});});
       batch.commit().catch(function(e){console.error('reparar usuarios',e);});
       // No hace falta esperar: el propio onSnapshot se va a volver a disparar solo
       // cuando el batch se confirme, y entonces arr ya va a venir completo.
       if(!arr.length){fsOnFirstLoad();return;} // primera carga sin nada todavia: esperar la proxima vuelta
     }
-    if(arr.length){D.usrs=arr.map(function(u){u.id=isNaN(u.id)?u.id:Number(u.id);return u;});}
+    if(arr.length){D.usrs=arr.map(function(u){u.id=isNaN(u.id)?u.id:Number(u.id);return u;});window._usrsDeLaBase=true;}
     // v9.17: los vendedores dados de baja no aparecen nunca y se borran de la base
     // en cuanto entra el admin (antes se intentaba una sola vez y fallaba si los
     // usuarios todavia no habian cargado).
@@ -978,6 +980,7 @@ function clientesEnRecaida(){
   });
 }
 function revisarClientesInactivos(){
+  return;   // v9.23: un cliente ya no vuelve a prospecto: queda INACTIVO (ver clienteInactivo)
   if(!D.user||D.user.r!=='admin')return;   // una sola cabeza escribe, para no duplicar
   if(!CFG_CARGADA)return;                  // sin la config real no se sabe el plazo elegido
   var lista=clientesEnRecaida();
@@ -1126,10 +1129,10 @@ function sc(g,v){document.querySelectorAll('[data-g="'+g+'"]').forEach(function(
 // Los usuarios entran con su nombre de usuario de siempre; la app lo traduce
 // al email de la cuenta. Las contrasenas las maneja Google encriptadas:
 // NUNCA se guardan en la base de datos ni en este archivo.
-var EMAILS_USUARIOS={
-  'jl':'jorge.ledesmagd@gmail.com',
-  'jorge':'jledes.tf@gmail.com'
-};
+// v9.23: ya no hay mails escritos en el codigo: cada usuario tiene su email
+// guardado en su ficha de la base (Config > Usuarios). En un celular nuevo,
+// la primera vez se entra con el email; despues alcanza con el usuario.
+var EMAILS_USUARIOS={};
 // Traduce lo que se escribio en el login a un email. Si ya es un email, lo usa tal cual
 // (asi un usuario nuevo puede entrar sin tocar el codigo).
 function emailDeUsuario(u){
@@ -1218,6 +1221,13 @@ function iniciarSesionApp(fbUser){
     if(x.email&&x.email.toLowerCase()===mail)return true;
     return EMAILS_USUARIOS[x.u]&&EMAILS_USUARIOS[x.u].toLowerCase()===mail;
   });
+  // v9.23: si los usuarios de la base todavia no llegaron, se espera un poco antes de rechazar
+  if(!usr&&!window._usrsDeLaBase&&(iniciarSesionApp._esperas||0)<12){
+    iniciarSesionApp._esperas=(iniciarSesionApp._esperas||0)+1;
+    setTimeout(function(){iniciarSesionApp(fbUser);},1000);
+    return;
+  }
+  if(usr&&usr.r==='admin'&&fbUser.uid)ls('jrolAdm',fbUser.uid);
   if(!usr){
     var e=document.getElementById('lErr');
     if(e){e.textContent='Tu cuenta existe pero no tiene permisos asignados. Avisale al administrador.';e.style.display='block';}
@@ -1260,6 +1270,8 @@ function startApp(){
   setTimeout(function(){try{migrarProspeccionMiercoles();}catch(e){debugLog('error','prospeccion miercoles: '+e.message);}},3000);
   setTimeout(function(){try{migrarBajaVendedores();}catch(e){debugLog('error','baja de vendedores: '+e.message);}},3500);
   setTimeout(function(){try{migrarRutaAB();}catch(e){debugLog('error','ruta A/B: '+e.message);}},4000);
+  setTimeout(function(){try{restaurarClientesDeLaRegla();}catch(e){debugLog('error','clientes de la regla: '+e.message);}},4300);
+  setTimeout(function(){try{migrarGestionesAuto();}catch(e){debugLog('error','gestiones auto: '+e.message);}},4600);
   // cliente sin pedido en X dias vuelve a prospecto (solo admin)
   // Aviso de backup: se espera unos segundos para que la config real ya haya
   // bajado (si no, parece que nunca se hizo un backup y avisaria de mas).
@@ -1671,7 +1683,7 @@ function verEnMapaMini(id){
     var cont=document.getElementById('miniMapa');if(!cont)return;
     if(typeof L==='undefined'){cont.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">El mapa necesita internet</div>';return;}
     miniMapaObj=L.map('miniMapa',{zoomControl:true,attributionControl:false}).setView([c.lat,c.lng],16);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(miniMapaObj);
+    capaBase(estiloMapa()).addTo(miniMapaObj);
     var etaMini=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
     L.circleMarker([c.lat,c.lng],{radius:11,fillColor:(EC[etaMini]||'#22d3ee'),color:'#0b1220',weight:2,fillOpacity:.95}).addTo(miniMapaObj);
     miniMapaObj.invalidateSize();
@@ -1985,6 +1997,7 @@ function giraDeContacto(cid){
 function giraFichaHTML(cid,ctx){
   var gs=giraDeContacto(cid);
   var h='<div class="card" style="margin-bottom:10px"><div class="ct">EN LA GIRA</div>';
+  h+=consumoFichaHTML(cid);
   h+=visitaFijaHTML(cid);
   if(!gs.length)h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">No esta agendado en ningun dia.</div>';
   else{
@@ -3087,6 +3100,7 @@ function guardarVisitaProspecto(id){
       fsSetGira(ng);
     }
   }
+  v=fusionarConAuto(v);
   D.vis.push(v);
   // Trazabilidad
   if(conv){logEvento('conversion',c.id,c.nm,'Prospecto convertido a Cliente Activo','Prospecto','Cliente Activo');}
@@ -3114,9 +3128,9 @@ var gMFiltroTipo='';
 
 function crearMapa(contId){
   var mapa=L.map(contId,{zoomControl:true,attributionControl:true}).setView([-31.4201,-64.1888],12); // Cordoba Capital
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-    attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19
-  }).addTo(mapa);
+  ponerCapasMapa(mapa);           // v9.23: fondo claro por defecto, selector de fondo y plan B
+  observarTamanoMapa(mapa,contId);
+  mapa._ajustar=true;
   return mapa;
 }
 function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin,filtroTipo){
@@ -3132,9 +3146,12 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin,filtroTipo){
     var coAcordado=D.com.some(function(co){return co.cid===c.id&&comVigente(co)&&estadoComodato(co)!=='activo';});
     if(filtroTipo==='freezerPend'&&!coAcordado)return;
     var eta=c.etapaEmbudo||(c.esP?'Nuevo Prospecto':'Cliente Activo');
-    if(filtroEtapa&&eta!==filtroEtapa)return;
-    // RELLENO = etapa del embudo. En el mapa el cliente activo va celeste.
-    var col=eta==='Cliente Activo'?'#22d3ee':(EC[eta]||'#94a3b8');
+    var inact=clienteInactivo(c);
+    if(filtroEtapa==='__inactivo'){if(!inact)return;}
+    else if(filtroEtapa==='Cliente Activo'){if(eta!==filtroEtapa||inact)return;}
+    else if(filtroEtapa&&eta!==filtroEtapa)return;
+    // RELLENO = etapa del embudo. En el mapa el cliente activo va celeste y el inactivo gris.
+    var col=inact?'#64748b':eta==='Cliente Activo'?'#22d3ee':(EC[eta]||'#94a3b8');
     var esNeg=(eta==='Negociacion');
     // BORDE = situacion del freezer, que antes pisaba el relleno y confundia.
     var bordeCol='#0b1220', bordeAncho=2;
@@ -3149,7 +3166,8 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin,filtroTipo){
     pop+='<div style="font-weight:800;font-size:14px;margin-bottom:2px">'+es(c.nm)+'</div>';
     if(c.fan&&c.fan.trim().toLowerCase()!==c.nm.trim().toLowerCase())pop+='<div style="font-size:12px;font-weight:700;color:#0891b2">'+es(c.fan)+'</div>';
     pop+='<div style="font-size:11px;color:#666">'+es(c.bar||c.ciu||'')+(c.tipo?' · '+es(c.tipo):'')+'</div>';
-    pop+='<div style="font-size:11px;margin-top:3px"><span style="background:'+col+';color:'+(esNeg?'#0b1220':'#fff')+';padding:2px 8px;border-radius:10px;font-weight:700">'+es(eta)+'</span></div>';
+    pop+='<div style="font-size:11px;margin-top:3px"><span style="background:'+col+';color:'+(esNeg?'#0b1220':'#fff')+';padding:2px 8px;border-radius:10px;font-weight:700">'+(inact?'Cliente inactivo':es(eta))+'</span>'+(!c.esP?' '+chipCategoria(categoriaDe(c),true):'')+'</div>';
+    if(inact)pop+='<div style="font-size:11px;color:#475569;margin-top:3px">Sin pedido hace '+dias(refInactividad(c))+' días</div>';
     if(tieneFz)pop+='<div style="font-size:11px;color:#16a34a;font-weight:700;margin-top:3px">&#10052; Freezer nuestro puesto</div>';
     else if(coAcordado)pop+='<div style="font-size:11px;color:#db2777;font-weight:700;margin-top:3px">&#10052; Acordo freezer, falta entregar</div>';
     if(c.sucursalDe){var padrePop=D.cli.find(function(x){return x.id===c.sucursalDe;});if(padrePop)pop+='<div style="font-size:10px;color:#888;margin-top:3px">Sucursal de '+es(padrePop.nm)+'</div>';}
@@ -3162,6 +3180,7 @@ function pintarMarcadores(mapa,capaVieja,lista,filtroEtapa,esAdmin,filtroTipo){
     bounds.push([c.lat,c.lng]);
   });
   capa.addTo(mapa);
+  mapa._ultBounds=bounds;
   if(bounds.length)mapa.fitBounds(bounds,{padding:[35,35],maxZoom:15});
   return capa;
 }
@@ -3179,6 +3198,7 @@ function barraMapaHTML(lista,filtroActual,fnFiltro,fnCentro,filtroTipo,fnFiltroT
   h+='<select onchange="'+fnFiltro+'(this.value)" style="'+selEstilo+'">';
   h+='<option value="">Todas las etapas</option>';
   ET.concat(SA).forEach(function(e){h+='<option value="'+es(e)+'"'+(filtroActual===e?' selected':'')+'>'+es(e)+'</option>';});
+  h+='<option value="__inactivo"'+(filtroActual==='__inactivo'?' selected':'')+'>Clientes inactivos (gris)</option>';
   h+='</select>';
   // v9.21: tipo de negocio (solo los que tienen contactos cargados)
   if(fnRubro){
@@ -3270,7 +3290,7 @@ function renderVM(){
   if(!vMapaObj){cont.innerHTML='';vMapaObj=crearMapa('vMapa');}
   vMapaCapa=pintarMarcadores(vMapaObj,vMapaCapa,mc,vMFiltroEtapa,false,vMFiltroTipo);
   capturarGPS(function(g){if(g&&vMapaObj)dibujarMiUbicacion(vMapaObj,g);}); // P2A: tu ubicacion en vivo
-  setTimeout(function(){vMapaObj.invalidateSize();},120);
+  asegurarMapaVisible(vMapaObj);
 }
 // ── FREEZERS DEL VENDEDOR ─────────────────────────────────────────────
 // Ve solo los comodatos de SUS clientes. Puede avanzar estados (firmado/entregado)
@@ -3908,7 +3928,7 @@ function renderGM(){
   } else {
     gMapaCapa=pintarMarcadores(gMapaObj,gMapaCapa,base,gMFiltroEtapa,true,gMFiltroTipo);
   }
-  setTimeout(function(){gMapaObj.invalidateSize();},120);
+  asegurarMapaVisible(gMapaObj);
 }
 
 // ── UBICACION GPS DE LOS CONTACTOS ────────────────────────────────────
@@ -4336,6 +4356,14 @@ function renderGD(){
   if(vb.length)alertas.push({t:'y',msg:'Baja actividad esta semana: '+vb.map(function(u){return u.n;}).join(', '),ids:null});
   var retAdm=freezersARetirar();
   if(retAdm.length)alertas.push({t:'r',msg:retAdm.length+' freezer'+(retAdm.length!==1?'s':'')+' para retirar: sin pedidos hace +'+diasRecaida()+' dias',ids:retAdm.map(function(r){return r.c.id;})});
+  // v9.23: inactivos y clasificacion
+  var _inac=clientesInactivos(cliBase);
+  if(_inac.length)alertas.push({t:'y',msg:_inac.length+' cliente'+(_inac.length!==1?'s':'')+' inactivo'+(_inac.length!==1?'s':'')+': sin pedido hace +'+diasRecaida()+' días',ids:_inac.map(function(c){return c.id;})});
+  var _cl=clasificacion(cliBase);
+  var _rev=_cl.filter(function(x){return x.k==='R'&&x.fz;});
+  if(_rev.length)alertas.push({t:'y',msg:_rev.length+' freezer'+(_rev.length!==1?'s':'')+' sin reponer hace más de '+aj('clasDiasRevisar')+' días (revisar)',ids:_rev.map(function(x){return x.c.id;})});
+  var _camb=_cl.filter(function(x){return x.cambio;});
+  if(_camb.length)alertas.push({t:'y',msg:_camb.length+' cliente'+(_camb.length!==1?'s':'')+' para cambiar de frecuencia de visita (ver Informes)',ids:_camb.map(function(x){return x.c.id;})});
   var deuAdm=deudores();
   if(deuAdm.length)alertas.push({t:'r',msg:deuAdm.length+' cliente'+(deuAdm.length!==1?'s':'')+' con deuda por '+plata(deuAdm.reduce(function(t,d){return t+d.saldo;},0)),ids:deuAdm.map(function(d){return d.c.id;})});
   var csv=D.com.filter(function(co){return estadoComodato(co)==='activo';}).filter(function(co){var c=D.cli.find(function(x){return x.id===co.cid;});return c&&(!c.ul||dias(c.ul)>30);});
@@ -5045,6 +5073,7 @@ function renderPedido(){
   // Vista previa del texto para fabrica, siempre visible y en vivo
   h+='<div class="card" style="margin-bottom:10px"><div class="ct">VISTA PREVIA PARA FABRICA</div>';
   h+='<textarea class="fi fta" id="pedTxt" rows="10" style="font-size:12px;font-family:monospace;margin:0">'+es(textoFabrica())+'</textarea>';
+  h+='<button class="btn" onclick="enviarPedidoWA()" style="margin:8px 0 0;background:#25D366;color:#0b1220">Enviar por WhatsApp</button>';
   h+='<button class="btn sec" onclick="copiarTexto(\'pedTxt\')" style="margin:8px 0 0">Copiar al portapapeles</button>';
   h+='<div style="font-size:11px;color:var(--muted);margin-top:6px">Si el boton no funciona en tu telefono, manten apretado el texto de arriba y elegi Copiar.</div>';
   h+='</div>';
@@ -5183,6 +5212,7 @@ function guardarPedido(){
     // v9.21: al tomarle el pedido pasa a Cliente Activo (en todas las pestañas y
     // en el embudo). c.uv (ultima compra) se sigue marcando al entregar.
     pasarAClientePorPedido(c,ped.fecha);
+    registrarGestionAuto(c,ped.fecha,'pedido',{pid:ped.id,monto:Number(ped.total||0)});   // v9.23: pasar un pedido cuenta como visita
     logEvento('venta',c.id,c.nm,'Pedido TOMADO por '+plata(tot)+' · entrega '+fmt(ped.entrega),'','');
     // Queda agendado solo en la gira del dia de entrega, para que aparezca
     // en el recorrido del miercoles sin que haya que acordarse.
@@ -5238,11 +5268,8 @@ function saldoDe(cid){
   },0);
 }
 // Fecha del cargo impago mas viejo: sirve para saber cuanto hace que arrastra deuda.
-function deudaDesde(cid){
-  var fs=(D.deudas||[]).filter(function(m){return m.cid===cid&&m.tipo!=='pago'&&m.fecha;})
-    .map(function(m){return m.fecha;}).sort();
-  return fs.length?fs[0]:'';
-}
+// v9.23: con los pagos aplicados a la deuda mas vieja y el minimo de $5.000 (ver infoDeuda)
+function deudaDesde(cid){return infoDeuda(cid).desde;}
 // Fecha en que el cliente se comprometio a pagar el saldo, si dio una.
 function compromisoDe(cid){
   var c=D.cli.find(function(x){return x.id===cid;});
@@ -5425,7 +5452,7 @@ function tarjetaDeudor(it,ctx){
   h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;min-width:0">';
   h+='<div style="font-size:14px;font-weight:700">'+es(c.nm)+'</div>';
   if(c.dir)h+='<div style="font-size:11px;color:var(--muted)">&#128205; '+es(c.dir)+'</div>';
-  h+='<div style="font-size:11px;color:'+col+'">'+(it.dias===null?'sin fecha':'hace '+it.dias+' dias')+(it.prom&&!it.promVenc&&!it.promHoy?' · paga el '+fmt(it.prom):'')+'</div>';
+  h+='<div style="font-size:11px;color:'+col+'">'+(it.dias===null?(it.saldo<Number(aj('deudaMinAtraso'))?'saldo chico: va con el próximo pedido':'sin atraso'):'atraso: '+it.dias+' días')+(it.prom&&!it.promVenc&&!it.promHoy?' · paga el '+fmt(it.prom):'')+'</div>';
   h+='</div><div style="font-size:17px;font-weight:900;color:var(--red);flex-shrink:0">'+plata(it.saldo)+'</div></div>';
   h+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
   h+='<button class="sm g" onclick="registrarPago(\''+c.id+'\',\''+vuelta+'\')">Cobrar</button>';
@@ -6484,9 +6511,10 @@ function avanzarComodato(id,nuevoEstado){
     var c=D.cli.find(function(x){return x.id===co.cid;});
     var _conv=false;
     if(c){
-      if(c.esP)_conv=true;
+      if(c.esP){_conv=true;c.fAlta=co.fe;}
       c.esP=false;c.etapaEmbudo='Cliente Activo';
       fsSetContacto(c);
+      registrarGestionAuto(c,co.fe,'entrega_freezer',{det:co.nro?'#'+co.nro:''});   // v9.23: la entrega del freezer cuenta como visita
     }
     var _pendCom=D.ped.some(function(x){return x.cid===co.cid&&estadoPedido(x)==='tomado';});
     // Si tambien se entrega el pedido, los datos de alta se piden despues de la entrega
@@ -6684,6 +6712,7 @@ function renderGI(){
 
   h+=ventasMesHTML();
   h+=tomadosVsEntregadosHTML(per);
+  h+=clasificacionHTML();
   h+=rankingFreezersHTML();
   // ── PROSPECTOS ──
   h+='<div class="card"><div class="ct">PROSPECTOS</div>';
@@ -6922,14 +6951,15 @@ function renderGCfg(){
   h+='<div style="display:flex;gap:8px;align-items:center"><input class="fi" type="number" min="1" max="1000" id="cfgMeta" value="'+((D.cfg&&D.cfg.metaFreezers)||80)+'" style="width:100px;margin:0;text-align:center;font-size:16px;font-weight:700"><button class="btn sec" onclick="guardarMeta()" style="margin:0">Guardar</button></div>';
   h+='</div>';
 
-  h+='<div class="card"><div class="ct">CLIENTE SIN PEDIDO VUELVE A PROSPECTO</div>';
-  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Un Cliente Activo que pasa esta cantidad de dias sin un pedido registrado vuelve al embudo como prospecto, en etapa Negociacion. Se aplica solo al entrar como admin. Apenas se le carga un pedido vuelve a ser cliente.</div>';
-  h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="fi" type="number" min="7" max="365" id="cfgRecaida" value="'+diasRecaida()+'" style="width:90px;margin:0;text-align:center;font-size:16px;font-weight:700"><span style="font-size:12px;color:var(--muted)">dias</span><button class="btn sec" onclick="guardarRecaida()" style="margin:0">Guardar y aplicar</button></div>';
+  h+=ajustesHTML();
+  h+='<div class="card"><div class="ct">CLIENTE INACTIVO</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Un cliente que pasa esta cantidad de días sin un pedido queda <b>inactivo</b> (gris en el mapa). Sigue siendo cliente, tenga o no freezer: no vuelve a prospecto. Con el próximo pedido vuelve a estar activo.</div>';
+  h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="fi" type="number" min="7" max="365" id="cfgRecaida" value="'+diasRecaida()+'" style="width:90px;margin:0;text-align:center;font-size:16px;font-weight:700"><span style="font-size:12px;color:var(--muted)">dias</span><button class="btn sec" onclick="guardarRecaida()" style="margin:0">Guardar</button></div>';
   var enRec=clientesEnRecaida();
   if(enRec.length){
-    h+='<div style="font-size:11px;color:var(--yellow);margin-top:10px;line-height:1.5"><b>'+enRec.length+' cliente'+(enRec.length===1?'':'s')+' caeria'+(enRec.length===1?'':'n')+' con este plazo:</b><br>'+enRec.map(function(c){var fz=fechaFreezerPuesto(c.id);return es(c.nm)+' ('+(c.uv?'ultimo pedido '+fmt(c.uv):(fz?'sin pedidos, freezer puesto el '+fmt(fz):'sin pedidos, ingreso '+fmt(c.ing)))+')';}).join('<br>')+'</div>';
+    h+='<div style="font-size:11px;color:var(--yellow);margin-top:10px;line-height:1.5"><b>'+enRec.length+' cliente'+(enRec.length===1?' está inactivo':'s están inactivos')+' con este plazo:</b><br>'+enRec.map(function(c){var fz=fechaFreezerPuesto(c.id);return es(c.nm)+' ('+(c.uv?'ultimo pedido '+fmt(c.uv):(fz?'sin pedidos, freezer puesto el '+fmt(fz):'sin pedidos, ingreso '+fmt(c.ing)))+')';}).join('<br>')+'</div>';
   } else {
-    h+='<div style="font-size:11px;color:var(--muted);margin-top:10px">Ningun cliente cae con este plazo.</div>';
+    h+='<div style="font-size:11px;color:var(--muted);margin-top:10px">Ningún cliente inactivo con este plazo.</div>';
   }
   h+='</div>';
 
@@ -7178,7 +7208,7 @@ function guardarRecaida(){
   if(isNaN(n)||n<7||n>365){toast('Poné un numero entre 7 y 365 dias','err');return;}
   D.cfg.diasRecaida=n;
   fsSetConfig({diasRecaida:n});   // delta: nunca se pisa el resto de la config
-  logEvento('edicion','','','Plazo sin pedido para volver a prospecto: '+n+' dias','','');
+  logEvento('edicion','','','Plazo para cliente inactivo: '+n+' dias','','');
   toast('Guardado: '+n+' dias','ok');
   try{revisarClientesInactivos();}catch(e){debugLog('error','regla de clientes inactivos: '+e.message);}   // se aplica en el momento
   renderGCfg();
@@ -7678,6 +7708,7 @@ function wFin(){
   var v={id:uid(),cid:W.cid,fecha:today(),vend:D.user?D.user.n:'',tipo:W.tipo};
   Object.assign(v,W.data);
   if(v.vendio!==false&&!v.pid){var _pp=pedidoDelDiaSinVisita(v.cid,v.fecha);if(_pp){v.pid=_pp.id;v.vendio=true;v.monto=Number(_pp.total||0);}}
+  v=fusionarConAuto(v);
   D.vis.push(v);
   var c=D.cli.find(function(x){return x.id===W.cid;});
   if(c){
@@ -7756,7 +7787,7 @@ function confirmarUbicacion(id){
     if(typeof L==='undefined'){var cm=document.getElementById('confMapa');if(cm)cm.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">El mapa necesita internet</div>';return;}
     var centro=(c.lat&&c.lng)?[c.lat,c.lng]:[-31.4201,-64.1888];
     confMapaObj=L.map('confMapa',{zoomControl:true,attributionControl:false}).setView(centro,c.lat?15:12);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(confMapaObj);
+    capaBase(estiloMapa()).addTo(confMapaObj);
     if(c.lat&&c.lng){
       confMarcador=L.circleMarker([c.lat,c.lng],{radius:10,fillColor:'#fb923c',color:'#0b1220',weight:2,fillOpacity:.9}).addTo(confMapaObj);
       var est=document.getElementById('confEstado');if(est)est.textContent='Ubicacion tentativa por direccion. Marca el GPS para confirmarla.';
@@ -10665,7 +10696,7 @@ function fueraDePlazo(c){
 // vinculado a ninguna visita: es el que se tomo en la visita que se registra.
 function pedidoDelDiaSinVisita(cid,fecha){
   fecha=fecha||today();
-  var usados={};D.vis.forEach(function(v){if(v.pid)usados[v.pid]=1;});
+  var usados={};D.vis.forEach(function(v){if(v.pid&&!v.auto)usados[v.pid]=1;});
   var ps=D.ped.filter(function(p){return p.cid===cid&&p.fecha===fecha&&estadoPedido(p)!=='anulado'&&!usados[p.id];});
   return ps.length?ps[ps.length-1]:null;
 }
@@ -10797,4 +10828,345 @@ function migrarRutaAB(intento){
   var sin=0;Object.keys(st).forEach(function(dw){(st[dw].visitas||[]).forEach(function(v){if(!v.cid)sin++;});});
   logEvento('edicion','','','Semana tipo A/B cargada (ruta del 12/11/2026)'+(sin?' · '+sin+' visitas sin vincular':''),'','');
   toast('Ruta nueva con semana A/B cargada'+(sin?' · '+sin+' para vincular a mano':''),sin?'err':'ok');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// v9.23 — AJUSTES GENERALES (Config > Reglas y ajustes)
+// ══════════════════════════════════════════════════════════════════════
+var AJ_DEF={waPedidos:'',deudaMinAtraso:5000,clasMontoA:60000,clasDiasA:14,clasDiasRevisar:21};
+function aj(k){var v=D.cfg&&D.cfg.ajustes&&D.cfg.ajustes[k];return (v!==undefined&&v!==null&&v!=='')?v:AJ_DEF[k];}
+function ajustesHTML(){
+  var h='<div class="card"><div class="ct">REGLAS Y AJUSTES</div>';
+  h+='<div class="fg"><label class="fl">WhatsApp para enviar los pedidos</label><input class="fi" id="ajWa" inputmode="tel" placeholder="Ej: 5493511234567 (vacío = elegir el chat cada vez)" value="'+es(aj('waPedidos'))+'" style="margin:0"><div style="font-size:11px;color:var(--muted);margin-top:4px">Número con código de país, sin + ni espacios. WhatsApp no deja abrir un <b>grupo</b> directo: si los pedidos van a un grupo, dejalo vacío y el botón te abre la lista de chats para elegirlo.</div></div>';
+  h+='<div class="fg"><label class="fl">Deuda mínima que cuenta días de atraso ($)</label><input class="fi" type="number" min="0" id="ajDeudaMin" value="'+aj('deudaMinAtraso')+'" style="margin:0;width:140px"><div style="font-size:11px;color:var(--muted);margin-top:4px">Si después de pagar queda menos que esto, el saldo pasa al pedido siguiente y no sigue sumando días de atraso.</div></div>';
+  h+='<div class="fl" style="margin-top:6px">Clasificación por consumo</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr auto;gap:8px 10px;align-items:center;font-size:12px">';
+  h+='<span>Categoría A: reposición semanal desde ($)</span><input class="fi" type="number" min="0" id="ajMontoA" value="'+aj('clasMontoA')+'" style="margin:0;width:110px">';
+  h+='<span>Categoría A: pide cada (días o menos)</span><input class="fi" type="number" min="1" id="ajDiasA" value="'+aj('clasDiasA')+'" style="margin:0;width:110px">';
+  h+='<span>"Revisar": sin reponer hace más de (días)</span><input class="fi" type="number" min="1" id="ajDiasRev" value="'+aj('clasDiasRevisar')+'" style="margin:0;width:110px">';
+  h+='</div>';
+  h+='<button class="btn sec" onclick="guardarAjustes()" style="margin:14px 0 0">Guardar</button></div>';
+  return h;
+}
+function guardarAjustes(){
+  if(soloLectura())return;
+  var wa=((document.getElementById('ajWa')||{}).value||'').replace(/\D/g,'');
+  var n=function(id,min){var x=parseInt((document.getElementById(id)||{}).value,10);return isNaN(x)||x<min?null:x;};
+  var o={waPedidos:wa,deudaMinAtraso:n('ajDeudaMin',0),clasMontoA:n('ajMontoA',0),clasDiasA:n('ajDiasA',1),clasDiasRevisar:n('ajDiasRev',1)};
+  if(o.deudaMinAtraso===null||o.clasMontoA===null||o.clasDiasA===null||o.clasDiasRevisar===null){toast('Revisá los números','err');return;}
+  if(wa&&wa.length<10){toast('El número de WhatsApp parece incompleto','err');return;}
+  D.cfg.ajustes=o;fsSetConfig({ajustes:o});
+  logEvento('edicion','','','Reglas y ajustes guardados','','');
+  toast('Guardado','ok');renderGCfg();
+}
+// ══════════════════════════════════════════════════════════════════════
+// v9.23 — ANTIGUEDAD DE LA DEUDA
+// Los pagos cancelan primero la deuda mas vieja. El atraso cuenta desde el
+// pedido impago mas viejo que siga debiendo. Si lo que queda de las deudas
+// viejas es menos que el minimo ($5.000), se suma al pedido siguiente y el
+// atraso arranca en ese pedido (si no hay otro impago, no cuenta atraso).
+// ══════════════════════════════════════════════════════════════════════
+function infoDeuda(cid){
+  var mov=(D.deudas||[]).filter(function(m){return m.cid===cid;});
+  var cargos=mov.filter(function(m){return m.tipo!=='pago';}).map(function(m){return {f:m.fecha||'',r:Number(m.monto||0)};})
+    .sort(function(a,b){return a.f.localeCompare(b.f);});
+  var pagos=mov.filter(function(m){return m.tipo==='pago';}).map(function(m){return {f:m.fecha||'',x:Number(m.monto||0)};})
+    .sort(function(a,b){return a.f.localeCompare(b.f);});
+  // Se recorren los dias en orden: primero entran los cargos del dia, despues se aplican los pagos (FIFO)
+  var credito=0,ci=0,pi=0,abiertos=[];
+  var fechas={};cargos.forEach(function(c){fechas[c.f]=1;});pagos.forEach(function(p){fechas[p.f]=1;});
+  Object.keys(fechas).sort().forEach(function(f){
+    while(ci<cargos.length&&cargos[ci].f===f){abiertos.push({f:cargos[ci].f,r:cargos[ci].r});ci++;}
+    while(pi<pagos.length&&pagos[pi].f===f){credito+=pagos[pi].x;pi++;}
+    while(credito>0&&abiertos.length){
+      var q=Math.min(credito,abiertos[0].r);abiertos[0].r-=q;credito-=q;
+      if(abiertos[0].r<=0.5)abiertos.shift();
+    }
+  });
+  var saldo=abiertos.reduce(function(t,a){return t+a.r;},0)-credito;
+  var min=Number(aj('deudaMinAtraso'))||0,acum=0,desde='';
+  for(var i=0;i<abiertos.length;i++){acum+=abiertos[i].r;if(acum>=min&&acum>0){desde=abiertos[i].f;break;}}
+  if(saldo<=0)desde='';
+  return {saldo:Math.round(saldo),desde:desde,dias:desde?dias(desde):null,chica:saldo>0&&!desde};
+}
+// ══════════════════════════════════════════════════════════════════════
+// v9.23 — PEDIDO Y ENTREGA DE FREEZER CUENTAN COMO VISITA
+// Se registra sola una gestion (visita automatica) ese dia. Si despues se
+// carga la visita a mano, se fusiona con la automatica (no queda doble).
+// ══════════════════════════════════════════════════════════════════════
+function registrarGestionAuto(c,fecha,tipo,extra,vend){
+  if(!c||!fecha)return null;
+  vend=vend||(D.user?D.user.n:'')||c.vend||'';
+  var v=D.vis.find(function(x){return x.cid===c.id&&x.fecha===fecha;});
+  var nota=tipo==='pedido'?'Pedido tomado':tipo==='entrega_freezer'?'Entrega de freezer':'Gestión';
+  if(v){
+    if(tipo==='pedido'&&extra&&extra.pid&&!v.pid){v.pid=extra.pid;v.vendio=true;v.monto=extra.monto;}
+    if((v.obs||'').indexOf(nota)<0&&v.auto)v.obs=(v.obs?v.obs+' · ':'')+nota+(extra&&extra.det?' '+extra.det:'');
+    if(tipo==='entrega_freezer')v.entregaFreezer=true;
+  } else {
+    v={id:uid(),cid:c.id,fecha:fecha,vend:vend,tipo:c.esP?'prospecto':'cliente',obs:nota+(extra&&extra.det?' '+extra.det:''),gestion:tipo,auto:true};
+    if(tipo==='pedido'&&extra){v.pid=extra.pid;v.vendio=true;v.monto=extra.monto;}
+    if(tipo==='entrega_freezer')v.entregaFreezer=true;
+    D.vis.push(v);
+  }
+  fsSetVisita(v);
+  if(!c.ul||fecha>c.ul){c.ul=fecha;c._modBy=vend||'?';c._modAt=new Date().toISOString();fsSetContacto(c);}
+  return v;
+}
+// Al guardar una visita cargada a mano: si ese dia ya habia una automatica, la reemplaza
+function fusionarConAuto(v){
+  var a=D.vis.find(function(x){return x.cid===v.cid&&x.fecha===v.fecha&&x.auto&&x.id!==v.id;});
+  if(!a)return v;
+  Object.keys(a).forEach(function(k){if(k!=='auto'&&k!=='id'&&k!=='obs'&&k!=='gestion'&&(v[k]===undefined||v[k]===null||v[k]===''))v[k]=a[k];});
+  if(a.obs&&(v.obs||'').indexOf(a.obs)<0)v.obs=(v.obs?v.obs+' · ':'')+a.obs;
+  v.id=a.id;
+  D.vis.splice(D.vis.indexOf(a),1);
+  return v;
+}
+// Por unica vez: los pedidos y entregas de freezer ya cargados sin visita ese dia
+function migrarGestionesAuto(){
+  if(!D.user||D.user.r!=='admin'||!CFG_CARGADA)return;
+  if((Number(D.cfg.gestionesAutoV)||0)>=1)return;
+  var hay={};D.vis.forEach(function(v){hay[v.cid+'|'+v.fecha]=true;});
+  var n=0;
+  D.ped.forEach(function(p){
+    if(estadoPedido(p)==='anulado'||!p.fecha||hay[p.cid+'|'+p.fecha])return;
+    var c=D.cli.find(function(x){return x.id===p.cid;});if(!c||c.eliminado)return;
+    registrarGestionAuto(c,p.fecha,'pedido',{pid:p.id,monto:Number(p.total||0)},p.vend||c.vend);
+    hay[p.cid+'|'+p.fecha]=true;n++;
+  });
+  (D.com||[]).forEach(function(co){
+    if(estadoComodato(co)!=='activo'||!co.fe||hay[co.cid+'|'+co.fe])return;
+    var c=D.cli.find(function(x){return x.id===co.cid;});if(!c||c.eliminado)return;
+    registrarGestionAuto(c,co.fe,'entrega_freezer',{det:co.nro?'#'+co.nro:''},c.vend);
+    hay[co.cid+'|'+co.fe]=true;n++;
+  });
+  D.cfg.gestionesAutoV=1;fsSetConfig({gestionesAutoV:1});
+  if(n){logEvento('visita','','','Gestiones registradas: '+n+' pedidos y entregas de freezer sin visita ese día','','');toast(n+' pedidos y entregas de freezer se sumaron como visitas','ok');}
+}
+// ══════════════════════════════════════════════════════════════════════
+// v9.23 — CLIENTE INACTIVO (reemplaza "vuelve a prospecto")
+// Un cliente nunca deja de ser cliente: si pasa el plazo sin pedido queda
+// INACTIVO (tenga o no freezer). Con el proximo pedido vuelve a estar activo.
+// ══════════════════════════════════════════════════════════════════════
+function clienteInactivo(c){
+  if(!c||c.esP||c.eliminado)return false;
+  var ref=refInactividad(c);if(!ref)return false;
+  var d=dias(ref);return d!==null&&d>=diasRecaida();
+}
+function clientesInactivos(lista){return (lista||D.cli).filter(clienteInactivo);}
+// ══════════════════════════════════════════════════════════════════════
+// v9.23 — CLASIFICACION AUTOMATICA POR CONSUMO
+// Con los pedidos del CRM (no cancelados). El primer pedido es la carga
+// inicial: no cuenta como consumo. Se mira lo de las ultimas 12 semanas.
+//   A · Alto consumo: reposicion semanal >= $60 mil y pide cada 14 dias o menos -> visita semanal
+//   B · Estable: ya repone -> quincenal
+//   Nuevo: solo la carga inicial, hace 3 semanas o menos -> quincenal
+//   Revisar: sin reponer hace mas de 3 semanas -> quincenal + visita de diagnostico
+//   Inactivo: sin pedido hace mas del plazo (45 dias) -> WhatsApp / evaluar retiro del freezer
+// ══════════════════════════════════════════════════════════════════════
+var CATS={
+  A:{t:'A · Alto consumo',c:'#22c55e',f:'Semanal',o:0},
+  B:{t:'B · Estable',c:'#22d3ee',f:'Quincenal',o:1},
+  N:{t:'Nuevo',c:'#a78bfa',f:'Quincenal',o:2},
+  R:{t:'Revisar',c:'#f59e0b',f:'Quincenal + diagnóstico',o:3},
+  I:{t:'Inactivo',c:'#64748b',f:'WhatsApp / evaluar retiro',o:4},
+  S:{t:'Sin pedidos',c:'#94a3b8',f:'—',o:5}
+};
+var VENT_CONSUMO=84;
+function statsConsumo(cid){
+  var ps=D.ped.filter(function(p){return p.cid===cid&&p.fecha&&estadoPedido(p)!=='anulado';})
+    .sort(function(a,b){return a.fecha.localeCompare(b.fecha)||String(a.id).localeCompare(String(b.id));});
+  var o={pedidos:ps.length,reps:0,consumoSem:0,repProm:0,cadaDias:null,sinPedir:null,primera:'',ultima:'',tend:null,total:0};
+  if(!ps.length)return o;
+  o.primera=ps[0].fecha;o.ultima=ps[ps.length-1].fecha;o.sinPedir=dias(o.ultima);
+  var reps=ps.slice(1);o.reps=reps.length;
+  var lim=sumarDias(today(),-VENT_CONSUMO);
+  var rv=reps.filter(function(p){return p.fecha>=lim;});
+  var base=Math.max(7,Math.min(dias(o.primera)||0,VENT_CONSUMO));
+  var tot=rv.reduce(function(t,p){return t+Number(p.total||0);},0);
+  o.total=tot;
+  o.consumoSem=Math.round(tot/(base/7));
+  o.repProm=rv.length?Math.round(tot/rv.length):(reps.length?Math.round(Number(reps[reps.length-1].total||0)):0);
+  // dias entre pedidos: promedio de los intervalos (los que caen en la ventana)
+  var gaps=[];for(var i=1;i<ps.length;i++){if(ps[i].fecha>=lim){var g=(new Date(ps[i].fecha)-new Date(ps[i-1].fecha))/864e5;if(g>0)gaps.push(g);}}
+  if(gaps.length)o.cadaDias=Math.round(gaps.reduce(function(t,g){return t+g;},0)/gaps.length);
+  // tendencia: ultimas 4 semanas contra las 4 anteriores
+  var l4=sumarDias(today(),-28),l8=sumarDias(today(),-56);
+  var a=reps.filter(function(p){return p.fecha>=l4;}).reduce(function(t,p){return t+Number(p.total||0);},0);
+  var b=reps.filter(function(p){return p.fecha>=l8&&p.fecha<l4;}).reduce(function(t,p){return t+Number(p.total||0);},0);
+  if(a||b)o.tend=b?Math.round((a-b)/b*100):100;
+  return o;
+}
+function categoriaDe(c,st){
+  if(!c||c.esP)return '';
+  st=st||statsConsumo(c.id);
+  if(clienteInactivo(c))return 'I';
+  if(!st.pedidos){
+    var fz=fechaFreezerPuesto(c.id);
+    if(fz)return dias(fz)>Number(aj('clasDiasRevisar'))?'R':'N';
+    return 'S';
+  }
+  if(st.sinPedir>Number(aj('clasDiasRevisar')))return 'R';
+  if(!st.reps)return 'N';
+  if(st.consumoSem>=Number(aj('clasMontoA'))&&st.cadaDias!==null&&st.cadaDias<=Number(aj('clasDiasA')))return 'A';
+  return 'B';
+}
+// Frecuencia que tiene hoy en la semana tipo
+function frecuenciaActual(cid){
+  var vf=visitaFijaDe(cid);if(!vf.length)return '';
+  return vf.some(function(x){return x.tipo==='Semanal';})?'Semanal':'Quincenal';
+}
+function clasificacion(lista){
+  return (lista||D.cli).filter(function(c){return !c.esP&&!c.eliminado;}).map(function(c){
+    var st=statsConsumo(c.id),k=categoriaDe(c,st);
+    var fa=frecuenciaActual(c.id),fs=CATS[k].f;
+    var cambio='';
+    if(k==='A'&&fa==='Quincenal')cambio='Pasar a semanal';
+    else if((k==='B'||k==='N'||k==='R')&&fa==='Semanal')cambio='Pasar a quincenal';
+    else if((k==='A'||k==='B'||k==='N'||k==='R')&&!fa&&tieneFreezerNuestro(c.id))cambio='Sumar a la ruta';
+    else if(k==='I'&&fa)cambio='Sacar de la ruta (solo WhatsApp)';
+    return {c:c,st:st,k:k,cat:CATS[k],fAct:fa,fSug:fs,cambio:cambio,fz:tieneFreezerNuestro(c.id)};
+  });
+}
+function chipCategoria(k,chico){
+  var x=CATS[k];if(!x)return '';
+  return '<span style="font-size:'+(chico?'10':'11')+'px;font-weight:800;padding:2px 8px;border-radius:10px;background:'+x.c+';color:#0b1220;white-space:nowrap">'+es(x.t)+'</span>';
+}
+function consumoFichaHTML(cid){
+  var c=D.cli.find(function(x){return x.id===cid;});if(!c||c.esP)return '';
+  var st=statsConsumo(cid),k=categoriaDe(c,st);
+  var h='<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:var(--s1)">';
+  h+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">'+chipCategoria(k)+'<span style="font-size:11px;color:var(--muted)">visita sugerida: <b>'+es(CATS[k].f)+'</b></span></div>';
+  if(st.pedidos)h+='<div style="font-size:11px;color:var(--muted);line-height:1.6">Consumo <b style="color:var(--text)">'+plata(st.consumoSem)+'/semana</b> · reposición promedio '+plata(st.repProm)+(st.cadaDias!==null?' · pide cada '+st.cadaDias+' días':'')+' · último pedido hace '+st.sinPedir+' días'+(st.tend!==null?' · tendencia '+(st.tend>=0?'+':'')+st.tend+'%':'')+'</div>';
+  else h+='<div style="font-size:11px;color:var(--muted)">Todavía sin pedidos registrados.</div>';
+  return h+'</div>';
+}
+// ── Informe: clasificacion, ranking de puntos Sei Tu y cambios sugeridos ──
+var _clasFiltro='';
+function clasificacionHTML(){
+  var cl=clasificacion(cliGlobal());
+  var cnt={};cl.forEach(function(x){cnt[x.k]=(cnt[x.k]||0)+1;});
+  var conRep=cl.filter(function(x){return x.st.consumoSem>0;}).sort(function(a,b){return b.st.consumoSem-a.st.consumoSem;});
+  var totalSem=conRep.reduce(function(t,x){return t+x.st.consumoSem;},0);
+  var fzR=conRep.filter(function(x){return x.fz;});
+  var h='<div class="card"><div class="ct">CLASIFICACIÓN DE CLIENTES POR CONSUMO</div>';
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Automática con los pedidos del CRM. La carga inicial no cuenta como consumo. Últimas 12 semanas.</div>';
+  h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">';
+  h+='<span class="fb'+(!_clasFiltro?' on':'')+'" onclick="_clasFiltro=\'\';renderGI()">Todos ('+cl.length+')</span>';
+  Object.keys(CATS).forEach(function(k){if(cnt[k])h+='<span class="fb'+(_clasFiltro===k?' on':'')+'" onclick="_clasFiltro=\''+k+'\';renderGI()" style="border-color:'+CATS[k].c+'">'+es(CATS[k].t)+' ('+cnt[k]+')</span>';});
+  h+='</div>';
+  h+='<div class="sg" style="margin-bottom:10px"><div class="sb"><div class="sn" style="font-size:20px;color:var(--green)">'+plata(totalSem)+'</div><div class="sl2">Consumo semanal de la zona</div></div>';
+  h+='<div class="sb"><div class="sn" style="font-size:20px;color:var(--cyan)">'+plata(fzR.length?Math.round(fzR.reduce(function(t,x){return t+x.st.consumoSem;},0)/fzR.length):0)+'</div><div class="sl2">Promedio por freezer</div></div></div>';
+  // Ranking
+  var lista=_clasFiltro?cl.filter(function(x){return x.k===_clasFiltro;}).sort(function(a,b){return b.st.consumoSem-a.st.consumoSem||(a.st.sinPedir||0)-(b.st.sinPedir||0);}):conRep;
+  h+='<div style="font-size:12px;font-weight:800;margin:6px 0">'+(_clasFiltro?es(CATS[_clasFiltro].t):'Ranking de puntos Sei Tu (consumo semanal)')+'</div>';
+  if(!lista.length)h+='<div class="empty">Nadie en esta categoría.</div>';
+  lista.slice(0,60).forEach(function(x,i){
+    var part=totalSem?Math.round(x.st.consumoSem/totalSem*100):0;
+    h+='<div onclick="aFicha(\''+x.c.id+'\')" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer">';
+    h+='<span style="width:22px;font-size:12px;font-weight:800;color:var(--muted);text-align:right">'+(i+1)+'</span>';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(x.c.nm)+(x.fz?' <span style="color:var(--green)">&#10052;</span>':'')+'</div>';
+    h+='<div style="font-size:10px;color:var(--muted)">'+chipCategoria(x.k,true)+' '+(x.st.cadaDias!==null?'cada '+x.st.cadaDias+' d · ':'')+(x.st.sinPedir!==null?'último hace '+x.st.sinPedir+' d':'sin pedidos')+(x.fAct?' · ruta: '+x.fAct:'')+(x.st.tend!==null?' · '+(x.st.tend>=0?'&#9650;':'&#9660;')+Math.abs(x.st.tend)+'%':'')+'</div></div>';
+    h+='<div style="text-align:right"><div style="font-size:13px;font-weight:800">'+plata(x.st.consumoSem)+'</div><div style="font-size:10px;color:var(--muted)">'+(part?part+'% de la zona':'/semana')+'</div></div></div>';
+  });
+  // Cambios sugeridos
+  var camb=cl.filter(function(x){return x.cambio;});
+  if(camb.length){
+    h+='<div style="font-size:12px;font-weight:800;margin:14px 0 6px">Cambios de frecuencia sugeridos ('+camb.length+')</div>';
+    camb.sort(function(a,b){return a.cat.o-b.cat.o;}).forEach(function(x){
+      h+='<div style="font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)"><b>'+es(x.c.nm)+'</b> '+chipCategoria(x.k,true)+' <span style="color:var(--orange);font-weight:700">'+es(x.cambio)+'</span><span style="color:var(--muted)"> · '+plata(x.st.consumoSem)+'/sem</span></div>';
+    });
+    h+='<button class="sm" onclick="abrirSemanaTipo()" style="margin-top:8px">Editar la semana tipo</button>';
+  }
+  h+='<button class="btn sec" onclick="exportarClasificacion()" style="margin:12px 0 0">Exportar a Excel</button>';
+  h+='<div style="font-size:10px;color:var(--muted);margin-top:8px">A: reposición de '+plata(aj('clasMontoA'))+' o más por semana y pide cada '+aj('clasDiasA')+' días o menos → semanal. B: ya repone → quincenal. Nuevo: solo la carga inicial. Revisar: sin reponer hace más de '+aj('clasDiasRevisar')+' días. Inactivo: sin pedido hace más de '+diasRecaida()+' días. Los criterios se cambian en Config › Reglas y ajustes.</div>';
+  return h+'</div>';
+}
+function exportarClasificacion(){
+  if(typeof XLSX==='undefined'){toast('Necesita conexión para exportar','err');return;}
+  var cl=clasificacion(cliGlobal()).sort(function(a,b){return a.cat.o-b.cat.o||b.st.consumoSem-a.st.consumoSem;});
+  var rows=[['Cliente','Barrio','Vendedor','Freezer','Categoría','Consumo semanal','Reposición promedio','Pedidos','Reposiciones','Pide cada (días)','Días sin pedir','Tendencia 4 sem (%)','Frecuencia en la ruta','Frecuencia sugerida','Cambio sugerido']];
+  cl.forEach(function(x){rows.push([x.c.nm,x.c.bar||'',x.c.vend||'',x.fz?'Sí':'No',x.cat.t,x.st.consumoSem,x.st.repProm,x.st.pedidos,x.st.reps,x.st.cadaDias===null?'':x.st.cadaDias,x.st.sinPedir===null?'':x.st.sinPedir,x.st.tend===null?'':x.st.tend,x.fAct||'',x.fSug,x.cambio]);});
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Clasificación');
+  XLSX.writeFile(wb,'Clasificacion_clientes_'+today()+'.xlsx');
+}
+// ══════════════════════════════════════════════════════════════════════
+// v9.23 — MAPA: fondo claro y legible, plan B si fallan los mosaicos,
+// y reacomodo cuando la pantalla termina de mostrarse
+// ══════════════════════════════════════════════════════════════════════
+var CAPAS_MAPA={
+  claro:{n:'Claro (calles)',url:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',att:'&copy; OpenStreetMap &copy; CARTO',sub:'abcd'},
+  oscuro:{n:'Oscuro',url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',att:'&copy; OpenStreetMap &copy; CARTO',sub:'abcd'},
+  osm:{n:'OpenStreetMap',url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',att:'&copy; OpenStreetMap',sub:''}
+};
+function estiloMapa(){try{var e=localStorage.getItem('jmapaEstilo');return CAPAS_MAPA[e]?e:'claro';}catch(e){return 'claro';}}
+function capaBase(estilo){
+  var c=CAPAS_MAPA[estilo]||CAPAS_MAPA.claro;
+  var o={attribution:c.att,maxZoom:19,keepBuffer:4,updateWhenIdle:false};
+  if(c.sub)o.subdomains=c.sub;
+  return L.tileLayer(c.url,o);
+}
+function ponerCapasMapa(mapa){
+  var capas={},act=estiloMapa();
+  Object.keys(CAPAS_MAPA).forEach(function(k){capas[CAPAS_MAPA[k].n]=capaBase(k);capas[CAPAS_MAPA[k].n]._estilo=k;});
+  var base=capas[CAPAS_MAPA[act].n];base.addTo(mapa);
+  if(L.control&&L.control.layers)L.control.layers(capas,null,{position:'topright',collapsed:true}).addTo(mapa);
+  mapa.on&&mapa.on('baselayerchange',function(e){try{localStorage.setItem('jmapaEstilo',e.layer._estilo);}catch(x){}});
+  // Plan B: si el servidor de mosaicos falla seguido, pasa solo a OpenStreetMap
+  var errores=0,cambiado=false;
+  if(base.on)base.on('tileerror',function(){
+    errores++;
+    if(errores>=6&&!cambiado&&act!=='osm'){cambiado=true;try{mapa.removeLayer(base);capas[CAPAS_MAPA.osm.n].addTo(mapa);}catch(x){}}
+  });
+  return base;
+}
+function asegurarMapaVisible(mapa){
+  if(!mapa)return;
+  [150,500,1200].forEach(function(t,i){
+    setTimeout(function(){
+      try{
+        mapa.invalidateSize();
+        if(mapa._ajustar&&mapa._ultBounds&&mapa._ultBounds.length){mapa.fitBounds(mapa._ultBounds,{padding:[35,35],maxZoom:15});if(i===2)mapa._ajustar=false;}
+      }catch(e){}
+    },t);
+  });
+}
+function observarTamanoMapa(mapa,contId){
+  try{
+    var el=document.getElementById(contId);
+    if(el&&typeof ResizeObserver!=='undefined'){new ResizeObserver(function(){try{mapa.invalidateSize();}catch(e){}}).observe(el);}
+  }catch(e){}
+}
+// ══════════════════════════════════════════════════════════════════════
+// v9.23 — ENVIAR EL PEDIDO POR WHATSAPP
+// ══════════════════════════════════════════════════════════════════════
+function enviarPedidoWA(){
+  var el=document.getElementById('pedTxt');
+  var txt=el?(el.value||''):textoFabrica();
+  if(!txt.trim()){toast('Cargá el pedido primero','err');return;}
+  var num=String(aj('waPedidos')||'').replace(/\D/g,'');
+  window.open('https://wa.me/'+(num||'')+'?text='+encodeURIComponent(txt),'_blank');
+  if(!pedActual.editId)toast('Acordate de tocar "Guardar pedido"','ok');
+}
+
+// Por unica vez: los clientes que la regla vieja mando a prospecto (tenian freezer
+// o ya habian comprado) vuelven a ser clientes; si no piden, quedan inactivos.
+function restaurarClientesDeLaRegla(){
+  if(!D.user||D.user.r!=='admin'||!CFG_CARGADA)return;
+  if((Number(D.cfg.clientesInactivosV)||0)>=1)return;
+  var n=0;
+  D.cli.forEach(function(c){
+    if(!c.esP||c.eliminado)return;
+    if(SA.indexOf(c.etapaEmbudo)>=0)return;
+    var compro=!!c.uv||D.ped.some(function(p){return p.cid===c.id&&pedidoEntregado(p);});
+    if(!tieneFreezerNuestro(c.id)&&!compro)return;
+    var ant=c.etapaEmbudo||'';
+    c.esP=false;c.etapaEmbudo='Cliente Activo';c._modBy='Sistema';c._modAt=new Date().toISOString();
+    fsSetContacto(c);
+    logEvento('etapa',c.id,c.nm,'Vuelve a cliente (la regla de los '+diasRecaida()+' días ya no lo pasa a prospecto)',ant,'Cliente Activo');
+    n++;
+  });
+  D.cfg.clientesInactivosV=1;fsSetConfig({clientesInactivosV:1});
+  if(n)toast(n+' cliente'+(n>1?'s':'')+' con freezer o compras volvieron a ser clientes','ok');
 }

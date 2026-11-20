@@ -2,7 +2,7 @@
 // Estrategia: Network First con fallback a cache
 // Cada vez que hay internet, carga la version mas reciente automaticamente
 
-const CACHE = 'crm-jorge-v5'; // subir el numero en cada cambio de este archivo
+const CACHE = 'crm-jorge-v6'; // subir el numero en cada cambio de este archivo
 const ARCHIVOS = [
   '/CRM-Jorge/',
   '/CRM-Jorge/index.html',
@@ -37,7 +37,7 @@ self.addEventListener('fetch', function(e) {
     return; // el navegador lo resuelve directo
   }
   // Mosaicos del mapa y geocodificador: no cachear
-  if (e.request.url.includes('basemaps.cartocdn.com') || e.request.url.includes('nominatim.openstreetmap.org')) {
+  if (e.request.url.includes('basemaps.cartocdn.com') || e.request.url.includes('tile.openstreetmap.org') || e.request.url.includes('nominatim.openstreetmap.org')) {
     return;
   }
 
