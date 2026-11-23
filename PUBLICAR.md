@@ -1,4 +1,21 @@
-# CRM-Jorge — Versión 9.24 · Usuarios a prueba de fallas, informe por barrio y mapa oscuro HD
+# CRM-Jorge — Versión 9.25 · Mapa oscuro que carga y mensajes de ingreso claros
+
+**Solo cambió `app.js`.** Subí los 4 archivos del .zip igual que siempre.
+Para verificar: en el login tiene que decir **9.25 - 23/11/2026**.
+
+## Mapa oscuro
+El oscuro ahora se arma con las mismas imágenes de **Calles (OpenStreetMap)**, que son las que
+te cargan bien, pasadas a colores oscuros. Mismo detalle de calles y nombres, con los puntos
+bien visibles. Se dejó de usar el servidor anterior (CARTO), que fallaba.
+
+## Ingreso
+Si no se puede entrar, el mensaje ahora dice **con qué email se intentó** y el motivo exacto
+(contraseña incorrecta, cuenta no asignada, etc.).
+
+---
+
+(Lo de la 9.24 sigue igual:)
+
 
 **Solo cambió `app.js`.** Subí los 4 archivos del .zip como la vez pasada
 (`app.js`, `index.html`, `estilos.css`, `sw.js`).

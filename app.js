@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.24 - 23/11/2026';
+var VERSION='9.25 - 23/11/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Sin Respuesta','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -1154,7 +1154,7 @@ function msgErrorAuth(cod){
     case 'auth/user-disabled':return 'Este usuario esta desactivado.';
     case 'auth/too-many-requests':return 'Demasiados intentos fallidos. Espera unos minutos y volve a probar.';
     case 'auth/network-request-failed':return 'Sin conexion a internet. Revisa los datos o el WiFi.';
-    default:return 'No se pudo ingresar. Proba de nuevo.';
+    default:return 'No se pudo ingresar ('+(cod||'error')+'). Proba de nuevo.';
   }
 }
 function doLogin(){
@@ -1192,7 +1192,7 @@ function doLogin(){
     .catch(function(err){
       restaurarBoton();
       debugLog('error','Login: '+err.code);
-      e.textContent=msgErrorAuth(err.code);
+      e.textContent=msgErrorAuth(err.code)+' (cuenta: '+email+')';   // v9.25: para saber con que email intento
       e.style.display='block';
     });
 }
@@ -11099,15 +11099,17 @@ function exportarClasificacion(){
 // ══════════════════════════════════════════════════════════════════════
 // v9.24: oscuro en alta definicion (mosaicos dobles: letras y calles mas nitidas y un poco
 // mas grandes, con mas brillo y contraste) y calles de OpenStreetMap. Se saco el claro.
+// v9.25: el oscuro sale de las mismas imagenes de OpenStreetMap (las que cargan bien),
+// invertidas a colores oscuros. El servidor anterior (CARTO) fallaba en esta conexion.
 var CAPAS_MAPA={
-  oscuro:{n:'Oscuro HD',url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',att:'&copy; OpenStreetMap &copy; CARTO',sub:'abcd',hd:true,cls:'tl-oscuro'},
+  oscuro:{n:'Oscuro',url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',att:'&copy; OpenStreetMap',sub:'',cls:'tl-oscuro'},
   osm:{n:'Calles (OpenStreetMap)',url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',att:'&copy; OpenStreetMap',sub:''}
 };
 function estiloMapa(){try{var e=localStorage.getItem('jmapaEstilo');return CAPAS_MAPA[e]?e:'oscuro';}catch(e){return 'oscuro';}}
 function estiloTilesOscuros(){
   if(document.getElementById('tlOscuroCss'))return;
   var st=document.createElement('style');st.id='tlOscuroCss';
-  st.textContent='.tl-oscuro{filter:brightness(1.45) contrast(1.15) saturate(1.1)}';
+  st.textContent='.tl-oscuro{filter:invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.92) saturate(0.55)}';
   document.head.appendChild(st);
 }
 function capaBase(estilo){
