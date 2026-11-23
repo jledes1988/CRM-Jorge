@@ -1,85 +1,55 @@
-# CRM-Jorge — Versión 9.23 · Deuda, visitas, clasificación, inactivos, mapa y WhatsApp
+# CRM-Jorge — Versión 9.24 · Usuarios a prueba de fallas, informe por barrio y mapa oscuro HD
 
-**Esta vez son 4 archivos:** `app.js`, `index.html`, `estilos.css` y **`sw.js`** (cambió).
-Van dentro del .zip. Para verificar: en el login tiene que decir **9.23 - 20/11/2026**.
+**Solo cambió `app.js`.** Subí los 4 archivos del .zip como la vez pasada
+(`app.js`, `index.html`, `estilos.css`, `sw.js`).
+Para verificar: en el login tiene que decir **9.24 - 23/11/2026**.
 
 ---
 
-## 1. Antigüedad de la deuda
+## 1. La cuenta de Jorge vuelve a entrar (y los usuarios no fallan más)
 
-- La deuda empieza a contar **el día de la entrega** del pedido que no se pagó.
-- Los pagos cancelan **primero la deuda más vieja**. Si paga lo anterior y ese mismo día recibe
-  un pedido que no paga, el conteo **arranca de nuevo** desde ese día.
-- Si paga una parte, sigue sumando días desde el pedido viejo...
-- ...salvo que queden **menos de $5.000**: ese saldo chico pasa al pedido siguiente y **no sigue
-  sumando días**. Si el pedido siguiente tampoco lo paga, el atraso cuenta desde ese pedido.
-- En Deudores dice "atraso: N días" o "saldo chico: va con el próximo pedido".
-- Los $5.000 se cambian en **Config › Reglas y ajustes**.
+**Qué pasó:** la ficha del usuario "Jorge" en la base no tenía el email guardado. Entraba gracias
+a un mail escrito en el código, que saqué en la 9.23. Por eso decía "no tiene permisos".
 
-## 2. Pedido y entrega de freezer cuentan como visita
+**Arreglo:**
+- Jorge vuelve a entrar con jledes.tf@gmail.com y su contraseña nueva, sin hacer nada.
+- Al entrar, el sistema **guarda en la ficha de cada usuario su email y el identificador de su
+  cuenta**. Desde ahí lo reconoce aunque se cambie la contraseña o el email.
+- **Config › Usuarios** muestra el email de cada usuario:
+  - "✓ vinculado": ya entró y quedó atado a su cuenta.
+  - "se vincula en su próximo ingreso": todavía no entró con esta versión.
+  - En rojo **"Sin email: no puede entrar"** si le falta: tocás **Email** y lo cargás.
+- Si alguien entra con una cuenta que no está asignada, el mensaje dice **qué email usó** y
+  qué tiene que hacer el administrador.
+- Los vendedores nuevos que crees desde Config ya quedan con su email.
 
-- Al **tomar un pedido** queda registrada una visita de ese día (con el pedido).
-- Al **entregar un freezer**, también.
-- Si después cargás la visita a mano ese mismo día, se **fusiona** con la automática: no queda doble.
-- **Por única vez**, al entrar como JL, los pedidos y entregas de freezer anteriores que no
-  tenían visita ese día se suman como visitas. Te avisa cuántos.
+## 2. Informe por barrio
 
-## 3 y 6. Clasificación automática por consumo
+En **Informes**, nueva sección **POR BARRIO** (respeta el período y el vendedor elegido):
+- **Ranking de barrios por facturado** (lo entregado en el período), con % de la zona, consumo
+  semanal, clientes, freezers, inactivos y prospectos.
+- **Barrios para darles atención:** muchos clientes inactivos, freezers sin reponer, muchos
+  prospectos abiertos con pocos clientes (zona para cerrar), o freezers que rinden poco.
+- **Elegís un barrio** y ves su puesto, facturado, consumo semanal y todos sus clientes con su
+  categoría, más los prospectos abiertos.
+- **Exportar barrios a Excel.**
+- "Nueva Córdoba" y "Nueva Cordoba" cuentan como el mismo barrio.
 
-La hace el CRM solo, con los pedidos (la carga inicial no cuenta como consumo; mira las
-últimas 12 semanas). Mismos criterios que la planilla:
+## 3. Mapa
 
-| Categoría | Regla | Visita sugerida |
-|---|---|---|
-| **A · Alto consumo** | Repone $60 mil o más por semana y pide cada 14 días o menos | Semanal |
-| **B · Estable** | Ya repone | Quincenal |
-| **Nuevo** | Solo la carga inicial, hace 3 semanas o menos | Quincenal |
-| **Revisar** | Sin reponer hace más de 3 semanas | Quincenal + visita de diagnóstico |
-| **Inactivo** | Sin pedido hace más de 45 días | WhatsApp / evaluar retiro del freezer |
+- Se sacó el fondo claro. Quedan **Oscuro HD** (por defecto) y **Calles (OpenStreetMap)**.
+- El oscuro ahora usa **mosaicos de alta definición**: calles y nombres más nítidos y un poco más
+  grandes, con más brillo y contraste, para que se lean sin perder el contraste de los puntos.
 
-Dónde se ve:
-- **Informes › Clasificación de clientes por consumo:** cuántos hay de cada categoría,
-  **ranking de puntos Sei Tu** por consumo semanal (con % de la zona y tendencia de las
-  últimas 4 semanas), consumo semanal de la zona, promedio por freezer y la lista de
-  **cambios de frecuencia sugeridos** comparando con la semana tipo. Botón **Exportar a Excel**.
-- **Ficha del cliente (En la Gira):** categoría, consumo por semana, cada cuántos días pide,
-  tendencia y la visita sugerida.
-- **Dashboard:** avisos de clientes inactivos, freezers para revisar y clientes para cambiar
-  de frecuencia.
-- Los montos y días de los criterios se cambian en **Config › Reglas y ajustes**.
+## 4. WhatsApp
 
-## 4. Cliente inactivo (en vez de volver a prospecto)
-
-- Un cliente **nunca vuelve a prospecto**. Si pasa 45 días sin pedido queda **inactivo**,
-  tenga o no freezer. Con el próximo pedido vuelve a estar activo.
-- En el mapa va en **gris**, y hay un filtro "Clientes inactivos (gris)".
-- **Por única vez**, al entrar como JL, los que la regla vieja había pasado a prospecto y
-  tienen freezer o ya habían comprado vuelven a ser clientes.
-
-## 5. Mapa
-
-- Fondo **claro con calles** (se lee mucho mejor). Arriba a la derecha podés elegir
-  Claro / Oscuro / OpenStreetMap; queda guardado.
-- Se reacomoda varias veces mientras se abre la pantalla, para que no quede gris.
-- Si el servidor del mapa falla, pasa solo a OpenStreetMap.
-
-## 7. Enviar el pedido por WhatsApp
-
-- En el pedido hay un botón verde **Enviar por WhatsApp**: abre el chat con el texto listo.
-- El chat fijo se pone en **Config › Reglas y ajustes › WhatsApp para enviar los pedidos**
-  (número con código de país, ej. 5493511234567).
-- **WhatsApp no permite abrir un grupo directo.** Si los pedidos van a un grupo, dejá el
-  número vacío: el botón abre la lista de chats y elegís el grupo (queda primero en recientes).
-
-## Otro cambio: sin mails escritos en el código
-
-El mail de la cuenta de admin estaba escrito dentro de `app.js` (que es público). Se sacó: cada
-usuario se identifica con el email guardado en su ficha. Para vos no cambia nada en los
-celulares donde ya entraste. En un celular nuevo, la primera vez entrás con tu **email**
-(después alcanza con "jl"). También es un paso necesario para licenciar el sistema.
+- El pedido siempre tiene **"Enviar por WhatsApp (elegir chat)"**: abre la lista de chats y
+  elegís dónde mandarlo (sirve para grupos).
+- Si cargás un número en Config › Reglas y ajustes, aparece además **"Enviar al chat fijo"**.
 
 ---
 
 ## Probado
 
-126 pruebas en el navegador simulado, sin errores (41 nuevas).
+149 pruebas en el navegador simulado, sin errores (23 nuevas), incluido el caso real de la ficha
+de Jorge sin email.

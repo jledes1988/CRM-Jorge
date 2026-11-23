@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.23 - 20/11/2026';
+var VERSION='9.24 - 23/11/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Sin Respuesta','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -1132,7 +1132,7 @@ function sc(g,v){document.querySelectorAll('[data-g="'+g+'"]').forEach(function(
 // v9.23: ya no hay mails escritos en el codigo: cada usuario tiene su email
 // guardado en su ficha de la base (Config > Usuarios). En un celular nuevo,
 // la primera vez se entra con el email; despues alcanza con el usuario.
-var EMAILS_USUARIOS={};
+var EMAILS_USUARIOS={'jorge':'jledes.tf@gmail.com'};   // solo para fichas viejas sin email: al entrar se guarda en su ficha
 // Traduce lo que se escribio en el login a un email. Si ya es un email, lo usa tal cual
 // (asi un usuario nuevo puede entrar sin tocar el codigo).
 function emailDeUsuario(u){
@@ -1217,10 +1217,7 @@ function olvideContrasena(){
 function iniciarSesionApp(fbUser){
   if(!fbUser)return;
   var mail=(fbUser.email||'').toLowerCase();
-  var usr=D.usrs.find(function(x){
-    if(x.email&&x.email.toLowerCase()===mail)return true;
-    return EMAILS_USUARIOS[x.u]&&EMAILS_USUARIOS[x.u].toLowerCase()===mail;
-  });
+  var usr=buscarUsuarioDeCuenta(fbUser);   // v9.24: por uid, por el email de la ficha o por compatibilidad
   // v9.23: si los usuarios de la base todavia no llegaron, se espera un poco antes de rechazar
   if(!usr&&!window._usrsDeLaBase&&(iniciarSesionApp._esperas||0)<12){
     iniciarSesionApp._esperas=(iniciarSesionApp._esperas||0)+1;
@@ -1228,9 +1225,10 @@ function iniciarSesionApp(fbUser){
     return;
   }
   if(usr&&usr.r==='admin'&&fbUser.uid)ls('jrolAdm',fbUser.uid);
+  if(usr)completarFichaUsuario(usr,fbUser);   // v9.24: guarda email y uid en su ficha
   if(!usr){
     var e=document.getElementById('lErr');
-    if(e){e.textContent='Tu cuenta existe pero no tiene permisos asignados. Avisale al administrador.';e.style.display='block';}
+    if(e){e.textContent='La cuenta '+mail+' no está asignada a ningún usuario del CRM. El administrador tiene que cargar este email en Config › Usuarios (botón "Email").';e.style.display='block';}
     document.getElementById('sBoot').classList.remove('on');
     document.getElementById('sLogin').classList.add('on');
     firebase.auth().signOut();
@@ -5073,7 +5071,8 @@ function renderPedido(){
   // Vista previa del texto para fabrica, siempre visible y en vivo
   h+='<div class="card" style="margin-bottom:10px"><div class="ct">VISTA PREVIA PARA FABRICA</div>';
   h+='<textarea class="fi fta" id="pedTxt" rows="10" style="font-size:12px;font-family:monospace;margin:0">'+es(textoFabrica())+'</textarea>';
-  h+='<button class="btn" onclick="enviarPedidoWA()" style="margin:8px 0 0;background:#25D366;color:#0b1220">Enviar por WhatsApp</button>';
+  h+='<button class="btn" onclick="enviarPedidoWAElegir()" style="margin:8px 0 0;background:#25D366;color:#0b1220">Enviar por WhatsApp (elegir chat)</button>';
+  if(aj('waPedidos'))h+='<button class="btn sec" onclick="enviarPedidoWA()" style="margin:8px 0 0;border-color:#25D366;color:#25D366">Enviar al chat fijo (+'+es(aj('waPedidos'))+')</button>';
   h+='<button class="btn sec" onclick="copiarTexto(\'pedTxt\')" style="margin:8px 0 0">Copiar al portapapeles</button>';
   h+='<div style="font-size:11px;color:var(--muted);margin-top:6px">Si el boton no funciona en tu telefono, manten apretado el texto de arriba y elegi Copiar.</div>';
   h+='</div>';
@@ -6712,6 +6711,7 @@ function renderGI(){
 
   h+=ventasMesHTML();
   h+=tomadosVsEntregadosHTML(per);
+  h+=barriosHTML(per);
   h+=clasificacionHTML();
   h+=rankingFreezersHTML();
   // ── PROSPECTOS ──
@@ -6926,8 +6926,10 @@ function renderGCfg(){
     h+='<div class="sr"><div style="flex:1">';
     h+='<div style="font-size:13px;font-weight:700">'+es(u.n)+(u.activo===false?' <span class="tg r">INACTIVO</span>':'')+'</div>';
     h+='<div style="font-size:11px;color:var(--muted)">@'+es(u.u)+' · '+es(u.r)+'</div>';
+    h+=estadoUsuarioHTML(u);
     h+='<div style="font-size:10px;color:var(--muted)">Ultimo acceso: '+(u.ua?fmtTs(u.ua):'Nunca')+'</div></div>';
-    h+='<div style="display:flex;gap:6px">';
+    h+='<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">';
+    h+='<button class="sm" onclick="editarEmailUsuario('+u.id+')" style="font-size:11px">Email</button>';
     h+='<button class="sm" onclick="togActivo('+u.id+')" style="font-size:11px;color:'+(u.activo===false?'var(--green)':'var(--muted)')+'">'+(u.activo===false?'Activar':'Desact.')+'</button>';
     h+='<button class="sm" onclick="cambPass('+u.id+')" style="font-size:11px">Pass</button></div></div>';
   });
@@ -10837,7 +10839,7 @@ var AJ_DEF={waPedidos:'',deudaMinAtraso:5000,clasMontoA:60000,clasDiasA:14,clasD
 function aj(k){var v=D.cfg&&D.cfg.ajustes&&D.cfg.ajustes[k];return (v!==undefined&&v!==null&&v!=='')?v:AJ_DEF[k];}
 function ajustesHTML(){
   var h='<div class="card"><div class="ct">REGLAS Y AJUSTES</div>';
-  h+='<div class="fg"><label class="fl">WhatsApp para enviar los pedidos</label><input class="fi" id="ajWa" inputmode="tel" placeholder="Ej: 5493511234567 (vacío = elegir el chat cada vez)" value="'+es(aj('waPedidos'))+'" style="margin:0"><div style="font-size:11px;color:var(--muted);margin-top:4px">Número con código de país, sin + ni espacios. WhatsApp no deja abrir un <b>grupo</b> directo: si los pedidos van a un grupo, dejalo vacío y el botón te abre la lista de chats para elegirlo.</div></div>';
+  h+='<div class="fg"><label class="fl">WhatsApp para enviar los pedidos</label><input class="fi" id="ajWa" inputmode="tel" placeholder="Opcional. Ej: 5493511234567" value="'+es(aj('waPedidos'))+'" style="margin:0"><div style="font-size:11px;color:var(--muted);margin-top:4px">Número con código de país, sin + ni espacios. El pedido siempre tiene el botón para <b>elegir el chat</b> (sirve para grupos). Si cargás un número, aparece además un botón directo a ese chat. WhatsApp no deja abrir un grupo directo con un número.</div></div>';
   h+='<div class="fg"><label class="fl">Deuda mínima que cuenta días de atraso ($)</label><input class="fi" type="number" min="0" id="ajDeudaMin" value="'+aj('deudaMinAtraso')+'" style="margin:0;width:140px"><div style="font-size:11px;color:var(--muted);margin-top:4px">Si después de pagar queda menos que esto, el saldo pasa al pedido siguiente y no sigue sumando días de atraso.</div></div>';
   h+='<div class="fl" style="margin-top:6px">Clasificación por consumo</div>';
   h+='<div style="display:grid;grid-template-columns:1fr auto;gap:8px 10px;align-items:center;font-size:12px">';
@@ -11095,16 +11097,25 @@ function exportarClasificacion(){
 // v9.23 — MAPA: fondo claro y legible, plan B si fallan los mosaicos,
 // y reacomodo cuando la pantalla termina de mostrarse
 // ══════════════════════════════════════════════════════════════════════
+// v9.24: oscuro en alta definicion (mosaicos dobles: letras y calles mas nitidas y un poco
+// mas grandes, con mas brillo y contraste) y calles de OpenStreetMap. Se saco el claro.
 var CAPAS_MAPA={
-  claro:{n:'Claro (calles)',url:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',att:'&copy; OpenStreetMap &copy; CARTO',sub:'abcd'},
-  oscuro:{n:'Oscuro',url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',att:'&copy; OpenStreetMap &copy; CARTO',sub:'abcd'},
-  osm:{n:'OpenStreetMap',url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',att:'&copy; OpenStreetMap',sub:''}
+  oscuro:{n:'Oscuro HD',url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',att:'&copy; OpenStreetMap &copy; CARTO',sub:'abcd',hd:true,cls:'tl-oscuro'},
+  osm:{n:'Calles (OpenStreetMap)',url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',att:'&copy; OpenStreetMap',sub:''}
 };
-function estiloMapa(){try{var e=localStorage.getItem('jmapaEstilo');return CAPAS_MAPA[e]?e:'claro';}catch(e){return 'claro';}}
+function estiloMapa(){try{var e=localStorage.getItem('jmapaEstilo');return CAPAS_MAPA[e]?e:'oscuro';}catch(e){return 'oscuro';}}
+function estiloTilesOscuros(){
+  if(document.getElementById('tlOscuroCss'))return;
+  var st=document.createElement('style');st.id='tlOscuroCss';
+  st.textContent='.tl-oscuro{filter:brightness(1.45) contrast(1.15) saturate(1.1)}';
+  document.head.appendChild(st);
+}
 function capaBase(estilo){
-  var c=CAPAS_MAPA[estilo]||CAPAS_MAPA.claro;
-  var o={attribution:c.att,maxZoom:19,keepBuffer:4,updateWhenIdle:false};
+  var c=CAPAS_MAPA[estilo]||CAPAS_MAPA.oscuro;
+  var o={attribution:c.att,maxZoom:20,keepBuffer:4,updateWhenIdle:false};
   if(c.sub)o.subdomains=c.sub;
+  if(c.hd){o.tileSize=512;o.zoomOffset=-1;o.minZoom=1;}
+  if(c.cls){o.className=c.cls;estiloTilesOscuros();}
   return L.tileLayer(c.url,o);
 }
 function ponerCapasMapa(mapa){
@@ -11169,4 +11180,149 @@ function restaurarClientesDeLaRegla(){
   });
   D.cfg.clientesInactivosV=1;fsSetConfig({clientesInactivosV:1});
   if(n)toast(n+' cliente'+(n>1?'s':'')+' con freezer o compras volvieron a ser clientes','ok');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// v9.24 — USUARIOS A PRUEBA DE FALLAS
+// Cada usuario del CRM se reconoce por el email de su ficha y, desde su
+// primer ingreso, tambien por su identificador de cuenta (uid). Al entrar se
+// completan solos los datos que falten. En Config > Usuarios se ve el email de
+// cada uno, se avisa si falta y se puede corregir.
+// ══════════════════════════════════════════════════════════════════════
+function buscarUsuarioDeCuenta(fbUser){
+  var mail=(fbUser.email||'').toLowerCase(),uid=fbUser.uid||'';
+  return D.usrs.find(function(x){return uid&&x.uid===uid;})||
+         D.usrs.find(function(x){return x.email&&x.email.toLowerCase()===mail;})||
+         D.usrs.find(function(x){return EMAILS_USUARIOS[x.u]&&EMAILS_USUARIOS[x.u].toLowerCase()===mail;})||null;
+}
+// Guarda en la ficha el email y el uid con los que entro, para que nunca dependa de nada escrito en el codigo
+function completarFichaUsuario(usr,fbUser){
+  var mail=(fbUser.email||'').toLowerCase(),uid=fbUser.uid||'',cambio=false;
+  if(mail&&(usr.email||'').toLowerCase()!==mail){usr.email=mail;cambio=true;}
+  if(uid&&usr.uid!==uid){usr.uid=uid;cambio=true;}
+  if(cambio){try{fsSetUsuario(usr);}catch(e){}}
+}
+function editarEmailUsuario(uid2){
+  if(!D.user||D.user.r!=='admin'){toast('Solo el administrador','err');return;}
+  var u=D.usrs.find(function(x){return x.id==uid2;});if(!u)return;
+  var h='<div style="font-size:14px;margin-bottom:6px"><b>'+es(u.n)+'</b> <span style="color:var(--muted)">@'+es(u.u)+'</span></div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Tiene que ser <b>el mismo email</b> con el que entra (el de su cuenta). Si no coincide, al entrar le dice "no tiene permisos".</div>';
+  h+='<input class="fi" id="edMail" type="email" autocapitalize="none" value="'+es(u.email||EMAILS_USUARIOS[u.u]||'')+'" placeholder="email@ejemplo.com">';
+  h+='<button class="btn" onclick="guardarEmailUsuario(\''+uid2+'\')" style="margin:6px 0 0">Guardar</button>';
+  oMod('Email del usuario',h);
+}
+function guardarEmailUsuario(uid2){
+  var u=D.usrs.find(function(x){return x.id==uid2;});if(!u)return;
+  var m=((document.getElementById('edMail')||{}).value||'').trim().toLowerCase();
+  if(m.indexOf('@')<1||m.indexOf('.')<0){toast('El email no es válido','err');return;}
+  if(D.usrs.some(function(x){return x.id!=u.id&&(x.email||'').toLowerCase()===m;})){toast('Ese email ya es de otro usuario','err');return;}
+  u.email=m;delete u.uid;   // el uid se vuelve a completar en su proximo ingreso
+  fsSetUsuario(u);
+  logEvento('usuario','','','Email de '+u.n+' corregido','','');
+  cMod();renderGCfg();toast('Listo: '+u.n+' ya puede entrar con '+m,'ok');
+}
+function estadoUsuarioHTML(u){
+  var mail=u.email||EMAILS_USUARIOS[u.u]||'';
+  if(!mail)return '<div style="font-size:11px;color:var(--red);font-weight:700">Sin email: no puede entrar. Tocá "Email".</div>';
+  return '<div style="font-size:11px;color:var(--muted)">'+es(mail)+(u.uid?' <span style="color:var(--green)">&#10003; vinculado</span>':' <span style="color:var(--orange)">· se vincula en su próximo ingreso</span>')+'</div>';
+}
+// ══════════════════════════════════════════════════════════════════════
+// v9.24 — INFORME POR BARRIO
+// Que barrio factura mas, cuanto rinde cada uno y a cual darle atencion.
+// Usa lo ENTREGADO en el periodo elegido (igual que el resto de los informes).
+// ══════════════════════════════════════════════════════════════════════
+var _barrioInf='';
+function datosBarrios(per){
+  var cli=cliGlobal(),cl=clasificacion(cli),catDe={};
+  cl.forEach(function(x){catDe[x.c.id]=x;});
+  var ent=pedidosEntregadosEn(pedidosAlcanceAdmin(),per.desde,per.hasta);
+  var B={};
+  function b(c){
+    var k=normTxt(c.bar||'')||'(sin barrio)';
+    if(!B[k])B[k]={k:k,n:c.bar||'(sin barrio)',cli:0,act:0,inac:0,rev:0,fz:0,pros:0,fact:0,ped:0,sem:0,ids:[]};
+    return B[k];
+  }
+  cli.forEach(function(c){
+    var x=b(c);x.ids.push(c.id);
+    if(c.esP){if(SA.indexOf(c.etapaEmbudo)<0)x.pros++;return;}
+    x.cli++;
+    var k=catDe[c.id];
+    if(k){if(k.k==='I')x.inac++;else x.act++;if(k.k==='R')x.rev++;x.sem+=k.st.consumoSem;if(k.fz)x.fz++;}
+  });
+  var cidBar={};cli.forEach(function(c){cidBar[c.id]=normTxt(c.bar||'')||'(sin barrio)';});
+  ent.forEach(function(p){var k=cidBar[p.cid];if(!k||!B[k])return;B[k].fact+=Number(p.total||0);B[k].ped++;});
+  return Object.keys(B).map(function(k){return B[k];});
+}
+function barriosHTML(per){
+  var L=datosBarrios(per).filter(function(x){return x.cli||x.pros;});
+  var tot=L.reduce(function(t,x){return t+x.fact;},0);
+  L.sort(function(a,b){return b.fact-a.fact||b.sem-a.sem||b.cli-a.cli;});
+  var h='<div class="card"><div class="ct">POR BARRIO</div>';
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Facturado = pedidos entregados en el período elegido arriba'+(gVendSel?' (vendedor: '+es(gVendSel)+')':'')+'. Consumo semanal = últimas 12 semanas.</div>';
+  h+='<select onchange="_barrioInf=this.value;renderGI()" style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:8px 12px;font-size:12px;font-weight:600;margin-bottom:10px"><option value="">Todos los barrios (ranking)</option>';
+  L.slice().sort(function(a,b){return a.n.localeCompare(b.n);}).forEach(function(x){h+='<option value="'+es(x.k)+'"'+(_barrioInf===x.k?' selected':'')+'>'+es(x.n)+'</option>';});
+  h+='</select>';
+  if(_barrioInf){
+    var x=L.find(function(z){return z.k===_barrioInf;});
+    if(!x){_barrioInf='';return barriosHTML(per);}
+    var pos=L.indexOf(x)+1;
+    h+='<div class="sg" style="margin-bottom:10px">';
+    h+='<div class="sb"><div class="sn" style="font-size:20px;color:var(--green)">'+plata(x.fact)+'</div><div class="sl2">Facturado · #'+pos+' de '+L.length+'</div></div>';
+    h+='<div class="sb"><div class="sn" style="font-size:20px;color:var(--cyan)">'+plata(x.sem)+'</div><div class="sl2">Consumo semanal</div></div>';
+    h+='<div class="sb"><div class="sn" style="font-size:20px">'+x.cli+'</div><div class="sl2">Clientes ('+x.fz+' con freezer)</div></div>';
+    h+='<div class="sb"><div class="sn" style="font-size:20px;color:var(--purple)">'+x.pros+'</div><div class="sl2">Prospectos abiertos</div></div>';
+    h+='</div>';
+    var det=clasificacion(cliGlobal().filter(function(c){return (normTxt(c.bar||'')||'(sin barrio)')===x.k;})).sort(function(a,b){return b.st.consumoSem-a.st.consumoSem;});
+    det.forEach(function(d){
+      h+='<div onclick="aFicha(\''+d.c.id+'\')" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">'+es(d.c.nm)+(d.fz?' <span style="color:var(--green)">&#10052;</span>':'')+'</div><div style="font-size:10px">'+chipCategoria(d.k,true)+' <span style="color:var(--muted)">'+(d.st.sinPedir!==null?'último pedido hace '+d.st.sinPedir+' d':'sin pedidos')+'</span></div></div><div style="font-size:13px;font-weight:800">'+plata(d.st.consumoSem)+'<span style="font-size:10px;color:var(--muted);font-weight:600">/sem</span></div></div>';
+    });
+    var pr=cliGlobal().filter(function(c){return c.esP&&SA.indexOf(c.etapaEmbudo)<0&&(normTxt(c.bar||'')||'(sin barrio)')===x.k;});
+    if(pr.length)h+='<div style="font-size:12px;margin-top:10px"><b>Prospectos abiertos:</b> '+pr.map(function(c){return '<span onclick="aFicha(\''+c.id+'\')" style="cursor:pointer;text-decoration:underline">'+es(c.nm)+'</span> <span style="color:'+(EC[c.etapaEmbudo]||'var(--muted)')+'">('+es(c.etapaEmbudo)+')</span>';}).join(', ')+'</div>';
+    return h+'</div>';
+  }
+  // Ranking
+  h+='<div style="display:grid;grid-template-columns:22px 1fr auto;gap:2px 8px;font-size:12px;align-items:center">';
+  L.forEach(function(x,i){
+    var part=tot?Math.round(x.fact/tot*100):0;
+    h+='<span style="color:var(--muted);font-weight:800;text-align:right">'+(i+1)+'</span>';
+    h+='<div onclick="_barrioInf=\''+es(x.k).replace(/'/g,"\\'")+'\';renderGI()" style="cursor:pointer;padding:5px 0"><div style="font-weight:700">'+es(x.n)+'</div><div style="font-size:10px;color:var(--muted)">'+x.cli+' cliente'+(x.cli!==1?'s':'')+(x.fz?' · '+x.fz+' freezer'+(x.fz!==1?'s':''):'')+(x.inac?' · <span style="color:var(--orange)">'+x.inac+' inactivo'+(x.inac!==1?'s':'')+'</span>':'')+(x.pros?' · '+x.pros+' prospecto'+(x.pros!==1?'s':''):'')+'</div>';
+    h+='<div style="height:4px;background:var(--s2);border-radius:2px;margin-top:3px"><div style="height:4px;width:'+Math.max(part,x.fact?2:0)+'%;background:var(--green);border-radius:2px"></div></div></div>';
+    h+='<div style="text-align:right"><div style="font-weight:800">'+plata(x.fact)+'</div><div style="font-size:10px;color:var(--muted)">'+(part?part+'%':'')+(x.sem?' · '+plata(x.sem)+'/sem':'')+'</div></div>';
+  });
+  h+='</div>';
+  // A cual darle atencion
+  var at=[];
+  L.forEach(function(x){
+    if(x.inac>=2||(x.cli&&x.inac/x.cli>=0.4&&x.inac))at.push({x:x,m:x.inac+' cliente'+(x.inac!==1?'s':'')+' inactivo'+(x.inac!==1?'s':'')+' de '+x.cli+': ir a recuperarlos',o:1});
+    else if(x.rev)at.push({x:x,m:x.rev+' freezer'+(x.rev!==1?'s':'')+' sin reponer hace más de '+aj('clasDiasRevisar')+' días',o:2});
+    if(x.pros>=3&&x.cli<=2)at.push({x:x,m:x.pros+' prospectos abiertos y '+x.cli+' cliente'+(x.cli!==1?'s':'')+': zona para prospectar y cerrar',o:3});
+    if(x.fz&&x.sem/x.fz<Number(aj('clasMontoA'))/3&&x.cli>=2)at.push({x:x,m:'rinde poco por freezer ('+plata(Math.round(x.sem/x.fz))+'/sem): revisar exhibición y surtido',o:4});
+  });
+  if(at.length){
+    h+='<div style="font-size:12px;font-weight:800;margin:14px 0 6px">Barrios para darles atención</div>';
+    at.sort(function(a,b){return a.o-b.o;}).slice(0,10).forEach(function(a){
+      h+='<div onclick="_barrioInf=\''+es(a.x.k).replace(/'/g,"\\'")+'\';renderGI()" style="font-size:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer"><b>'+es(a.x.n)+'</b> <span style="color:var(--orange)">'+a.m+'</span></div>';
+    });
+  }
+  h+='<button class="btn sec" onclick="exportarBarrios()" style="margin:12px 0 0">Exportar barrios a Excel</button>';
+  return h+'</div>';
+}
+function exportarBarrios(){
+  if(typeof XLSX==='undefined'){toast('Necesita conexión para exportar','err');return;}
+  var per=getPerInf();
+  var L=datosBarrios(per).filter(function(x){return x.cli||x.pros;}).sort(function(a,b){return b.fact-a.fact;});
+  var rows=[['Barrio','Facturado ('+per.desde+' a '+per.hasta+')','Pedidos entregados','Consumo semanal','Clientes','Activos','Inactivos','Con freezer','Para revisar','Prospectos abiertos']];
+  L.forEach(function(x){rows.push([x.n,x.fact,x.ped,x.sem,x.cli,x.act,x.inac,x.fz,x.rev,x.pros]);});
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Barrios');
+  XLSX.writeFile(wb,'Barrios_'+today()+'.xlsx');
+}
+// ══════════════════════════════════════════════════════════════════════
+// v9.24 — WhatsApp: siempre se puede elegir el chat; si hay uno fijo, boton directo
+// ══════════════════════════════════════════════════════════════════════
+function enviarPedidoWAElegir(){
+  var el=document.getElementById('pedTxt');
+  var txt=el?(el.value||''):textoFabrica();
+  if(!txt.trim()){toast('Cargá el pedido primero','err');return;}
+  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+  if(!pedActual.editId)toast('Acordate de tocar "Guardar pedido"','ok');
 }
