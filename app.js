@@ -4,7 +4,7 @@
 
 // Version de la app: actualizar en CADA entrega para poder verificar
 // que version tiene cargada cada dispositivo (login y Config > Debug)
-var VERSION='9.25 - 23/11/2026';
+var VERSION='9.26 - 25/11/2026';
 
 var ET=['Nuevo Prospecto','Contactado','Propuesta Enviada','Sin Respuesta','Negociacion','Cliente Activo'];
 var SA=['No Le Interesa','Perdido'];
@@ -4903,6 +4903,13 @@ function editarPedidoCompleto(pid){
   if(soloLectura())return;
   var p=D.ped.find(function(x){return x.id===pid;});if(!p)return;
   var c=D.cli.find(function(x){return x.id===p.cid;});if(!c){toast('No encuentro el cliente de este pedido','err');return;}
+  var r=pedActualDesdePedido(p);
+  pedActual=r.ped;
+  if(r.perdidos.length)toast('Ojo: '+r.perdidos.length+' renglon(es) ya no existen en el catalogo y no se pudieron recuperar: '+r.perdidos.join(', '),'err');
+  renderPedido();
+}
+// v9.26: arma el pedido "en edicion" a partir de uno guardado (lo usan editar y enviar)
+function pedActualDesdePedido(p){
   var items={},frac={},mats={},perdidos=[];
   (p.items||[]).forEach(function(it){
     var prod=productos().find(function(x){return x.id===it.id;});
@@ -4921,11 +4928,28 @@ function editarPedidoCompleto(pid){
   var cobradoPrev=p.cobrado!==undefined?Number(p.cobrado||0):Number(p.total||0);
   var debePrev=Number(p.total||0)-cobradoPrev;
   var cobro=debePrev<=0?'todo':(cobradoPrev>0?'parte':'nada');
-  pedActual={cid:p.cid,editId:p.id,fechaOrig:p.fecha,items:items,frac:frac,mats:mats,
+  return {ped:{cid:p.cid,editId:p.id,fechaOrig:p.fecha,items:items,frac:frac,mats:mats,
     notaPago:p.notaPago||'',notaConv:p.notaConv||'',obs:p.obs||'',instr:p.instr||'',
-    cobro:cobro,cobrado:cobradoPrev,prom:compromisoDe(p.cid)||''};
-  if(perdidos.length)toast('Ojo: '+perdidos.length+' renglon(es) ya no existen en el catalogo y no se pudieron recuperar: '+perdidos.join(', '),'err');
-  renderPedido();
+    cobro:cobro,cobrado:cobradoPrev,prom:compromisoDe(p.cid)||''},perdidos:perdidos};
+}
+// Texto para la fabrica de un pedido ya guardado, sin abrir el editor
+function textoPedidoGuardado(pid){
+  var p=D.ped.find(function(x){return x.id===pid;});if(!p)return '';
+  var prev=pedActual;
+  try{pedActual=pedActualDesdePedido(p).ped;return textoFabrica();}
+  finally{pedActual=prev;}
+}
+function enviarPedidoGuardadoWA(pid,fijo){
+  var txt=textoPedidoGuardado(pid);
+  if(!txt.trim()){toast('No se pudo armar el texto del pedido','err');return;}
+  var num=fijo?String(aj('waPedidos')||'').replace(/\D/g,''):'';
+  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(txt),'_blank');
+}
+function copiarPedidoGuardado(pid){
+  var txt=textoPedidoGuardado(pid);
+  var ok=function(){toast('Pedido copiado','ok');};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(ok,function(){prompt('Copiá el pedido:',txt);});
+  else prompt('Copiá el pedido:',txt);
 }
 function abrirPedido(cid){
   var c=D.cli.find(function(x){return x.id===cid;});if(!c)return;
@@ -5535,6 +5559,10 @@ function verPedido(pid){
   });
   if(p.mats&&p.mats.length)h+='<div style="font-size:11px;color:var(--muted);margin-top:8px">Comodato: '+es(p.mats.join(', '))+'</div>';
   h+='<div style="text-align:right;margin:12px 0;font-size:18px;font-weight:900;color:var(--green)">'+plata(p.total)+'</div>';
+  // v9.26: enviar o copiar el pedido sin entrar a editarlo
+  h+='<button class="btn" onclick="enviarPedidoGuardadoWA(\''+pid+'\',false)" style="margin:0 0 8px;background:#25D366;color:#0b1220">Enviar por WhatsApp (elegir chat)</button>';
+  if(aj('waPedidos'))h+='<button class="btn sec" onclick="enviarPedidoGuardadoWA(\''+pid+'\',true)" style="margin:0 0 8px;border-color:#25D366;color:#25D366">Enviar al chat fijo (+'+es(aj('waPedidos'))+')</button>';
+  h+='<button class="btn sec" onclick="copiarPedidoGuardado(\''+pid+'\')" style="margin:0 0 12px">Copiar el texto del pedido</button>';
   if(p.corr)h+='<div style="font-size:11px;color:var(--muted);margin:-6px 0 10px;text-align:right">Corregido el '+fmt(p.corr)+(p.corrPor?' por '+es(p.corrPor):'')+'</div>';
   if(pedidoEntregado(p)){
     var _cob=p.cobrado!==undefined?Number(p.cobrado||0):Number(p.total||0);

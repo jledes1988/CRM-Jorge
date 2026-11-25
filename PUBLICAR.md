@@ -1,3 +1,21 @@
+# CRM-Jorge — Versión 9.26 · Enviar el pedido por WhatsApp sin editarlo
+
+**Solo cambió `app.js`.** Subí los 4 archivos del .zip igual que siempre.
+Para verificar: en el login tiene que decir **9.26 - 25/11/2026**.
+
+## Enviar desde el pedido abierto
+En **Ventas › Pedidos**, al tocar un pedido se abre con tres botones nuevos, arriba de
+"Guardar correcciones":
+- **Enviar por WhatsApp (elegir chat)**: abre WhatsApp con el texto del pedido listo y elegís
+  el chat o el grupo.
+- **Enviar al chat fijo**: solo si cargaste un número en Config › Reglas y ajustes.
+- **Copiar el texto del pedido.**
+
+No hace falta entrar a "Editar el pedido completo". El texto es el mismo que arma el editor
+(el primer pedido de un cliente sale con el encabezado completo). El gerente también puede enviarlo.
+
+---
+
 # CRM-Jorge — Versión 9.25 · Mapa oscuro que carga y mensajes de ingreso claros
 
 **Solo cambió `app.js`.** Subí los 4 archivos del .zip igual que siempre.
